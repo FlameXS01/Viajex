@@ -16,6 +16,10 @@ class UserRepository(ABC):
         pass
     
     @abstractmethod
+    def exists_by_email(self, email: str) -> bool:
+        pass
+    
+    @abstractmethod
     def get_all(self) -> List[User]:
         pass
     
@@ -25,5 +29,9 @@ class UserRepository(ABC):
     
     @abstractmethod
     def delete(self, user_id: int) -> bool:
+        pass
+    
+    @abstractmethod
+    def update(self, user: User) -> User:
         pass
 

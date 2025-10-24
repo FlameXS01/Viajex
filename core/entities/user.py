@@ -9,6 +9,7 @@ class User:
     username: str = ""
     email: Email = field(default_factory=lambda: Email(f"default{id}@example.com"))
     role: UserRole = UserRole.USER
+    hash_password: str = ""
     created_at: datetime = field(default_factory=datetime.now)
     is_active: bool = True
     

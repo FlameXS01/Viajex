@@ -1,4 +1,3 @@
-# core/entities/dieta_base.py
 from abc import ABC
 from typing import List, Optional
 from datetime import datetime
@@ -12,6 +11,7 @@ class DietaBase(ABC):
     creada_at: str                                                              # Formato "dd-mm-yy"
     descripcion: str
     es_grupal: bool
+    id: Optional[int] = None
     cantidad_personas: int = 1
     opciones: List[OpcionBase] = field(default_factory=list)
     

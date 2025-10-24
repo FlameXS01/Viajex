@@ -5,6 +5,7 @@ from .enums import EstadoAnticipo, EstadoLiquidacion
 
 @dataclass
 class DietaAnticipo(DietaBase):
+    
     estado: EstadoAnticipo = EstadoAnticipo.PENDIENTE
     numero_anticipo: Optional[str] = None
     

@@ -1,4 +1,3 @@
-# core/entities/opciones_controladas.py
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -6,6 +5,8 @@ from core.entities.value_objects import UserRole
 from .enums import TipoServicio, MetodoPagoHospedaje
 
 class OpcionBase(ABC):
+    id: int
+    
     def __init__(self, tipo_servicio: TipoServicio, metodo_pago: Optional[MetodoPagoHospedaje] = MetodoPagoHospedaje.EFECTIVO):
         self.tipo_servicio = tipo_servicio
         self.metodo_pago = metodo_pago
