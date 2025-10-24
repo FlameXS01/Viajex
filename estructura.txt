@@ -1,0 +1,53 @@
+dietas_app/
+├── main.py
+├── core/
+│   ├── __init__.py
+│   ├── entities/
+│   │   ├── __init__.py
+│   │   ├── user.py
+│   │   ├── diet.py
+│   │   ├── card.py
+│   │   └── value_objects.py
+│   ├── repositories/
+│   │   ├── __init__.py
+│   │   ├── user_repository.py
+│   │   ├── *_repository.py
+│   │   
+│   └── use_cases/
+│       ├── __init__.py
+│       ├── auth/
+│       ├── users/
+│       ├── */
+|
+├── infrastructure/
+│   ├── __init__.py
+│   ├── database/
+│   │   ├── __init__.py
+│   │   ├── models.py
+│   │   ├── repositories/
+│   │   └── session.py
+│   ├── email/
+│   │   ├── __init__.py
+│   │   └── email_sender.py
+│   └── security/
+│       ├── __init__.py
+│       └── password_hasher.py
+├── presentation/
+│   ├── __init__.py
+│   ├── gui/
+│   │   ├── __init__.py
+│   │   ├── main_window.py
+│   │   ├── widgets/
+│   │   └── dialogs/
+│   └── cli/  # (futuras interfaces)
+├── application/
+│   ├── __init__.py
+│   ├── controllers/
+│   ├── dtos/
+│   └── services/
+└── config/
+    ├── __init__.py
+    └── settings.py
+
+
+presentation → application → core ← infrastructure
