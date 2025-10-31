@@ -1,30 +1,34 @@
 dietas_app/
-├── main.py
+├── main.py                         # Punto de entrada de la aplicación
 ├── core/
 │   ├── __init__.py
 │   ├── entities/
 │   │   ├── __init__.py
 │   │   ├── user.py
-│   │   ├── diet.py
-│   │   ├── card.py
-│   │   └── value_objects.py
 │   ├── repositories/
 │   │   ├── __init__.py
 │   │   ├── user_repository.py
-│   │   ├── *_repository.py
-│   │   
 │   └── use_cases/
 │       ├── __init__.py
 │       ├── auth/
+│       │   ├── __init__.py
+│       │   └── login.py
 │       ├── users/
-│       ├── */
-|
+│       │   ├── __init__.py
+│       │   ├── create_user.py
+│       │   ├── update_user.py
+│       │   ├── update_user_role.py
+│       │   ├── update_user_password.py
+│       │   ├── toggle_user_active.py
+│       │   └── delete_user.py
 ├── infrastructure/
 │   ├── __init__.py
 │   ├── database/
 │   │   ├── __init__.py
 │   │   ├── models.py
 │   │   ├── repositories/
+│   │   │   ├── __init__.py
+│   │   │   └── user_repository_impl.py
 │   │   └── session.py
 │   ├── email/
 │   │   ├── __init__.py
@@ -36,18 +40,37 @@ dietas_app/
 │   ├── __init__.py
 │   ├── gui/
 │   │   ├── __init__.py
-│   │   ├── main_window.py
-│   │   ├── widgets/
-│   │   └── dialogs/
-│   └── cli/  # (futuras interfaces)
+│   │   ├── login_window.py          
+│   │   ├── main_app_window.py       # Ventana principal de la aplicación (después del login)
+│   │   ├── user_presentation/       
+│   │   │   ├── __init__.py
+│   │   │   ├── user_main_window.py  
+│   │   │   ├── widgets/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── user_form.py
+│   │   │   │   ├── user_list.py
+│   │   │   │   └── user_actions.py
+│   │   │   ├── dialogs/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── user_dialog.py
+│   │   │   │   ├── change_role_dialog.py
+│   │   │   │   ├── change_password_dialog.py
+│   │   │   │   └── confirm_dialog.py
+│   │   │   └── utils/
+│   │   │       ├── __init__.py
+│   │   │       └── window_utils.py
+│   │   └── utils/
+│   │       ├── __init__.py
+│   │       └── window_utils.py      # Utilidades generales para ventanas
+│   └── cli/                         # (futuras interfaces)
 ├── application/
 │   ├── __init__.py
 │   ├── controllers/
 │   ├── dtos/
 │   └── services/
+│       ├── __init__.py
+│       ├── user_service.py
+│       └── auth_service.py          
 └── config/
     ├── __init__.py
     └── settings.py
-
-
-presentation → application → core ← infrastructure

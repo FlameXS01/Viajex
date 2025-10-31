@@ -1,9 +1,8 @@
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import ttk, messagebox
 from application.services.user_service import UserService
 
-# Importar nuestros nuevos componentes modulares
-from presentation.gui.utils.windows_utils import WindowUtils
+# Importar componentes modulares
 from presentation.gui.user_presentation.widgets.user_list import UserList
 from presentation.gui.user_presentation.widgets.user_actions import UserActions
 from presentation.gui.user_presentation.dialogs.user_dialog import UserDialog
@@ -11,61 +10,55 @@ from presentation.gui.user_presentation.dialogs.change_password_dialog import Ch
 from presentation.gui.user_presentation.dialogs.change_role_dialog import ChangeRoleDialog
 from presentation.gui.user_presentation.dialogs.confirm_dialog import ConfirmDialog
 
-class MainWindow:
-    """Ventana principal de la aplicación - Versión modularizada"""
+class UserModule(ttk.Frame):
+    """Módulo de gestión de usuarios para embeber en el dashboard"""
     
-    def __init__(self, user_service: UserService):
+    def __init__(self, parent, user_service: UserService):
+        super().__init__(parent)
         self.user_service = user_service
         self.selected_user_id = None
         
-        # Configurar ventana principal
-        self.root = tk.Tk()
-        self.root.title("Sistema de Gestión de Dietas")
-        self.root.geometry("1000x700")
-        self.root.configure(bg='#f0f0f0')
-        
-        # Hacer responsive
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
-        
-        self._setup_styles()
+        self.configure(style='Content.TFrame')
         self._create_widgets()
         self._load_users()
 
-    def _setup_styles(self):
-        """Configura estilos personalizados"""
-        style = ttk.Style()
-        style.configure('Title.TLabel', font=('Arial', 18, 'bold'), background='#f0f0f0')
-        style.configure('Section.TLabelframe.Label', font=('Arial', 10, 'bold'))
-
     def _create_widgets(self):
-        """Crea los widgets principales usando componentes modulares"""
-        main_frame = ttk.Frame(self.root, padding="20")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        main_frame.columnconfigure(0, weight=1)
-        main_frame.rowconfigure(2, weight=1)
+        """Crea la interfaz del módulo de usuarios"""
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)  # La lista ocupará el espacio principal
+        
+        # Header del módulo
+        header_frame = ttk.Frame(self, style='Content.TFrame')
+        header_frame.grid(row=0, column=0, sticky='ew', pady=(0, 20))
+        header_frame.columnconfigure(1, weight=1)
         
         # Título
-        title_label = ttk.Label(main_frame, text="Gestión de Usuarios", style='Title.TLabel')
-        title_label.grid(row=0, column=0, pady=(0, 20), sticky=tk.W+tk.E)
+        ttk.Label(header_frame, text="Gestión de Usuarios", 
+                 font=('Arial', 18, 'bold'), style='Content.TLabel').grid(row=0, column=0, sticky='w')
         
-        # Botón para crear usuario
-        create_button = ttk.Button(main_frame, text="Crear Nuevo Usuario", 
-                                 command=self._create_user)
-        create_button.grid(row=1, column=0, sticky=tk.W, pady=(0, 15))
+        # Botón de crear usuario (alineado a la derecha)
+        create_btn = ttk.Button(header_frame, text="➕ Crear Usuario", 
+                               command=self._create_user)
+        create_btn.grid(row=0, column=1, sticky='e', padx=(0, 10))
         
-        # Lista de usuarios (componente modular)
-        list_frame = ttk.LabelFrame(main_frame, text="Usuarios Existentes", padding="10")
-        list_frame.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 15))
+        # Contenido principal (lista + acciones)
+        content_frame = ttk.Frame(self, style='Content.TFrame')
+        content_frame.grid(row=1, column=0, sticky='nsew')
+        content_frame.columnconfigure(0, weight=1)
+        content_frame.rowconfigure(0, weight=1)
+        
+        # Lista de usuarios
+        list_frame = ttk.LabelFrame(content_frame, text="Usuarios Registrados", padding="15")
+        list_frame.grid(row=0, column=0, sticky='nsew', pady=(0, 15))
         list_frame.columnconfigure(0, weight=1)
         list_frame.rowconfigure(0, weight=1)
         
         self.user_list = UserList(list_frame, self._on_user_select)
-        self.user_list.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.user_list.grid(row=0, column=0, sticky='nsew')
         
-        # Acciones de usuario (componente modular)
-        actions_frame = ttk.LabelFrame(main_frame, text="Acciones", padding="15")
-        actions_frame.grid(row=3, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        # Panel de acciones
+        actions_frame = ttk.LabelFrame(content_frame, text="Acciones Disponibles", padding="15")
+        actions_frame.grid(row=1, column=0, sticky='ew')
         
         self.user_actions = UserActions(actions_frame, {
             'edit': self._edit_user,
@@ -74,10 +67,10 @@ class MainWindow:
             'toggle_active': self._toggle_active,
             'delete': self._delete_user
         })
-        self.user_actions.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        self.user_actions.grid(row=0, column=0, sticky='ew')
 
     def _on_user_select(self, user_id):
-        """Maneja la selección de usuarios"""
+        """Maneja la selección de usuarios en la lista"""
         self.selected_user_id = user_id
         if user_id:
             self.user_actions.set_buttons_state(tk.NORMAL)
@@ -86,7 +79,7 @@ class MainWindow:
 
     def _create_user(self):
         """Abre diálogo para crear nuevo usuario"""
-        dialog = UserDialog(self.root, self.user_service)
+        dialog = UserDialog(self, self.user_service)
         result = dialog.show()
         if result:
             self._load_users()
@@ -98,7 +91,7 @@ class MainWindow:
             
         user = self.user_service.get_user_by_id(self.selected_user_id)
         if user:
-            dialog = UserDialog(self.root, self.user_service, user)
+            dialog = UserDialog(self, self.user_service, user)
             result = dialog.show()
             if result:
                 self._load_users()
@@ -110,7 +103,7 @@ class MainWindow:
             
         user = self.user_service.get_user_by_id(self.selected_user_id)
         if user:
-            ChangeRoleDialog(self.root, self.user_service, self.selected_user_id, user.role)
+            ChangeRoleDialog(self, self.user_service, self.selected_user_id, user.role)
             self._load_users()
 
     def _change_password(self):
@@ -118,8 +111,7 @@ class MainWindow:
         if not self.selected_user_id:
             return
             
-        ChangePasswordDialog(self.root, self.user_service, self.selected_user_id)
-        # No necesitamos recargar la lista después de cambiar contraseña
+        ChangePasswordDialog(self, self.user_service, self.selected_user_id)
 
     def _toggle_active(self):
         """Activa/desactiva el usuario seleccionado"""
@@ -157,7 +149,7 @@ class MainWindow:
                 messagebox.showerror("Error", f"No se pudo eliminar el usuario: {str(e)}")
 
         ConfirmDialog(
-            self.root,
+            self,
             "Confirmar Eliminación",
             f"¿Estás seguro de que quieres eliminar al usuario '{user.username}'?\nEsta acción no se puede deshacer.",
             confirm_delete
@@ -170,10 +162,3 @@ class MainWindow:
             self.user_list.load_users(users)
         except Exception as e:
             messagebox.showerror("Error", f"No se pudieron cargar los usuarios: {str(e)}")
-
-    def run(self):
-        """Inicia la aplicación"""
-        WindowUtils.center_window(self.root)
-        self.root.mainloop()
-        
-        

@@ -1,8 +1,7 @@
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import ttk
 from application.services.user_service import UserService
 
-# Importar nuestros nuevos componentes modulares
 from presentation.gui.utils.windows_utils import WindowUtils
 from presentation.gui.user_presentation.widgets.user_list import UserList
 from presentation.gui.user_presentation.widgets.user_actions import UserActions
@@ -11,18 +10,23 @@ from presentation.gui.user_presentation.dialogs.change_password_dialog import Ch
 from presentation.gui.user_presentation.dialogs.change_role_dialog import ChangeRoleDialog
 from presentation.gui.user_presentation.dialogs.confirm_dialog import ConfirmDialog
 
-class MainWindow:
-    """Ventana principal de la aplicación - Versión modularizada"""
+class UserMainWindow:
+    """Ventana de gestión de usuarios - Ahora como módulo independiente"""
     
-    def __init__(self, user_service: UserService):
+    def __init__(self, user_service: UserService, parent=None):
         self.user_service = user_service
         self.selected_user_id = None
         
-        # Configurar ventana principal
-        self.root = tk.Tk()
-        self.root.title("Sistema de Gestión de Dietas")
+        # Crear ventana hija si se proporciona parent, sino ventana principal
+        self.root = tk.Toplevel(parent) if parent else tk.Tk()
+        self.root.title("Gestión de Usuarios")
         self.root.geometry("1000x700")
-        self.root.configure(bg='#f0f0f0')
+        
+        # Centrar respecto al parent si existe
+        if parent:
+            WindowUtils.center_window(self.root, parent)
+        else:
+            WindowUtils.center_window(self.root)
         
         # Hacer responsive
         self.root.columnconfigure(0, weight=1)
@@ -75,7 +79,7 @@ class MainWindow:
             'delete': self._delete_user
         })
         self.user_actions.grid(row=0, column=0, sticky=(tk.W, tk.E))
-
+    
     def _on_user_select(self, user_id):
         """Maneja la selección de usuarios"""
         self.selected_user_id = user_id
@@ -119,7 +123,6 @@ class MainWindow:
             return
             
         ChangePasswordDialog(self.root, self.user_service, self.selected_user_id)
-        # No necesitamos recargar la lista después de cambiar contraseña
 
     def _toggle_active(self):
         """Activa/desactiva el usuario seleccionado"""
@@ -129,9 +132,11 @@ class MainWindow:
         try:
             user = self.user_service.toggle_user_active(self.selected_user_id)
             status = "activado" if user.is_active else "desactivado"
+            from tkinter import messagebox
             messagebox.showinfo("Éxito", f"Usuario {status} correctamente")
             self._load_users()
         except Exception as e:
+            from tkinter import messagebox
             messagebox.showerror("Error", f"No se pudo cambiar el estado: {str(e)}")
 
     def _delete_user(self):
@@ -141,6 +146,7 @@ class MainWindow:
             
         user = self.user_service.get_user_by_id(self.selected_user_id)
         if not user:
+            from tkinter import messagebox
             messagebox.showerror("Error", "Usuario no encontrado")
             return
             
@@ -148,12 +154,15 @@ class MainWindow:
             try:
                 success = self.user_service.delete_user(self.selected_user_id)
                 if success:
+                    from tkinter import messagebox
                     messagebox.showinfo("Éxito", "Usuario eliminado correctamente")
                     self.selected_user_id = None
                     self._load_users()
                 else:
+                    from tkinter import messagebox
                     messagebox.showerror("Error", "No se pudo eliminar el usuario")
             except Exception as e:
+                from tkinter import messagebox
                 messagebox.showerror("Error", f"No se pudo eliminar el usuario: {str(e)}")
 
         ConfirmDialog(
@@ -169,11 +178,9 @@ class MainWindow:
             users = self.user_service.get_all_users()
             self.user_list.load_users(users)
         except Exception as e:
+            from tkinter import messagebox
             messagebox.showerror("Error", f"No se pudieron cargar los usuarios: {str(e)}")
 
     def run(self):
-        """Inicia la aplicación"""
-        WindowUtils.center_window(self.root)
+        """Inicia la ventana (para uso independiente)"""
         self.root.mainloop()
-        
-        

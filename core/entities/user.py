@@ -1,27 +1,43 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
-from typing import  Optional
-from .value_objects import Email, UserRole
+from enum import Enum
+
+class UserRole(Enum):
+    """Enum que representa los roles disponibles para los usuarios"""
+    
+    ADMIN = "admin"
+    MANAGER = "manager"
+    USER = "user"
 
 @dataclass
 class User:
-    id: Optional[int] = None
-    username: str = ""
-    email: Email = field(default_factory=lambda: Email(f"default{id}@example.com"))
-    role: UserRole = UserRole.USER
-    hash_password: str = ""
-    created_at: datetime = field(default_factory=datetime.now)
+    """
+    Entidad de dominio User que representa a un usuario en el sistema.
+    Contiene la lógica de negocio y validaciones básicas.
+    """
+    id: int
+    username: str
+    email: str
+    role: UserRole
+    hash_password: str
+    created_at: datetime
     is_active: bool = True
-    
+
     def __post_init__(self):
-        if self.created_at is None:
-            self.created_at = datetime.now()
-    
-    def can_manage_users(self) -> bool:
-        return self.role in [UserRole.ADMIN, UserRole.MANAGER]
-    
-    def can_liquidate_diets(self) -> bool:
-        return self.role in [UserRole.ADMIN, UserRole.MANAGER, UserRole.USER]
-    
-    def can_config_app(self) -> bool:
-        return self.role in [UserRole.ADMIN]
+        """Validaciones después de la inicialización"""
+        if len(self.username) < 3:
+            raise ValueError("Username debe tener al menos 3 caracteres")
+        if "@" not in self.email:
+            raise ValueError("Email debe ser válido")
+
+    def activate(self):
+        """Activa el usuario"""
+        self.is_active = True
+
+    def deactivate(self):
+        """Desactiva el usuario"""
+        self.is_active = False
+
+    def has_role(self, role: UserRole) -> bool:
+        """Verifica si el usuario tiene un rol específico"""
+        return self.role == role

@@ -1,25 +1,28 @@
 from dataclasses import dataclass
-from typing import Optional
-from core.entities.value_objects import UserRole
+from typing import Optional, List
+from datetime import datetime
+from core.entities.user import UserRole
 
 @dataclass
 class CreateUserRequest:
     username: str
     email: str
     password: str
-    role: UserRole
+    role: UserRole = UserRole.USER
 
 @dataclass
 class CreateUserResponse:
-    id: Optional[int]
+    id: int
     username: str
     email: str
     role: UserRole
-    message: str
+    created_at: datetime
 
 @dataclass
 class GetUserRequest:
-    user_id: int
+    user_id: Optional[int] = None
+    username: Optional[str] = None
+    email: Optional[str] = None
 
 @dataclass
 class GetUserResponse:
@@ -27,16 +30,17 @@ class GetUserResponse:
     username: str
     email: str
     role: UserRole
+    created_at: datetime
     is_active: bool
-    created_at: str
 
 @dataclass
 class UpdateUserRequest:
     user_id: int
-    username: str
-    email: str
-    role: UserRole
-    is_active: bool
+    username: Optional[str] = None
+    email: Optional[str] = None
+    password: Optional[str] = None
+    role: Optional[UserRole] = None
+    is_active: Optional[bool] = None
 
 @dataclass
 class UpdateUserResponse:
@@ -45,7 +49,6 @@ class UpdateUserResponse:
     email: str
     role: UserRole
     is_active: bool
-    message: str
 
 @dataclass
 class DeleteUserRequest:
@@ -53,8 +56,9 @@ class DeleteUserRequest:
 
 @dataclass
 class DeleteUserResponse:
+    success: bool
     message: str
 
 @dataclass
 class ListUsersResponse:
-    users: list  # Lista de GetUserResponse
+    users: List[GetUserResponse]
