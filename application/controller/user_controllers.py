@@ -39,7 +39,7 @@ class UserController:
             username=username,
             email=email
         )
-        return self.user_service.get_user(request)
+        return self.user_service.get_user(request) 
 
     def update_user(
         self,
@@ -65,4 +65,4 @@ class UserController:
         return self.user_service.delete_user(request)
 
     def list_users(self) -> ListUsersResponse:
-        return self.user_service.list_users()
+        return self.user_service.get_all_users()

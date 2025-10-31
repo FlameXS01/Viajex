@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 @dataclass
-class RequestUserCreateDTO:
+class CreateRequestUser:
     """DTO para crear un nuevo RequestUser"""
     username: str
     fullname: str
@@ -11,7 +11,16 @@ class RequestUserCreateDTO:
     department_id: int
 
 @dataclass
-class RequestUserUpdateDTO:
+class CreateRequestUserResponse:
+    id: Optional[int]
+    username: Optional[str]
+    email: Optional[str]
+    ci: Optional[str]
+    fullname: Optional[str]
+    department_id: Optional[int]
+
+@dataclass
+class GetRequestUserUpdate:
     """DTO para actualizar un RequestUser existente"""
     username: Optional[str] = None
     fullname: Optional[str] = None
@@ -20,7 +29,7 @@ class RequestUserUpdateDTO:
     department_id: Optional[int] = None
 
 @dataclass
-class RequestUserResponseDTO:
+class GetUserResponse:
     """DTO para responder con datos de RequestUser"""
     id: int
     username: str
@@ -28,25 +37,27 @@ class RequestUserResponseDTO:
     email: str
     ci: str
     department_id: int
-    department_name: Optional[str] = None  # Para incluir info del departamento
     
-    @classmethod
-    def from_entity(cls, entity, department_name: Optional[str] = None):
-        """Constructor desde la entidad de dominio"""
-        return cls(
-            id=entity.id,
-            username=entity.username,
-            fullname=entity.fullname,
-            email=entity.email,
-            ci=entity.ci,
-            department_id=entity.department_id,
-            department_name=department_name
-        )
-
 @dataclass
-class RequestUserListDTO:
+class RequestUserList:
     """DTO para listar múltiples RequestUsers"""
-    users: list[RequestUserResponseDTO]
+    users: list[GetUserResponse]
     total: int
     page: int
     size: int
+    
+@dataclass
+class GetUserRequest:
+    user_id: Optional[int] = None
+    username: Optional[str] = None
+    ci: Optional[str] = None
+    email: Optional[str] = None
+    
+@dataclass
+class DeleteUserRequest:
+    user_id: int
+
+@dataclass
+class DeleteUserResponse:
+    success: bool
+    message: str

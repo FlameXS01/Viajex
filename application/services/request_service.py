@@ -23,6 +23,18 @@ class UserRequestService:
     def create_user(self, ci: str, username: str, fullname: str, email: str, department_id: int) -> RequestUser:
         return self.create_request_user.execute(ci, username, fullname, email, department_id)
     
+    def get_user(self, user_data) -> Optional[RequestUser]:
+        user = None
+        try:
+            user = self.request_user_repository.get_by_id(user_data)
+            if not user:
+                user = self.request_user_repository.get_by_username(user_data)
+            if not user:
+                user = self.request_user_repository.get_by_email(user_data)
+            return user
+        finally:
+            return user
+    
     def get_user_by_id(self, user_id: int)-> Optional[RequestUser]:
         return self.request_user_repository.get_by_id(user_id)
     
