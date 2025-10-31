@@ -11,21 +11,20 @@ from presentation.gui.user_presentation.dialogs.change_role_dialog import Change
 from presentation.gui.user_presentation.dialogs.confirm_dialog import ConfirmDialog
 
 class UserModule(ttk.Frame):
-    """Módulo de gestión de usuarios para embeber en el dashboard"""
+    """Módulo de gestión de usuarios para embeber en el dashboard - VERSIÓN CORREGIDA"""
     
     def __init__(self, parent, user_service: UserService):
-        super().__init__(parent)
+        super().__init__(parent, style='Content.TFrame')  # Asegurar estilo
         self.user_service = user_service
         self.selected_user_id = None
         
-        self.configure(style='Content.TFrame')
         self._create_widgets()
         self._load_users()
 
     def _create_widgets(self):
         """Crea la interfaz del módulo de usuarios"""
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)  # La lista ocupará el espacio principal
+        self.rowconfigure(1, weight=1)
         
         # Header del módulo
         header_frame = ttk.Frame(self, style='Content.TFrame')
@@ -36,7 +35,7 @@ class UserModule(ttk.Frame):
         ttk.Label(header_frame, text="Gestión de Usuarios", 
                  font=('Arial', 18, 'bold'), style='Content.TLabel').grid(row=0, column=0, sticky='w')
         
-        # Botón de crear usuario (alineado a la derecha)
+        # Botón de crear usuario
         create_btn = ttk.Button(header_frame, text="➕ Crear Usuario", 
                                command=self._create_user)
         create_btn.grid(row=0, column=1, sticky='e', padx=(0, 10))
@@ -79,39 +78,52 @@ class UserModule(ttk.Frame):
 
     def _create_user(self):
         """Abre diálogo para crear nuevo usuario"""
-        dialog = UserDialog(self, self.user_service)
-        result = dialog.show()
-        if result:
-            self._load_users()
+        try:
+            # Pasar self.winfo_toplevel() como parent para asegurar que sea modal
+            dialog = UserDialog(self.winfo_toplevel(), self.user_service)
+            result = dialog.show()
+            if result:
+                self._load_users()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo crear el diálogo: {str(e)}")
 
     def _edit_user(self):
         """Abre diálogo para editar usuario existente"""
         if not self.selected_user_id:
             return
             
-        user = self.user_service.get_user_by_id(self.selected_user_id)
-        if user:
-            dialog = UserDialog(self, self.user_service, user)
-            result = dialog.show()
-            if result:
-                self._load_users()
+        try:
+            user = self.user_service.get_user_by_id(self.selected_user_id)
+            if user:
+                dialog = UserDialog(self.winfo_toplevel(), self.user_service, user)
+                result = dialog.show()
+                if result:
+                    self._load_users()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo editar el usuario: {str(e)}")
 
     def _change_role(self):
         """Cambia el rol del usuario seleccionado"""
         if not self.selected_user_id:
             return
             
-        user = self.user_service.get_user_by_id(self.selected_user_id)
-        if user:
-            ChangeRoleDialog(self, self.user_service, self.selected_user_id, user.role)
-            self._load_users()
+        try:
+            user = self.user_service.get_user_by_id(self.selected_user_id)
+            if user:
+                ChangeRoleDialog(self.winfo_toplevel(), self.user_service, self.selected_user_id, user.role)
+                self._load_users()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo cambiar el rol: {str(e)}")
 
     def _change_password(self):
         """Cambia la contraseña del usuario seleccionado"""
         if not self.selected_user_id:
             return
             
-        ChangePasswordDialog(self, self.user_service, self.selected_user_id)
+        try:
+            ChangePasswordDialog(self.winfo_toplevel(), self.user_service, self.selected_user_id)
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo cambiar la contraseña: {str(e)}")
 
     def _toggle_active(self):
         """Activa/desactiva el usuario seleccionado"""
@@ -131,29 +143,32 @@ class UserModule(ttk.Frame):
         if not self.selected_user_id:
             return
             
-        user = self.user_service.get_user_by_id(self.selected_user_id)
-        if not user:
-            messagebox.showerror("Error", "Usuario no encontrado")
-            return
-            
-        def confirm_delete():
-            try:
-                success = self.user_service.delete_user(self.selected_user_id)
-                if success:
-                    messagebox.showinfo("Éxito", "Usuario eliminado correctamente")
-                    self.selected_user_id = None
-                    self._load_users()
-                else:
-                    messagebox.showerror("Error", "No se pudo eliminar el usuario")
-            except Exception as e:
-                messagebox.showerror("Error", f"No se pudo eliminar el usuario: {str(e)}")
+        try:
+            user = self.user_service.get_user_by_id(self.selected_user_id)
+            if not user:
+                messagebox.showerror("Error", "Usuario no encontrado")
+                return
+                
+            def confirm_delete():
+                try:
+                    success = self.user_service.delete_user(self.selected_user_id)  # type: ignore
+                    if success:
+                        messagebox.showinfo("Éxito", "Usuario eliminado correctamente")
+                        self.selected_user_id = None
+                        self._load_users()
+                    else:
+                        messagebox.showerror("Error", "No se pudo eliminar el usuario")
+                except Exception as e:
+                    messagebox.showerror("Error", f"No se pudo eliminar el usuario: {str(e)}")
 
-        ConfirmDialog(
-            self,
-            "Confirmar Eliminación",
-            f"¿Estás seguro de que quieres eliminar al usuario '{user.username}'?\nEsta acción no se puede deshacer.",
-            confirm_delete
-        )
+            ConfirmDialog(
+                self.winfo_toplevel(),
+                "Confirmar Eliminación",
+                f"¿Estás seguro de que quieres eliminar al usuario '{user.username}'?\nEsta acción no se puede deshacer.",
+                confirm_delete
+            )
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al eliminar usuario: {str(e)}")
 
     def _load_users(self):
         """Carga los usuarios en la lista"""

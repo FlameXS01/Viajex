@@ -4,17 +4,17 @@ from core.entities.user import UserRole
 from presentation.gui.utils.windows_utils import WindowUtils
 
 class UserDialog:
-    """Diálogo para crear/editar usuarios - Adaptado para funcionar con Frames"""
+    """Diálogo para crear/editar usuarios - VERSIÓN CORREGIDA"""
     
     def __init__(self, parent, user_service, user_data=None):
         self.user_service = user_service
         self.user_data = user_data
         self.result = None
         
-        # El parent ahora puede ser un Frame, pero Toplevel necesita un root
-        self.dialog = tk.Toplevel(parent.winfo_toplevel())  # Obtener la ventana raíz
+        # Usar Toplevel correctamente
+        self.dialog = tk.Toplevel(parent)
         self.dialog.title("Editar Usuario" if user_data else "Crear Usuario")
-        self.dialog.transient(parent.winfo_toplevel())
+        self.dialog.transient(parent)
         self.dialog.grab_set()
         
         # Ajustar tamaño
@@ -23,7 +23,10 @@ class UserDialog:
         else:
             self.dialog.geometry("400x400")
         
-        WindowUtils.center_window(self.dialog, parent.winfo_toplevel())
+        # Evitar que el diálogo sea demasiado pequeño
+        self.dialog.minsize(400, 300 if user_data else 400)
+        
+        WindowUtils.center_window(self.dialog, parent)
         self._create_widgets()
 
     def _create_widgets(self):
@@ -32,7 +35,6 @@ class UserDialog:
         main_frame.pack(fill=tk.BOTH, expand=True)
         main_frame.columnconfigure(1, weight=1)
 
-        # Fila actual
         row = 0
 
         # Campos del formulario
@@ -52,9 +54,8 @@ class UserDialog:
         self.role_combo.set(UserRole.USER.value)
         row += 1
 
-        # SOLUCIÓN: Solo mostrar campos de contraseña en modo creación
+        # Solo mostrar campos de contraseña en modo creación
         if not self.user_data:
-            # Campo de contraseña para nuevo usuario
             ttk.Label(main_frame, text="Contraseña:").grid(row=row, column=0, sticky=tk.W, pady=5)
             self.password_entry = ttk.Entry(main_frame, width=30, show="*")
             self.password_entry.grid(row=row, column=1, sticky=(tk.W, tk.E), padx=5, pady=5)
@@ -92,21 +93,18 @@ class UserDialog:
 
         try:
             if self.user_data:
-                # ACTUALIZAR USUARIO EXISTENTE
-                # Necesitamos un caso de uso para actualizar usuario básico
-                # Por ahora, vamos a actualizar directamente (esto debería cambiarse)
+                # Actualizar usuario existente
                 user = self.user_data
                 user.username = username
                 user.email = email
                 user.role = role
                 
-                # Actualizar en la base de datos
-                updated_user = self.user_service.user_repository.update(user)
+                # Usar el servicio para actualizar
+                updated_user = self.user_service.update_user(user.id, username, email, role)
                 self.result = updated_user
                 messagebox.showinfo("Éxito", "Usuario actualizado correctamente")
             else:
-                # CREAR NUEVO USUARIO
-                # Verificar contraseñas en modo creación
+                # Crear nuevo usuario
                 password = self.password_entry.get()
                 confirm_password = self.confirm_password_entry.get()
                 
@@ -118,7 +116,7 @@ class UserDialog:
                     messagebox.showwarning("Advertencia", "Las contraseñas no coinciden")
                     return
                 
-                # Crear nuevo usuario
+                # Crear nuevo usuario usando el servicio
                 new_user = self.user_service.create_user(username, email, password, role)
                 self.result = new_user
                 messagebox.showinfo("Éxito", "Usuario creado correctamente")
