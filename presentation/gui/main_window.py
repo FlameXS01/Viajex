@@ -146,7 +146,7 @@ class MainWindow:
             
         def confirm_delete():
             try:
-                success = self.user_service.delete_user(self.selected_user_id)
+                success = self.user_service.delete_user(self.selected_user_id) 
                 if success:
                     messagebox.showinfo("Éxito", "Usuario eliminado correctamente")
                     self.selected_user_id = None

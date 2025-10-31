@@ -121,6 +121,20 @@ class MainDashboard:
                            command=lambda: self._show_module('users'))
             btn.pack(fill=tk.X, pady=5)
             self.nav_buttons['users'] = btn
+            
+        # Módulo de Solicitantes 
+        btn = ttk.Button(nav_frame, text="👤 Gestión de Solicitantes", 
+                        style='Sidebar.TButton',
+                        command=lambda: self._show_module('request'))
+        btn.pack(fill=tk.X, pady=5)
+        self.nav_buttons['request'] = btn
+        
+        # Módulo de Solicitantes 
+        btn = ttk.Button(nav_frame, text="💳 Gestión de Tarjetas", 
+                        style='Sidebar.TButton',
+                        command=lambda: self._show_module('targets'))
+        btn.pack(fill=tk.X, pady=5)
+        self.nav_buttons['request'] = btn
         
         # Módulo de Dietas
         btn = ttk.Button(nav_frame, text="🥦 Gestión de Dietas", 
@@ -249,6 +263,20 @@ class MainDashboard:
                 placeholder = ttk.Frame(self.module_container, style='Content.TFrame')
                 placeholder.pack(fill=tk.BOTH, expand=True)
                 ttk.Label(placeholder, text="Módulo de Gestión de Pacientes - En desarrollo", 
+                         font=('Arial', 16), style='Content.TLabel').pack(expand=True)
+            
+            elif module_name == 'targets':
+                self.module_title.config(text="Gestión de Tarjetas")
+                placeholder = ttk.Frame(self.module_container, style='Content.TFrame')
+                placeholder.pack(fill=tk.BOTH, expand=True)
+                ttk.Label(placeholder, text="Módulo de Gestión de Tarjetas - En desarrollo", 
+                         font=('Arial', 16), style='Content.TLabel').pack(expand=True)
+            
+            elif module_name == 'request':
+                self.module_title.config(text="Gestión de Solicitantes")
+                placeholder = ttk.Frame(self.module_container, style='Content.TFrame')
+                placeholder.pack(fill=tk.BOTH, expand=True)
+                ttk.Label(placeholder, text="Módulo de Gestión de Solicitantes - En desarrollo", 
                          font=('Arial', 16), style='Content.TLabel').pack(expand=True)
                 
             elif module_name == 'diets':
