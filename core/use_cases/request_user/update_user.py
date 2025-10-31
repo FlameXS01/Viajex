@@ -1,37 +1,30 @@
-from core.entities.request_user import RequestUser
-from core.repositories.request_user_repository import RequestUserRepository
+from core.entities.department import Department
+from core.repositories.department_repository import DepartmentRepository
 
-class UpdateUserUseCase:
-    """Caso de uso para actualizar información de usuario"""
+class UpdateDepartmentUseCase:
+    """Caso de uso para actualizar información de un departamento"""
     
-    def __init__(self, request_user_repository: RequestUserRepository):
-        self.request_user_repository = request_user_repository
+    def __init__(self, department_repository: DepartmentRepository):
+        self.department_repository = department_repository
 
-    def execute(self, req_user_id: int, username: str, email: str, fullname: str, department_id: int) -> RequestUser:
+    def execute(self, department_id: int, name: str) -> Department:
         """
         Actualiza la información básica de un solicitante
         
         Args:
-            user_id: ID del usuario a actualizar
-            username: Nuevo nombre de usuario
-            email: Nuevo email
-            fullname: Nuevo nombre completo
-            department_id: Nueva unidad organizativa
-            
+            department_id: ID del department a actualizar
+            name: Nuevo nombre 
         Returns:
-            RequestUser: Solicitante actualizado
+            Department: Unidad organizativa actualizada
             
         Raises:
-            ValueError: Si el solicitante no existe o hay conflictos
+            ValueError: Si el departamento no existe o hay conflictos
         """
-        req_user = self.request_user_repository.get_by_id(req_user_id)
-        if not req_user:
-            raise ValueError("Solicitante no encontrado")
+        depto = self.department_repository.get_by_id(department_id)
+        if not depto:
+            raise ValueError("Departamento no encontrado")
 
         # Actualizar campos
-        req_user.username = username
-        req_user.email = email
-        req_user.fullname = fullname
-        req_user.department_id = department_id
+        depto.name = name
         
-        return self.request_user_repository.update(req_user)
+        return self.department_repository.update(depto)
