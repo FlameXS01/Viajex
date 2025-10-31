@@ -1,8 +1,8 @@
-from core.repositories.request_user_repository import RequestUserRepository
+from core.repositories.department_repository import DepartmentRepository
 
-class DeleteRequestUserUseCase:
-    def __init__(self, request_user_repository: RequestUserRepository):
-        self.request_user_repository = request_user_repository
+class DeleteDepartmentUseCase:
+    def __init__(self, department_repository: DepartmentRepository):
+        self.department_repository = department_repository
 
-    def execute(self, request_user_id: int) -> bool:
-        return self.request_user_repository.delete(request_user_id)
+    def execute(self, depto_id: int) -> bool:
+        return self.department_repository.delete(depto_id)

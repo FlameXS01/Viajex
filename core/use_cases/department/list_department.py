@@ -1,12 +1,12 @@
-from core.entities.request_user import RequestUser
-from core.repositories.request_user_repository import RequestUserRepository
+from core.entities.department import Department
+from core.repositories.department_repository import DepartmentRepository
 
-class ListUsersUseCase:
-    def __init__(self, request_user_repository: RequestUserRepository):
-        self.request_user_repository = request_user_repository
+class ListRequestUsersUseCase:
+    def __init__(self, department_repository: DepartmentRepository):
+        self.department_repository = department_repository
 
-    def execute(self) -> list[RequestUser]:
+    def execute(self) -> list[Department]:
         """
-        Lista todos los solicitantes
+        Lista todos los departamentos
         """
-        return self.request_user_repository.get_all()
+        return self.department_repository.get_all()

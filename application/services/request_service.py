@@ -1,9 +1,39 @@
 from core.entities.request_user import RequestUser
-from core.repositories.user_repository import UserRepository
-from core.use_cases.users.create_user import CreateUserUseCase
-from core.use_cases.users.update_user_role import UpdateUserRoleUseCase
-from core.use_cases.users.update_user_password import UpdateUserPasswordUseCase
-from core.use_cases.users.toggle_user_active import ToggleUserActiveUseCase
-from core.use_cases.users.update_user import UpdateUserUseCase
-from core.use_cases.users.delete_user import DeleteUserUseCase
+from core.repositories.request_user_repository import RequestUserRepository
+from core.use_cases.request_user.create_request_user import CreateRequestUserUseCase
+from core.use_cases.request_user.update_user import UpdateUserRequestUseCase 
+from core.use_cases.request_user.get_request_user import GetUserUseCase 
+from core.use_cases.request_user.delete_request_user import DeleteRequestUserUseCase 
+from core.use_cases.request_user.list_users_request import ListRequestUsersUseCase 
 from typing import Optional
+
+class UserRequestService:
+    def __init__(self, 
+                 request_user_repository: RequestUserRepository, 
+                 create_request_user: CreateRequestUserUseCase,
+                 update_user_request: UpdateUserRequestUseCase,
+                 get_user_request: GetUserUseCase,
+                 get_user_request_list: ListRequestUsersUseCase,
+                 delete_user_request: DeleteRequestUserUseCase):
+        self.request_user_repository = request_user_repository
+        self.create_request_user = create_request_user
+        self.update_user_request = update_user_request
+        self.delete_user_request = delete_user_request
+
+    def create_user(self, ci: str, username: str, fullname: str, email: str, department_id: int) -> RequestUser:
+        return self.create_request_user.execute(ci, username, fullname, email, department_id)
+    
+    def get_user_by_id(self, user_id: int)-> Optional[RequestUser]:
+        return self.request_user_repository.get_by_id(user_id)
+    
+    def get_user_by_username(self, username: str) -> Optional[RequestUser]:
+        return self.request_user_repository.get_by_username(username)
+    
+    def get_all_users(self) -> list[RequestUser]:
+        return self.request_user_repository.get_all()
+    
+    def update_user(self, req_user_id: int, username: str, email: str, fullname: str, department_id: int) -> RequestUser:
+        return self.update_user_request.execute(req_user_id, username, email, fullname, department_id )
+
+    def delete_user(self, user_id: int) -> bool:
+        return self.delete_user_request.execute(user_id)

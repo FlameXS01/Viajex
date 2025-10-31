@@ -1,20 +1,24 @@
-from core.entities.department import Department
-from core.repositories.department_repository import DepartmentRepository
+from core.entities.request_user import RequestUser
+from core.repositories.request_user_repository import RequestUserRepository
 
 class CreateRequestUserUseCase:
     """Caso de uso para la creación de nuevos usuarios solicitantes"""
     
-    def __init__(self, department_repository: DepartmentRepository):
-        self.department_repository = department_repository
+    def __init__(self, request_user_repository: RequestUserRepository):
+        self.request_user_repository = request_user_repository
 
-    def execute(self, name: str) -> Department:
+    def execute(self, ci: str, username: str, fullname: str, email: str, department_id: int) -> RequestUser:
         """
-        Ejecuta el caso de uso para crear un departamento solicitante
+        Ejecuta el caso de uso para crear un usuario solicitante
         """
             
-        department = Department(
+        req_user = RequestUser(
             id=None,# type: ignore
-            name=name,
+            username=username,
+            email=email,
+            fullname=fullname,
+            ci=ci,
+            department_id=department_id,
         )
 
-        return self.department_repository.save(department)
+        return self.request_user_repository.save(req_user)
