@@ -1,9 +1,10 @@
 from dataclasses import dataclass
+from typing import Optional
 
 @dataclass
 class Department:
     """
     Entidad de dominio Department que representa la Unidad organizativa.
     """
-    id: int
     name: str
+    id: Optional[int] = None

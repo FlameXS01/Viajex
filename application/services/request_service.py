@@ -1,18 +1,19 @@
 from core.entities.request_user import RequestUser
 from core.repositories.request_user_repository import RequestUserRepository
 from core.use_cases.request_user.create_request_user import CreateRequestUserUseCase
-from core.use_cases.request_user.update_user import UpdateUserRequestUseCase 
-from core.use_cases.request_user.get_request_user import GetUserUseCase 
+from core.use_cases.request_user.update_user_request import UpdateRequestUserUseCase 
+from core.use_cases.request_user.get_request_user import GetRequestUserUseCase
 from core.use_cases.request_user.delete_request_user import DeleteRequestUserUseCase 
 from core.use_cases.request_user.list_users_request import ListRequestUsersUseCase 
-from typing import Optional
+from application.dtos.request_user_dtos import *
+from typing import Optional, Union
 
 class UserRequestService:
     def __init__(self, 
                  request_user_repository: RequestUserRepository, 
                  create_request_user: CreateRequestUserUseCase,
-                 update_user_request: UpdateUserRequestUseCase,
-                 get_user_request: GetUserUseCase,
+                 update_user_request: UpdateRequestUserUseCase,
+                 get_user_request: GetRequestUserUseCase,
                  get_user_request_list: ListRequestUsersUseCase,
                  delete_user_request: DeleteRequestUserUseCase):
         self.request_user_repository = request_user_repository
@@ -22,20 +23,38 @@ class UserRequestService:
         self.get_user_request = get_user_request
         self.get_user_request_list = get_user_request_list
 
-    def create_user(self, ci: str, username: str, fullname: str, email: str, department_id: int) -> RequestUser:
-        return self.create_request_user.execute(ci, username, fullname, email, department_id)
+    def create_user(self, user_data: RequestUserCreateDTO) -> RequestUserResponseDTO:
+        user = self.create_request_user.execute(
+            ci=user_data.ci,
+            username=user_data.username, 
+            fullname=user_data.fullname,
+            email=user_data.email,
+            department_id=user_data.department_id
+        )
+        return RequestUserResponseDTO(
+            id=user.id,
+            username=user.username,
+            fullname=user.fullname,
+            email=user.email, 
+            ci=user.ci,
+            department_id=user.department_id
+        )
     
-    def get_user(self, user_data) -> Optional[RequestUser]:
+    def get_user(self, user_data: Union[int, str]) -> Optional[RequestUser]:
+        """Busca usuario por ID, username o email"""
         user = None
-        try:
+        
+        if isinstance(user_data, int):
             user = self.request_user_repository.get_by_id(user_data)
-            if not user:
-                user = self.request_user_repository.get_by_username(user_data)
-            if not user:
-                user = self.request_user_repository.get_by_email(user_data)
-            return user
-        finally:
-            return user
+        
+        # Si es string, buscar por username o email
+        if isinstance(user_data, str) and not user:
+            user = self.request_user_repository.get_by_username(user_data)
+        
+        if isinstance(user_data, str) and not user:
+            user = self.request_user_repository.get_by_email(user_data)
+            
+        return user
     
     def get_user_by_id(self, user_id: int)-> Optional[RequestUser]:
         return self.get_user_request.execute(user_id)

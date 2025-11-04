@@ -7,7 +7,7 @@ class CreateDepartmentUseCase:
     def __init__(self, department_repository: DepartmentRepository):
         self.department_repository = department_repository
 
-    def execute(self, name: str) -> DepartmentCreateDTO:
+    def execute(self, name: str) -> Department:
         """
         Ejecuta el caso de uso para crear un departamentos
         """

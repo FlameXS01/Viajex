@@ -1,7 +1,7 @@
 from core.entities.request_user import RequestUser
 from core.repositories.request_user_repository import RequestUserRepository
 
-class UpdateUserRequestUseCase:
+class UpdateRequestUserUseCase:
     """Caso de uso para actualizar información de usuario"""
     
     def __init__(self, request_user_repository: RequestUserRepository):
@@ -28,7 +28,14 @@ class UpdateUserRequestUseCase:
         if not req_user:
             raise ValueError("Solicitante no encontrado")
 
-        # Actualizar campos
+        existing = self.request_user_repository.get_by_username(username)
+        if existing and existing.id != req_user_id:
+            raise ValueError("El nombre de usuario ya está en uso")
+            
+        existing = self.request_user_repository.get_by_email(email)
+        if existing and existing.id != req_user_id:
+            raise ValueError("El email ya está registrado")
+
         req_user.username = username
         req_user.email = email
         req_user.fullname = fullname

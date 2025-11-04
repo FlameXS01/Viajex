@@ -5,7 +5,7 @@ from core.use_cases.department.update_department import UpdateDepartmentUseCase
 from core.use_cases.department.get_department import GetDepartmentUseCase
 from core.use_cases.department.delete_department import DeleteDepartmentUseCase 
 from core.use_cases.department.list_department import ListDepartmentUseCase 
-from application.dtos.department_dtos import DepartmentCreateDTO, DepartmentResponseDTO
+from application.dtos.department_dtos import *
 from typing import Optional
 
 class DepartmentService:
@@ -23,20 +23,23 @@ class DepartmentService:
         self.get_department = get_department
         self.get_department_list = get_department_list
 
-    def create_department_f(self, name: str) -> DepartmentCreateDTO:
-        return self.create_department.execute(name)
+    def create_department_f(self, name: str) -> DepartmentResponseDTO:
+        department = self.create_department.execute(name)
+        return DepartmentResponseDTO(id=department.id, name=department.name)
     
-    def get_department_by_id(self, department_id: int)-> Optional[Department]:
-        return self.get_department.execute(department_id)
+    def get_department_by_id(self, department_id: int) -> Optional[DepartmentResponseDTO]:
+        department = self.get_department.execute(department_id)
+        return DepartmentResponseDTO(id=department.id, name=department.name) if department else None
     
     def get_department_by_name(self, name: str) -> Optional[Department]:
         return self.department_repository.get_by_name(name)
     
     def get_all_departments(self) -> list[DepartmentResponseDTO]:
-        return self.get_department_list.execute()
+        departments = self.get_department_list.execute()
+        return [DepartmentResponseDTO(id=dept.id, name=dept.name) for dept in departments]
     
     def update_department_f(self, department_id: int, name: str) -> Department:
         return self.update_department.execute(department_id, name)
 
     def delete_department_f(self, department_id: int) -> bool:
-        return self.delete_department.execute(user_id)
+        return self.delete_department.execute(department_id)

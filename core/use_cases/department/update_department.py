@@ -24,7 +24,10 @@ class UpdateDepartmentUseCase:
         if not depto:
             raise ValueError("Departamento no encontrado")
 
-        # Actualizar campos
+        # AGREGAR: Validar que el nuevo nombre no exista en otro departamento
+        existing = self.department_repository.get_by_name(name)
+        if existing and existing.id != department_id:
+            raise ValueError("Ya existe un departamento con ese nombre")
+
         depto.name = name
-        
         return self.department_repository.update(depto)

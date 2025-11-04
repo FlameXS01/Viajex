@@ -29,6 +29,10 @@ class RequestUserRepository(ABC):
         pass
 
     @abstractmethod
+    def get_by_ci(self, ci: str) -> Optional[RequestUser]:
+        pass
+
+    @abstractmethod
     def get_all(self) -> list[RequestUser]:
         """Obtiene todos los solicitantes del sistema"""
         pass
