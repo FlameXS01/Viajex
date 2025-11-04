@@ -5,7 +5,7 @@ from core.use_cases.department.update_department import UpdateDepartmentUseCase
 from core.use_cases.department.get_department import GetDepartmentUseCase
 from core.use_cases.department.delete_department import DeleteDepartmentUseCase 
 from core.use_cases.department.list_department import ListDepartmentUseCase 
-from application.dtos.department_dtos import DepartmentCreateDTO 
+from application.dtos.department_dtos import DepartmentCreateDTO, DepartmentResponseDTO
 from typing import Optional
 
 class DepartmentService:
@@ -32,11 +32,11 @@ class DepartmentService:
     def get_department_by_name(self, name: str) -> Optional[Department]:
         return self.department_repository.get_by_name(name)
     
-    def get_all_departments(self) -> list[Department]:
+    def get_all_departments(self) -> list[DepartmentResponseDTO]:
         return self.get_department_list.execute()
     
     def update_department_f(self, department_id: int, name: str) -> Department:
         return self.update_department.execute(department_id, name)
 
-    def delete_department_f(self, user_id: int) -> bool:
+    def delete_department_f(self, department_id: int) -> bool:
         return self.delete_department.execute(user_id)

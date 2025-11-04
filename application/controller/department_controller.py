@@ -13,44 +13,35 @@ class DepartmentController:
         request = DepartmentCreateDTO(
             name=name
         )
-        return self.department_service.create_department_f(request)
+        return self.department_service.create_department_f(request)     # type: ignore
     
     def get_dpto(
         self,
-        depto_id: Optional[int] = None,
-        name: Optional[str] = None,
+        name: str,
     ) -> DepartmentResponseDTO:
         request = DepartmentCreateDTO(
-            user_id=user_id,
-            username=username,
-            email=email
+            name=name
         )
-        return self.request_user_service.get_user(request)
+        return self.department_service.get_department_by_name(request)   # type: ignore
     
-    def update_user(
+    def update_department(
         self,
         id: int,
-        username: Optional[str] = None,
-        fullname: Optional[str] = None,
-        email: Optional[str] = None,
-        ci: Optional[str] = None,
-        department_id: Optional[int] = None,
-    ) -> GetRequestUserUpdate:
-        request = CreateRequestUserResponse(
+        name: Optional[str] = None,
+    ) -> DepartmentResponseDTO:
+        request = DepartmentResponseDTO(
             id=id,
-            username=username,  
-            fullname=fullname,
-            email=email,
-            ci=ci,
-            department_id=department_id
-            
+            name=name
         )
-        return self.request_user_service.update_user(request)
+        return self.department_service.update_department_f(request)
     
-    def delete_user(self, user_id: int) -> DeleteUserResponse:
-        request = DeleteUserRequest(user_id=user_id)
+    def delete_department(
+        self,
+        department_id: int
+    ) -> bool:
+        request = department_id
         
-        return self.request_user_service.delete_user(request)
+        return self.department_service.delete_department_f(department_id)
 
-    def list_users(self) -> RequestUserList:
-        return self.request_user_service.get_all_users()
+    def list_department(self) -> list[DepartmentResponseDTO]:
+        return self.department_service.get_all_departments()

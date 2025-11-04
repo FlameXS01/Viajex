@@ -19,6 +19,8 @@ class UserRequestService:
         self.create_request_user = create_request_user
         self.update_user_request = update_user_request
         self.delete_user_request = delete_user_request
+        self.get_user_request = get_user_request
+        self.get_user_request_list = get_user_request_list
 
     def create_user(self, ci: str, username: str, fullname: str, email: str, department_id: int) -> RequestUser:
         return self.create_request_user.execute(ci, username, fullname, email, department_id)
@@ -36,13 +38,13 @@ class UserRequestService:
             return user
     
     def get_user_by_id(self, user_id: int)-> Optional[RequestUser]:
-        return self.request_user_repository.get_by_id(user_id)
+        return self.get_user_request.execute(user_id)
     
     def get_user_by_username(self, username: str) -> Optional[RequestUser]:
         return self.request_user_repository.get_by_username(username)
     
     def get_all_users(self) -> list[RequestUser]:
-        return self.request_user_repository.get_all()
+        return self.get_user_request_list.execute()
     
     def update_user(self, req_user_id: int, username: str, email: str, fullname: str, department_id: int) -> RequestUser:
         return self.update_user_request.execute(req_user_id, username, email, fullname, department_id )
