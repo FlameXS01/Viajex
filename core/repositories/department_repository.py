@@ -22,6 +22,11 @@ class DepartmentRepository(ABC):
     def get_all(self) -> list[Department]:
         """Obtiene todos los departamentos del sistema"""
         pass
+    
+    @abstractmethod
+    def get_by_name(self, name: str) -> Department:
+        """Obtiene todos los departamentos con ese nombre"""
+        pass
 
     @abstractmethod
     def update(self, dpto: Department) -> Department:
