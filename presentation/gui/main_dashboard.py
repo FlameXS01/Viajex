@@ -170,6 +170,11 @@ class MainDashboard:
         self.content_frame = ttk.Frame(parent, style='Content.TFrame')
         self.content_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         
+        # Navbar superior elegante
+        self.navbar_frame = ttk.Frame(self.content_frame, style='Content.TFrame', height=35)
+        self.navbar_frame.pack(fill=tk.X)
+        self.navbar_frame.pack_propagate(False)
+
         # Header del contenido
         self.header_frame = ttk.Frame(self.content_frame, style='Content.TFrame', height=80)
         self.header_frame.pack(fill=tk.X)
@@ -184,11 +189,6 @@ class MainDashboard:
         self.module_container = ttk.Frame(self.content_frame, style='Content.TFrame')
         self.module_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
-        
-        # Navbar superior elegante
-        self.navbar_frame = ttk.Frame(self.content_frame, style='Content.TFrame', height=35)
-        self.navbar_frame.pack(fill=tk.X)
-        self.navbar_frame.pack_propagate(False)
 
         # Separador decorativo
         separator = ttk.Separator(self.navbar_frame, orient=tk.HORIZONTAL)
