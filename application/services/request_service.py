@@ -1,3 +1,4 @@
+from application.dtos.common_dtos import RequestUserResponseDTO
 from core.entities.request_user import RequestUser
 from core.repositories.request_user_repository import RequestUserRepository
 from core.use_cases.request_user.create_request_user import CreateRequestUserUseCase

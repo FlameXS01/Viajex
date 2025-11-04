@@ -1,3 +1,4 @@
+from application.dtos.common_dtos import DepartmentResponseDTO
 from core.entities.department import Department
 from core.repositories.department_repository import DepartmentRepository
 from core.use_cases.department.create_department import CreateDepartmentUseCase

@@ -6,12 +6,13 @@ from presentation.gui.user_presentation.user_module import UserModule
 class MainDashboard:
     """Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA"""
     
-    def __init__(self, user, user_service, auth_service):
+    def __init__(self, user, user_service, auth_service, department_service ):
         self.user = user
         self.user_service = user_service
         self.auth_service = auth_service
+        self.department_service = department_service
         self.current_module = None
-        self.current_module_instance = None  # Para mantener referencia al módulo actual
+        self.current_module_instance = None  
         
         self.root = tk.Tk()
         self.root.title(f"Sistema de Gestión de Dietas - {user.username}")
@@ -121,7 +122,15 @@ class MainDashboard:
                            command=lambda: self._show_module('users'))
             btn.pack(fill=tk.X, pady=5)
             self.nav_buttons['users'] = btn
-            
+        
+        # Módulo de Departments (solo para admin/manager)
+        if self.user.role.value in ['admin', 'manager', 'user']:
+            dept_btn = ttk.Button(nav_frame, text="🏢 Gestión de Departamentos", 
+                                style='Sidebar.TButton',
+                                command=lambda: self._show_module('departments'))
+            dept_btn.pack(fill=tk.X, pady=5)
+            self.nav_buttons['departments'] = dept_btn
+
         # Módulo de Solicitantes 
         btn = ttk.Button(nav_frame, text="👤 Gestión de Solicitantes", 
                         style='Sidebar.TButton',
@@ -293,6 +302,12 @@ class MainDashboard:
                 ttk.Label(placeholder, text="Módulo de Reportes - En desarrollo", 
                          font=('Arial', 16), style='Content.TLabel').pack(expand=True)
                 
+            elif module_name == 'departments':
+                self.module_title.config(text="Gestión de Departamentos")
+                from presentation.gui.department_presentation.department_module import DepartmentModule
+                self.current_module_instance = DepartmentModule(self.module_container, self.department_service)
+                self.current_module_instance.pack(fill=tk.BOTH, expand=True)
+                                        
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo cargar el módulo: {str(e)}")
             import traceback

@@ -1,4 +1,8 @@
 import tkinter as tk
+import pandas as pd
+from application.services.department_service import DepartmentService
+from core.repositories.department_repository import DepartmentRepository
+from infrastructure.database.repositories.department_repository import DepartmentRepositoryImpl
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -6,7 +10,7 @@ from infrastructure.database.session import Base, engine
 from infrastructure.database.repositories.user_repository import UserRepositoryImpl
 from infrastructure.security.password_hasher import BCryptPasswordHasher
 
-# Use Cases
+# Use Cases User
 from core.use_cases.users.create_user import CreateUserUseCase
 from core.use_cases.users.update_user import UpdateUserUseCase
 from core.use_cases.users.update_user_role import UpdateUserRoleUseCase
@@ -14,6 +18,15 @@ from core.use_cases.users.update_user_password import UpdateUserPasswordUseCase
 from core.use_cases.users.toggle_user_active import ToggleUserActiveUseCase
 from core.use_cases.users.delete_user import DeleteUserUseCase
 from core.use_cases.auth.login import LoginUseCase
+
+# Use Cases
+from core.use_cases.department.create_department import CreateDepartmentUseCase
+from core.use_cases.department.update_department import UpdateDepartmentUseCase
+from core.use_cases.department.get_department import GetDepartmentUseCase
+from core.use_cases.department.delete_department import DeleteDepartmentUseCase
+from core.use_cases.department.list_department import ListDepartmentUseCase
+
+
 
 # Services
 from application.services.user_service import UserService
@@ -26,9 +39,26 @@ from presentation.gui.main_dashboard import MainDashboard
 # Entities
 from core.entities.user import User, UserRole
 
-def initialize_admin_user(user_service, password_hasher):
+def _departaments_by_file() -> list[str]:
     """
+    
+    Script para obtener los nombres de las unidades(departments)
+    
+    """
+    # Se saltan las primeras 3 filas porque no brindan informacion
+    df = pd.read_excel("Files/Maestro de trabajadores cierre septiembre.xlsx",skiprows=3)
+    dirty_unidades = df['Unidad'].value_counts()  
+    unidades =[]
+    for value, unidad in enumerate(dirty_unidades.index):
+        unidades.append(unidad)
+    return unidades
+
+
+def initialize_admin_user(user_service: UserService):
+    """
+   
     Crea el usuario administrador por defecto si no existe
+    
     """
     admin_user = user_service.get_user_by_username("admin")
     if not admin_user:
@@ -44,6 +74,23 @@ def initialize_admin_user(user_service, password_hasher):
         except Exception as e:
             print(f"Error creando usuario admin: {e}")
 
+def initializate_departments (department_service: DepartmentService, unidades: list[str]):
+    """
+    
+    Crea los departamentos por defecto si no existen
+    
+    """
+    for unidad in unidades:
+        department = department_service.get_department_by_name(name=unidad)
+        if not department:
+            try:
+                # Crear usuario admin por defecto
+                department = department_service.create_department_f(
+                    name=unidad
+                )
+            except Exception as e:
+                print(f"Error creando departamento {unidad}: {e}")
+
 def main():
     """Función principal que inicializa la aplicación completa"""
     # Configuración de la base de datos
@@ -55,6 +102,7 @@ def main():
         # Inicializar dependencias
         user_repository = UserRepositoryImpl(db_session)
         password_hasher = BCryptPasswordHasher()
+        department_repository = DepartmentRepositoryImpl(db_session)
         
         # Inicializar casos de uso de usuarios
         create_user_use_case = CreateUserUseCase(user_repository, password_hasher)
@@ -63,6 +111,13 @@ def main():
         update_user_password_use_case = UpdateUserPasswordUseCase(user_repository, password_hasher)
         toggle_user_active_use_case = ToggleUserActiveUseCase(user_repository)
         delete_user_use_case = DeleteUserUseCase(user_repository)
+        
+        # Inicializar casos de uso de department
+        create_department = CreateDepartmentUseCase(department_repository)
+        update_department = UpdateDepartmentUseCase(department_repository)
+        get_department = GetDepartmentUseCase(department_repository)
+        delete_department = DeleteDepartmentUseCase(department_repository)
+        get_department_list = ListDepartmentUseCase(department_repository)
 
         # Inicializar servicio de usuarios
         user_service = UserService(
@@ -75,8 +130,21 @@ def main():
             delete_user_use_case=delete_user_use_case
         )
 
+        department_service = DepartmentService(
+            department_repository=department_repository,
+            create_department=create_department,
+            update_department=update_department,
+            get_department=get_department,
+            delete_department=delete_department,
+            get_department_list=get_department_list
+)
+
         # Crear usuario admin por defecto
-        initialize_admin_user(user_service, password_hasher)
+        initialize_admin_user(user_service)
+
+        # Crear departamentos
+        unidades = _departaments_by_file()
+        initializate_departments(department_service, unidades)
 
         # Inicializar casos de uso de autenticación
         login_use_case = LoginUseCase(user_repository, password_hasher)
@@ -87,7 +155,7 @@ def main():
         # Función que se ejecuta cuando el login es exitoso
         def on_login_success(user):
             """Callback que se ejecuta después de un login exitoso"""
-            dashboard = MainDashboard(user, user_service, auth_service)
+            dashboard = MainDashboard(user, user_service, auth_service, department_service)
             dashboard.run()
 
         # Ciclo principal de la aplicación

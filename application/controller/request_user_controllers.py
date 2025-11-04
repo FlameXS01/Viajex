@@ -1,7 +1,8 @@
 from typing import Optional, List, Union
+from application.dtos.common_dtos import RequestUserResponseDTO
 from application.services.request_service import UserRequestService
 from application.dtos.request_user_dtos import (
-    RequestUserCreateDTO, RequestUserResponseDTO, RequestUserUpdateDTO
+    RequestUserCreateDTO, RequestUserUpdateDTO
 )
 
 class RequestUserController:

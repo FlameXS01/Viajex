@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Optional
-from .department_dtos import DepartmentResponseDTO
+from .common_dtos import DepartmentResponseDTO
 
 @dataclass
 class RequestUserCreateDTO:
@@ -17,14 +17,6 @@ class RequestUserUpdateDTO:
     email: Optional[str] = None
     department_id: Optional[int] = None
 
-@dataclass
-class RequestUserResponseDTO:
-    id: int
-    username: str
-    fullname: str
-    email: str
-    ci: str
-    department_id: int
 
 @dataclass
 class RequestUserDetailDTO:

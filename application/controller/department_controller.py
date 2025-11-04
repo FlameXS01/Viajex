@@ -1,6 +1,6 @@
 from typing import Optional, List
 from application.services.department_service import DepartmentService
-from application.dtos.department_dtos import DepartmentResponseDTO
+from application.dtos.common_dtos import DepartmentResponseDTO
 
 class DepartmentController:
     def __init__(self, department_service: DepartmentService):
