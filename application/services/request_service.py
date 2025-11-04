@@ -32,7 +32,7 @@ class UserRequestService:
             department_id=user_data.department_id
         )
         return RequestUserResponseDTO(
-            id=user.id,
+            id=user.id,                                                                             # type: ignore
             username=user.username,
             fullname=user.fullname,
             email=user.email, 
@@ -47,7 +47,6 @@ class UserRequestService:
         if isinstance(user_data, int):
             user = self.request_user_repository.get_by_id(user_data)
         
-        # Si es string, buscar por username o email
         if isinstance(user_data, str) and not user:
             user = self.request_user_repository.get_by_username(user_data)
         
