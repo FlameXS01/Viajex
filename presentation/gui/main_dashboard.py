@@ -6,13 +6,14 @@ from presentation.gui.user_presentation.user_module import UserModule
 class MainDashboard:
     """Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA"""
     
-    def __init__(self, user, user_service, auth_service, department_service ):
+    def __init__(self, user, user_service, auth_service, department_service, request_user_service ):
         self.user = user
         self.user_service = user_service
         self.auth_service = auth_service
         self.department_service = department_service
         self.current_module = None
         self.current_module_instance = None  
+        self.request_user_service = request_user_service
         
         self.root = tk.Tk()
         self.root.title(f"Sistema de Gestión de Dietas - {user.username}")
@@ -131,12 +132,12 @@ class MainDashboard:
             dept_btn.pack(fill=tk.X, pady=5)
             self.nav_buttons['departments'] = dept_btn
 
-        # Módulo de Solicitantes 
-        btn = ttk.Button(nav_frame, text="👤 Gestión de Solicitantes", 
-                        style='Sidebar.TButton',
-                        command=lambda: self._show_module('request'))
-        btn.pack(fill=tk.X, pady=5)
-        self.nav_buttons['request'] = btn
+        # Módulo de Solicitantes
+        request_btn = ttk.Button(nav_frame, text="👥 Gestión de Solicitantes", 
+                            style='Sidebar.TButton',
+                            command=lambda: self._show_module('request_users'))
+        request_btn.pack(fill=tk.X, pady=5)
+        self.nav_buttons['request_users'] = request_btn
         
         # Módulo de Solicitantes 
         btn = ttk.Button(nav_frame, text="💳 Gestión de Tarjetas", 
@@ -281,12 +282,15 @@ class MainDashboard:
                 ttk.Label(placeholder, text="Módulo de Gestión de Tarjetas - En desarrollo", 
                          font=('Arial', 16), style='Content.TLabel').pack(expand=True)
             
-            elif module_name == 'request':
+            elif module_name == 'request_users':
                 self.module_title.config(text="Gestión de Solicitantes")
-                placeholder = ttk.Frame(self.module_container, style='Content.TFrame')
-                placeholder.pack(fill=tk.BOTH, expand=True)
-                ttk.Label(placeholder, text="Módulo de Gestión de Solicitantes - En desarrollo", 
-                         font=('Arial', 16), style='Content.TLabel').pack(expand=True)
+                from presentation.gui.request_user_presentation.request_user_module import RequestUserModule
+                self.current_module_instance = RequestUserModule(
+                    self.module_container, 
+                    self.request_user_service,
+                    self.department_service
+                )
+                self.current_module_instance.pack(fill=tk.BOTH, expand=True)
                 
             elif module_name == 'diets':
                 self.module_title.config(text="Gestión de Dietas")

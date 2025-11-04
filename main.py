@@ -1,8 +1,12 @@
 import tkinter as tk
 import pandas as pd
 from application.services.department_service import DepartmentService
+from application.services.request_service import UserRequestService
 from core.repositories.department_repository import DepartmentRepository
+from core.use_cases.request_user import create_request_user, delete_request_user, get_request_user, update_user_request
+from core.use_cases.request_user.list_users_request import ListRequestUsersUseCase
 from infrastructure.database.repositories.department_repository import DepartmentRepositoryImpl
+from infrastructure.database.repositories.request_user_repository import RequestUserRepositoryImpl
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -19,12 +23,19 @@ from core.use_cases.users.toggle_user_active import ToggleUserActiveUseCase
 from core.use_cases.users.delete_user import DeleteUserUseCase
 from core.use_cases.auth.login import LoginUseCase
 
-# Use Cases
+# Use Cases department 
 from core.use_cases.department.create_department import CreateDepartmentUseCase
 from core.use_cases.department.update_department import UpdateDepartmentUseCase
 from core.use_cases.department.get_department import GetDepartmentUseCase
 from core.use_cases.department.delete_department import DeleteDepartmentUseCase
 from core.use_cases.department.list_department import ListDepartmentUseCase
+
+# Use Cases department 
+from core.use_cases.request_user.create_request_user import CreateRequestUserUseCase
+from core.use_cases.request_user.update_user_request import UpdateRequestUserUseCase
+from core.use_cases.request_user.get_request_user import GetRequestUserUseCase
+from core.use_cases.request_user.delete_request_user import DeleteRequestUserUseCase
+from core.use_cases.request_user.list_users_request import ListRequestUsersUseCase
 
 
 
@@ -103,6 +114,7 @@ def main():
         user_repository = UserRepositoryImpl(db_session)
         password_hasher = BCryptPasswordHasher()
         department_repository = DepartmentRepositoryImpl(db_session)
+        request_user_repository = RequestUserRepositoryImpl(db_session)
         
         # Inicializar casos de uso de usuarios
         create_user_use_case = CreateUserUseCase(user_repository, password_hasher)
@@ -118,6 +130,13 @@ def main():
         get_department = GetDepartmentUseCase(department_repository)
         delete_department = DeleteDepartmentUseCase(department_repository)
         get_department_list = ListDepartmentUseCase(department_repository)
+
+        # Inicializar casos de uso de solicitantes
+        create_request_user = CreateRequestUserUseCase(request_user_repository)
+        update_user_request = UpdateRequestUserUseCase(request_user_repository)
+        get_request_user = GetRequestUserUseCase(request_user_repository)
+        delete_request_user = DeleteRequestUserUseCase(request_user_repository)
+        get_request_user_list = ListRequestUsersUseCase(request_user_repository)
 
         # Inicializar servicio de usuarios
         user_service = UserService(
@@ -137,7 +156,16 @@ def main():
             get_department=get_department,
             delete_department=delete_department,
             get_department_list=get_department_list
-)
+        )
+
+        request_user_service = UserRequestService(
+            request_user_repository=request_user_repository,
+            create_request_user=create_request_user,
+            update_user_request=update_user_request,
+            get_user_request=get_request_user,
+            get_user_request_list=get_request_user_list,
+            delete_user_request=delete_request_user
+        )
 
         # Crear usuario admin por defecto
         initialize_admin_user(user_service)
@@ -155,7 +183,7 @@ def main():
         # Función que se ejecuta cuando el login es exitoso
         def on_login_success(user):
             """Callback que se ejecuta después de un login exitoso"""
-            dashboard = MainDashboard(user, user_service, auth_service, department_service)
+            dashboard = MainDashboard(user, user_service, auth_service, department_service, request_user_service)
             dashboard.run()
 
         # Ciclo principal de la aplicación
