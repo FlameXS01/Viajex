@@ -60,9 +60,38 @@ dietas_app/
 │   │   │   │   └── confirm_dialog.py
 │   │   │   └── utils/
 │   │   │       └── window_utils.py
+│   │   ├── department_presentation/
+│   │   │   ├── department_module.py
+│   │   │   ├── widgets/
+│   │   │   │   ├── department_form.py
+│   │   │   │   ├── department_list.py
+│   │   │   │   └── department_actions.py
+│   │   │   ├── dialogs/
+│   │   │   │   ├── department_dialog.py
+│   │   │   │   └── confirm_dialog.py
+│   │   │   └── utils/
+│   │   │       └── window_utils.py
+│   │   ├── request_user_presentation/
+│   │   │   ├── request_user_module.py
+│   │   │   ├── widgets/
+│   │   │   │   ├── request_user_form.py
+│   │   │   │   ├── request_user_list.py
+│   │   │   │   └── request_user_actions.py
+│   │   │   ├── dialogs/
+│   │   │   │   ├── request_user_dialog.py
+│   │   │   │   └── confirm_dialog.py
+│   │   │   └── utils/
+│   │   │       └── window_utils.py
 │   │   └── utils/
 │   │       └── window_utils.py
 │   └── cli/
+│       ├── main_cli.py
+│       ├── commands/
+│       │   ├── user_commands.py
+│       │   ├── request_commands.py
+│       │   └── department_commands.py
+│       └── utils/
+│           └── display_utils.py
 ├── application/
 │   ├── controllers/
 │   │   ├── user_controller.py
