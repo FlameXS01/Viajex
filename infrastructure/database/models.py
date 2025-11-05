@@ -1,6 +1,6 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float
 from sqlalchemy.sql import func
-from infrastructure.database.session import Base # pyright: ignore[reportMissingImports]
+from infrastructure.database.session import Base 
 
 class UserModel(Base):
     """
@@ -24,10 +24,10 @@ class CardModel(Base):
     __tablename__ = "cards"
     
     card_id = Column(Integer, primary_key=True, index=True)
-    card_number = Column(String(16), unique=True, index=True, nullable=False)  # ✅ Longitud exacta
-    card_pin = Column(String(255), nullable=False)  # ✅ Para PIN hasheado
+    card_number = Column(String(16), unique=True, index=True, nullable=False)  
+    card_pin = Column(String(255), nullable=False)  
     is_active = Column(Boolean, default=True)
-    with_money = Column(bool, default=True)
-    amount = Column(float())
-    def __repr__(self):  # ✅ DENTRO de la clase
+    with_money = Column(Boolean, default=True)
+    amount = Column(Float)
+    def __repr__(self):  
         return f"<CardModel(card_id={self.card_id}, card_number='{self.card_number}')>"
