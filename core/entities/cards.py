@@ -8,7 +8,7 @@ class Card:
     card_number: str
     card_pin: str
     is_active: bool
-    balance: Decimal  # ✅ Mejor nombre que "amount"
+    balance: Decimal  
     
     # Constantes de validación
     CARD_NUMBER_LENGTH: ClassVar[int] = 16
@@ -51,10 +51,10 @@ class Card:
             raise ValueError("Charge amount must be positive")
         
         if self.balance < amount:
-            return False  # Fondos insuficientes
+            return False  
         
         self.balance -= amount
-        return True  # Cargo exitoso
+        return True  
     
     def has_sufficient_balance(self, amount: Decimal) -> bool:
         """Verifica si hay saldo suficiente"""
