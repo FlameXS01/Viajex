@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Optional
 from core.entities.user import User
 
 class UserRepository(ABC):
@@ -29,7 +29,7 @@ class UserRepository(ABC):
         pass
 
     @abstractmethod
-    def get_all(self) -> List[User]:
+    def get_all(self) -> list[User]:
         """Obtiene todos los usuarios del sistema"""
         pass
 

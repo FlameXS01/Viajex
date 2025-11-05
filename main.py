@@ -1,12 +1,19 @@
 import tkinter as tk
+import pandas as pd
+from application.dtos.request_user_dtos import RequestUserCreateDTO
+from core.entities.department import Department
+from core.repositories.department_repository import DepartmentRepository
+from core.use_cases.request_user import create_request_user, delete_request_user, get_request_user, update_user_request
+from core.use_cases.request_user.list_users_request import ListRequestUsersUseCase
+from infrastructure.database.repositories.department_repository import DepartmentRepositoryImpl
+from infrastructure.database.repositories.request_user_repository import RequestUserRepositoryImpl
+from infrastructure.database.repositories.user_repository import UserRepositoryImpl
+from infrastructure.database.session import Base, engine
+from infrastructure.security.password_hasher import BCryptPasswordHasher
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from infrastructure.database.session import Base, engine
-from infrastructure.database.repositories.user_repository import UserRepositoryImpl
-from infrastructure.security.password_hasher import BCryptPasswordHasher
-
-# Use Cases
+# Use Cases User
 from core.use_cases.users.create_user import CreateUserUseCase
 from core.use_cases.users.update_user import UpdateUserUseCase
 from core.use_cases.users.update_user_role import UpdateUserRoleUseCase
@@ -15,9 +22,27 @@ from core.use_cases.users.toggle_user_active import ToggleUserActiveUseCase
 from core.use_cases.users.delete_user import DeleteUserUseCase
 from core.use_cases.auth.login import LoginUseCase
 
+# Use Cases department 
+from core.use_cases.department.create_department import CreateDepartmentUseCase
+from core.use_cases.department.update_department import UpdateDepartmentUseCase
+from core.use_cases.department.get_department import GetDepartmentUseCase
+from core.use_cases.department.delete_department import DeleteDepartmentUseCase
+from core.use_cases.department.list_department import ListDepartmentUseCase
+
+# Use Cases request user 
+from core.use_cases.request_user.create_request_user import CreateRequestUserUseCase
+from core.use_cases.request_user.update_user_request import UpdateRequestUserUseCase
+from core.use_cases.request_user.get_request_user import GetRequestUserUseCase
+from core.use_cases.request_user.delete_request_user import DeleteRequestUserUseCase
+from core.use_cases.request_user.list_users_request import ListRequestUsersUseCase
+
+
+
 # Services
 from application.services.user_service import UserService
 from application.services.auth_service import AuthService
+from application.services.department_service import DepartmentService
+from application.services.request_service import UserRequestService
 
 # GUI
 from presentation.gui.login_window import LoginWindow
@@ -26,9 +51,90 @@ from presentation.gui.main_dashboard import MainDashboard
 # Entities
 from core.entities.user import User, UserRole
 
-def initialize_admin_user(user_service, password_hasher):
+def _departaments_by_file() -> list[str]:
     """
+    
+    Script para obtener los nombres de las unidades(departments)
+    
+    """
+    # Se saltan las primeras 3 filas porque no brindan informacion
+    df = pd.read_excel("Files/Maestro de trabajadores cierre septiembre.xlsx",skiprows=3)
+    dirty_unidades = df['Unidad'].value_counts()  
+    unidades =[]
+    for value, unidad in enumerate(dirty_unidades.index):
+        unidades.append(unidad.strip())
+    return unidades
+
+def _request_users_by_file() -> list[dict]:
+    """
+    
+    Script para obtener los nombres de los solicitantes
+    
+    """
+    # Se saltan las primeras 3 filas porque no brindan informacion
+    df = pd.read_excel("Files/Maestro de trabajadores cierre septiembre.xlsx",skiprows=3)
+    dirty_data = df[['Nomre y apellidos', 'CI', 'Unidad']]
+    personas = []
+    for index, fila in dirty_data.iterrows():
+            nombre = str(fila['Nomre y apellidos']).strip()
+            ci = str(fila['CI']).strip()
+            unidad = str(fila['Unidad']).strip()
+           
+            if len(ci) > 11:
+                continue
+
+            persona = {
+                'nombre': nombre,
+                'ci': ci, 
+                'unidad': unidad
+            }
+            personas.append(persona)
+    return personas
+    
+def initialize_request_users(request_user_service: UserRequestService, personas: list[dict], department_service: DepartmentService):
+    """
+    Crea los solicitantes por defecto si no existen
+    
+    Args:
+        request_user_service: Servicio para manejar usuarios
+        personas: Lista de personas desde el archivo
+        department_service: Servicio para manejar departamentos
+    """
+    for persona in personas:
+        try:
+            requ_user = request_user_service.get_user_by_ci(persona['ci'])
+            if requ_user:
+                continue
+
+            department = department_service.get_department_by_name(name=persona['unidad'])
+            if not department:
+                print(f"  ❌ Departamento no encontrado: '{persona['unidad']}'")
+                continue
+
+            # Crear DTO y usuario
+            user_data = RequestUserCreateDTO(
+                username=None,
+                fullname=persona['nombre'],
+                email=None,
+                ci=persona['ci'],
+                department_id=department.id                                                                         # type: ignore
+            )
+            
+            requ_user = request_user_service.create_user(user_data)
+            
+            if requ_user:
+                continue
+        except Exception as e:
+            print(f"❌ Error creando {persona.get('nombre', 'N/A')}: {e}")
+            import traceback
+            traceback.print_exc()
+    print('Solicitantes inicializados')
+
+def initialize_admin_user(user_service: UserService):
+    """
+   
     Crea el usuario administrador por defecto si no existe
+    
     """
     admin_user = user_service.get_user_by_username("admin")
     if not admin_user:
@@ -44,6 +150,24 @@ def initialize_admin_user(user_service, password_hasher):
         except Exception as e:
             print(f"Error creando usuario admin: {e}")
 
+def initializate_departments (department_service: DepartmentService, unidades: list[str]):
+    """
+    
+    Crea los departamentos por defecto si no existen
+    
+    """
+    for unidad in unidades:
+        department = department_service.get_department_by_name(name=unidad)
+        if not department:
+            try:
+                # Crear usuario admin por defecto
+                department = department_service.create_department_f(
+                    name=unidad
+                )
+            except Exception as e:
+                print(f"Error creando departamento {unidad}: {e}")
+    print('Departamentos inicializados')
+
 def main():
     """Función principal que inicializa la aplicación completa"""
     # Configuración de la base de datos
@@ -55,6 +179,8 @@ def main():
         # Inicializar dependencias
         user_repository = UserRepositoryImpl(db_session)
         password_hasher = BCryptPasswordHasher()
+        department_repository = DepartmentRepositoryImpl(db_session)
+        request_user_repository = RequestUserRepositoryImpl(db_session)
         
         # Inicializar casos de uso de usuarios
         create_user_use_case = CreateUserUseCase(user_repository, password_hasher)
@@ -63,6 +189,20 @@ def main():
         update_user_password_use_case = UpdateUserPasswordUseCase(user_repository, password_hasher)
         toggle_user_active_use_case = ToggleUserActiveUseCase(user_repository)
         delete_user_use_case = DeleteUserUseCase(user_repository)
+        
+        # Inicializar casos de uso de department
+        create_department = CreateDepartmentUseCase(department_repository)
+        update_department = UpdateDepartmentUseCase(department_repository)
+        get_department = GetDepartmentUseCase(department_repository)
+        delete_department = DeleteDepartmentUseCase(department_repository)
+        get_department_list = ListDepartmentUseCase(department_repository)
+
+        # Inicializar casos de uso de solicitantes
+        create_request_user = CreateRequestUserUseCase(request_user_repository)
+        update_user_request = UpdateRequestUserUseCase(request_user_repository)
+        get_request_user = GetRequestUserUseCase(request_user_repository)
+        delete_request_user = DeleteRequestUserUseCase(request_user_repository)
+        get_request_user_list = ListRequestUsersUseCase(request_user_repository)
 
         # Inicializar servicio de usuarios
         user_service = UserService(
@@ -75,8 +215,39 @@ def main():
             delete_user_use_case=delete_user_use_case
         )
 
+        department_service = DepartmentService(
+            department_repository=department_repository,
+            create_department=create_department,
+            update_department=update_department,
+            get_department=get_department,
+            delete_department=delete_department,
+            get_department_list=get_department_list
+        )
+
+        request_user_service = UserRequestService(
+            request_user_repository=request_user_repository,
+            create_request_user=create_request_user,
+            update_user_request=update_user_request,
+            get_user_request=get_request_user,
+            get_user_request_list=get_request_user_list,
+            delete_user_request=delete_request_user
+        )
+
         # Crear usuario admin por defecto
-        initialize_admin_user(user_service, password_hasher)
+        initialize_admin_user(user_service)
+
+        # Crear departamentos
+        unidades = _departaments_by_file()
+        initializate_departments(department_service, unidades)
+
+
+        personas = _request_users_by_file()
+        initialize_request_users(request_user_service, personas, department_service)
+
+        # try:
+        # except ValueError as e:
+        #     print("aqui hay tremendo errorsasasaso", e)
+
 
         # Inicializar casos de uso de autenticación
         login_use_case = LoginUseCase(user_repository, password_hasher)
@@ -87,7 +258,7 @@ def main():
         # Función que se ejecuta cuando el login es exitoso
         def on_login_success(user):
             """Callback que se ejecuta después de un login exitoso"""
-            dashboard = MainDashboard(user, user_service, auth_service)
+            dashboard = MainDashboard(user, user_service, auth_service, department_service, request_user_service)
             dashboard.run()
 
         # Ciclo principal de la aplicación

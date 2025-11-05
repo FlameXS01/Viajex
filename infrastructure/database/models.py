@@ -1,11 +1,15 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Float
 from sqlalchemy.sql import func
-from infrastructure.database.session import Base 
+from sqlalchemy.orm import relationship
+from infrastructure.database.session import Base
+
 
 class UserModel(Base):
     """
-    Modelo de SQLAlchemy para la tabla users.
+    
+    Modelo de SQLAlchemy para la tabla users del sistema.
     Representa la estructura de la tabla en la base de datos.
+    
     """
     __tablename__ = "users"
 
@@ -20,6 +24,39 @@ class UserModel(Base):
     def __repr__(self):
         return f"<UserModel(id={self.id}, username='{self.username}')>"
 
+    
+class RequestUserModel(Base):
+    """
+    
+    Modelo de SQLAlchemy para la tabla request.
+    Representa la estructura de la tabla Solicitantes en la base de datos
+    
+    """
+    __tablename__ = "requests"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), unique=True, index=True, nullable=True)
+    fullname = Column(String(50), unique=True, index=True, nullable=False)
+    email = Column(String(255), unique=True, index=True, nullable=True)
+    ci = Column(String(15), unique=True, nullable=False)
+    department_id = Column(Integer, ForeignKey("department.id"), nullable=False)
+
+    department = relationship("DepartmentModel", back_populates="requests")
+    
+class DepartmentModel(Base):
+    """
+    
+    Modelo de SQLAlchemy para la tabla department.
+    Representa la estructura de la tabla Departamentos en la base de datos
+    
+    """
+    __tablename__ = "department"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(50), unique=True, index=True, nullable=False)
+    
+    requests = relationship("RequestUserModel", back_populates="department")
+    
 class CardModel(Base):
     __tablename__ = "cards"
     
