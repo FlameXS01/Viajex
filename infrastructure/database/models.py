@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.sql import func
-from infrastructure.database.session import Base
+from infrastructure.database.session import Base # pyright: ignore[reportMissingImports]
 
 class UserModel(Base):
     """
@@ -19,3 +19,15 @@ class UserModel(Base):
 
     def __repr__(self):
         return f"<UserModel(id={self.id}, username='{self.username}')>"
+
+class CardModel(Base):
+    __tablename__ = "cards"
+    
+    card_id = Column(Integer, primary_key=True, index=True)
+    card_number = Column(String(16), unique=True, index=True, nullable=False)  # ✅ Longitud exacta
+    card_pin = Column(String(255), nullable=False)  # ✅ Para PIN hasheado
+    is_active = Column(Boolean, default=True)
+    with_money = Column(bool, default=True)
+    amount = Column(float())
+    def __repr__(self):  # ✅ DENTRO de la clase
+        return f"<CardModel(card_id={self.card_id}, card_number='{self.card_number}')>"
