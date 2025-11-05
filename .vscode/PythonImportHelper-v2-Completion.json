@@ -2191,7 +2191,7 @@
         "kind": 6,
         "importPath": "infrastructure.database.models",
         "description": "infrastructure.database.models",
-        "peekOfCode": "class CardModel(Base):\n    __tablename__ = \"cards\"\n    card_id = Column(Integer, primary_key=True, index=True)\n    card_number = Column(String(16), unique=True, index=True, nullable=False)  # ✅ Longitud exacta\n    card_pin = Column(String(255), nullable=False)  # ✅ Para PIN hasheado\n    is_active = Column(Boolean, default=True)\n    with_money = Column(bool, default=True)\n    amount = Column(float())\n    def __repr__(self):  # ✅ DENTRO de la clase\n        return f\"<CardModel(card_id={self.card_id}, card_number='{self.card_number}')>\"",
+        "peekOfCode": "class CardModel(Base):\n    __tablename__ = \"cards\"\n    card_id = Column(Integer, primary_key=True, index=True)\n    card_number = Column(String(16), unique=True, index=True, nullable=False) \n    card_pin = Column(String(255), nullable=False)  \n    is_active = Column(Boolean, default=True)\n    with_money = Column(bool, default=True)\n    balance = Column(float())\n    def __repr__(self): \n        return f\"<CardModel(card_id={self.card_id}, card_number='{self.card_number}')>\"",
         "detail": "infrastructure.database.models",
         "documentation": {}
     },
