@@ -5,8 +5,10 @@ from infrastructure.database.session import Base
 
 class UserModel(Base):
     """
-    Modelo de SQLAlchemy para la tabla users.
+    
+    Modelo de SQLAlchemy para la tabla users del sistema.
     Representa la estructura de la tabla en la base de datos.
+    
     """
     __tablename__ = "users"
 
@@ -24,15 +26,17 @@ class UserModel(Base):
     
 class RequestUserModel(Base):
     """
+    
     Modelo de SQLAlchemy para la tabla request.
     Representa la estructura de la tabla Solicitantes en la base de datos
+    
     """
     __tablename__ = "requests"
     
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(50), unique=True, index=True, nullable=False)
+    username = Column(String(50), unique=True, index=True, nullable=True)
     fullname = Column(String(50), unique=True, index=True, nullable=False)
-    email = Column(String(255), unique=True, index=True, nullable=False)
+    email = Column(String(255), unique=True, index=True, nullable=True)
     ci = Column(String(15), unique=True, nullable=False)
     department_id = Column(Integer, ForeignKey("department.id"), nullable=False)
 
@@ -40,8 +44,10 @@ class RequestUserModel(Base):
     
 class DepartmentModel(Base):
     """
+    
     Modelo de SQLAlchemy para la tabla department.
     Representa la estructura de la tabla Departamentos en la base de datos
+    
     """
     __tablename__ = "department"
     

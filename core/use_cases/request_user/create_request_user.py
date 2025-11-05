@@ -12,11 +12,11 @@ class CreateRequestUserUseCase:
         Ejecuta el caso de uso para crear un usuario solicitante
         """
             
-        if self.request_user_repository.get_by_username(username):
-            raise ValueError("El nombre de usuario ya está en uso")
+        # if self.request_user_repository.get_by_username(username):
+        #     raise ValueError("El nombre de usuario ya está en uso", username)
         
-        if self.request_user_repository.get_by_email(email):
-            raise ValueError("El email ya está registrado")
+        # if self.request_user_repository.get_by_email(email):
+        #     raise ValueError("El email ya está registrado")
             
         if self.request_user_repository.get_by_ci(ci):
             raise ValueError("El CI ya está registrado")

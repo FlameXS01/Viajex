@@ -1,11 +1,13 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from application.dtos.request_user_dtos import RequestUserCreateDTO
+from application.services.request_service import UserRequestService
 from presentation.gui.utils.windows_utils import WindowUtils
 
 class RequestUserDialog:
     """Diálogo para crear/editar usuarios solicitantes"""
     
-    def __init__(self, parent, request_user_service, department_service, user_data=None):
+    def __init__(self, parent, request_user_service: UserRequestService, department_service, user_data=None):
         self.request_user_service = request_user_service
         self.department_service = department_service
         self.user_data = user_data
@@ -37,7 +39,6 @@ class RequestUserDialog:
             ttk.Label(main_frame, text=label).grid(row=i, column=0, sticky=tk.W, pady=5)
             
             if label == "Departamento:":
-                # Combobox para seleccionar departamento
                 dept_names = [dept.name for dept in departments]
                 dept_combo = ttk.Combobox(main_frame, values=dept_names, state="readonly")
                 dept_combo.grid(row=i, column=1, sticky=(tk.W, tk.E), padx=5, pady=5)
@@ -50,14 +51,18 @@ class RequestUserDialog:
                 field_name = label.lower().replace(' ', '_').replace(':', '')
                 self.entries[field_name] = entry
 
-        # Si estamos en modo edición, cargar los datos existentes
         if self.user_data:
-            self.entries['username'].insert(0, self.user_data.username)
-            self.entries['nombre_completo'].insert(0, self.user_data.fullname)
-            self.entries['email'].insert(0, self.user_data.email)
-            self.entries['ci'].insert(0, self.user_data.ci)
+            def safe_insert(field_name, value):
+                if value is None:
+                    self.entries[field_name].insert(0, '')
+                else:
+                    self.entries[field_name].insert(0, str(value))
             
-            # Establecer departamento
+            safe_insert('username', self.user_data.username)
+            safe_insert('nombre_completo', self.user_data.fullname)
+            safe_insert('email', self.user_data.email)
+            safe_insert('ci', self.user_data.ci)
+            
             department = self.department_service.get_department_by_id(self.user_data.department_id)
             if department:
                 self.entries['department'].set(department.name)
@@ -87,6 +92,14 @@ class RequestUserDialog:
             # Obtener ID del departamento seleccionado
             departments = self.department_service.get_all_departments()
             department = next((dept for dept in departments if dept.name == department_name), None)
+
+            user_data = RequestUserCreateDTO(
+                    ci=ci,
+                    username=username,
+                    fullname=fullname,
+                    email=email,
+                    department_id=department.id
+                )
             
             if not department:
                 messagebox.showerror("Error", "Departamento no válido")
@@ -101,15 +114,14 @@ class RequestUserDialog:
                 messagebox.showinfo("Éxito", "Solicitante actualizado correctamente")
             else:
                 # Crear nuevo usuario
-                user = self.request_user_service.create_user(
-                    ci, username, fullname, email, department.id
-                )
+                user = self.request_user_service.create_user(user_data)
                 self.result = user
                 messagebox.showinfo("Éxito", "Solicitante creado correctamente")
             
             self.dialog.destroy()
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo guardar el solicitante: {str(e)}")
+       
 
     def show(self):
         """Muestra el diálogo y retorna el resultado"""

@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional
 from .common_dtos import DepartmentResponseDTO
 
 @dataclass
 class RequestUserCreateDTO:
-    username: str
+    username: Optional[str]
     fullname: str  
-    email: str
+    email: Optional[str]
     ci: str
     department_id: int
 

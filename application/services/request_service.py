@@ -59,6 +59,9 @@ class UserRequestService:
     def get_user_by_id(self, user_id: int)-> Optional[RequestUser]:
         return self.get_user_request.execute(user_id)
     
+    def get_user_by_ci(self, ci: str)-> Optional[RequestUser]:
+        return self.request_user_repository.get_by_ci(ci)
+    
     def get_user_by_username(self, username: str) -> Optional[RequestUser]:
         return self.request_user_repository.get_by_username(username)
     
