@@ -1,0 +1,70 @@
+dietas_app/
+├── main.py
+├── core/
+│   ├── entities/
+│   │   ├── user.py
+│   │   ├── request_user.py
+│   │   ├── department.py
+│   │   ├── card.py
+│   │   └── diet_entities.py  
+│   ├── repositories/
+│   │   ├── user_repository.py
+│   │   ├── request_user_repository.py
+│   │   ├── department_repository.py
+│   │   ├── card_repository.py
+│   │   └── diet_repositories.py  
+│   └── use_cases/
+│       ├── auth/
+│       │   └── login.py
+│       ├── users/
+│       │   └── ***.py
+│       ├── request_users/
+│       │   └── ***.py
+│       ├── departments/
+│       │   └── ***.py
+│       └── diets/
+│           ├── diet_services/
+│           │   └── ***.py
+│           ├── diets/
+│           │   └── ***.py
+│           ├── diet_liquidations/
+│           │   └── ***.py
+│           └── diet_members/
+│               └── ***.py
+├── infrastructure/
+│   ├── database/
+│   │   ├── models.py
+│   │   ├── repositories/
+│   │   │   └── ***.py  
+│   │   └── session.py
+│   ├── email/
+│   │   └── email_sender.py
+│   └── security/
+│       └── password_hasher.py
+├── presentation/
+│   ├── gui/
+│   │   ├── login_window.py
+│   │   ├── main_app_window.py
+│   │   ├── user_presentation/
+│   │   │   └── ***.py
+│   │   ├── department_presentation/
+│   │   │   └── ***.py
+│   │   ├── request_user_presentation/
+│   │   │   └── ***.py
+│   │   ├── card_presentation/
+│   │   │   └── ***.py
+│   │   ├── diet_presentation/
+│   │   │   └── ***.py
+│   │   └── utils/
+│   │       └── window_utils.py
+│   └── cli/
+│       └── ***.py
+├── application/
+│   ├── controllers/
+│   │   └── ***.py  
+│   ├── dtos/
+│   │   └── ***.py  
+│   └── services/
+│       └── ***.py  
+└── config/
+    └── settings.py
