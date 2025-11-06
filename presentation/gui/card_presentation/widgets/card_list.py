@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 class CardList(ttk.Frame):
-    """Componente de lista de tarjetas - MEJORADO PARA DIFERENTES LONGITUDES"""
+    """Componente de lista de tarjetas - SIN CREATED_AT"""
     
     def __init__(self, parent, on_select_callback):
         super().__init__(parent)
@@ -25,21 +25,19 @@ class CardList(ttk.Frame):
         main_frame.pack(fill=tk.BOTH, expand=True)
         
         # Treeview para mostrar las tarjetas
-        columns = ('id', 'card_number', 'balance', 'status', 'created_at')
+        columns = ('id', 'card_number', 'balance', 'status')
         self.tree = ttk.Treeview(main_frame, columns=columns, show='headings', style='Card.Treeview')
         
         # Configurar columnas
         self.tree.heading('id', text='ID')
         self.tree.heading('card_number', text='Número de Tarjeta')
-        self.tree.heading('balance', text='Monto')
+        self.tree.heading('balance', text='Balance')
         self.tree.heading('status', text='Estado')
-        self.tree.heading('created_at', text='Creado')
         
         self.tree.column('id', width=50, anchor='center')
-        self.tree.column('card_number', width=180)  # Un poco más ancho para diferentes longitudes
+        self.tree.column('card_number', width=180)
         self.tree.column('balance', width=100, anchor='center')
         self.tree.column('status', width=100, anchor='center')
-        self.tree.column('created_at', width=120, anchor='center')
         
         # Scrollbars
         v_scrollbar = ttk.Scrollbar(main_frame, orient=tk.VERTICAL, command=self.tree.yview)
@@ -54,7 +52,6 @@ class CardList(ttk.Frame):
         main_frame.grid_rowconfigure(0, weight=1)
         main_frame.grid_columnconfigure(0, weight=1)
         
-        # Bind selection event
         self.tree.bind('<<TreeviewSelect>>', self._on_tree_select)
 
     def _on_tree_select(self, event):
@@ -73,30 +70,17 @@ class CardList(ttk.Frame):
         self.tree.delete(*self.tree.get_children())
         
         for card in cards:
-            # Formatear fecha si está disponible
-            created_at = getattr(card, 'created_at', 'N/A')
-            if hasattr(created_at, 'strftime'):
-                created_at = created_at.strftime('%Y-%m-%d')
             
-            # Formatear monto
             balance = getattr(card, 'balance', 0)
             balance_str = f"${balance:.2f}" if isinstance(balance, (int, float)) else str(balance)
             
-            # Obtener el número de tarjeta (formateado para mostrar)
+            
             card_number = getattr(card, 'card_number', '')
             
-            # Formatear para mostrar según la longitud
-            if len(card_number) >= 4:
-                # Mostrar solo los últimos 4 dígitos por seguridad
-                display_number = f"**** **** **** {card_number[-4:]}"
-            else:
-                display_number = card_number
-            
             # Insertar en el treeview
-            item_id = self.tree.insert('', tk.END, values=(
+            self.tree.insert('', tk.END, values=(
                 card.id, 
-                display_number,
+                card_number,
                 balance_str,
-                '✅ Activa' if getattr(card, 'is_active', True) else '❌ Inactiva',
-                created_at
+                '✅ Activa' if getattr(card, 'is_active', True) else '❌ Inactiva'
             ))

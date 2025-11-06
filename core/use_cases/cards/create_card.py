@@ -4,9 +4,8 @@ from core.repositories.card_repository import CardRepository
 from infrastructure.security.password_hasher import PasswordHasher
 
 class CreateCardUseCase:
-    def __init__(self, card_repository: CardRepository, password_hasher: PasswordHasher):
+    def __init__(self, card_repository: CardRepository):
         self.card_repository = card_repository
-        self.password_hasher = password_hasher
 
     def execute(self, card_number: str, card_pin: str, balance: float) -> Optional[Card]:
         # Validar que el número de tarjeta tenga entre 12 y 16 dígitos
@@ -24,14 +23,12 @@ class CreateCardUseCase:
         # Verificar si la tarjeta ya existe
         if self.card_repository.get_by_card_number(card_number):
             raise ValueError("Ya existe una tarjeta con este número")
-        
-        # Hashear el PIN antes de guardarlo
-        hashed_pin = self.password_hasher.hash(card_pin)
+    
         
         # Crear la entidad Card
         card = Card(
             card_number=card_number,
-            card_pin=hashed_pin,
+            card_pin=card_pin,
             balance=balance,
             is_active=True
         )

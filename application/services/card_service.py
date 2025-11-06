@@ -6,36 +6,42 @@ from core.use_cases.cards.update_card import UpdateCardUseCase
 from core.use_cases.cards.get_card_use_case import GetCardByIdUseCase
 from core.use_cases.cards.get_all_cards import GetAllCardsUseCase
 from core.use_cases.cards.toggle_card_active import ToggleCardActiveUseCase
+from core.use_cases.cards.get_card_by_number import GetCardByNumberUseCase  
 
 class CardService:
-        def __init__(self, 
-                        create_card_use_case: CreateCardUseCase,
-                        delete_card_use_case: DeleteCardUseCase,
-                        update_card_use_case: UpdateCardUseCase,
-                        get_card_by_id_use_case: GetCardByIdUseCase,
-                        get_all_cards_use_case: GetAllCardsUseCase,
-                        toggle_card_active_use_case: ToggleCardActiveUseCase):
-                self.create_card_use_case = create_card_use_case
-                self.delete_card_use_case = delete_card_use_case
-                self.update_card_use_case = update_card_use_case
-                self.get_card_by_id_use_case = get_card_by_id_use_case
-                self.get_all_cards_use_case = get_all_cards_use_case
-                self.toggle_card_active_use_case = toggle_card_active_use_case
+    def __init__(self, 
+                 create_card_use_case: CreateCardUseCase,
+                 delete_card_use_case: DeleteCardUseCase,
+                 update_card_use_case: UpdateCardUseCase,
+                 get_card_by_id_use_case: GetCardByIdUseCase,
+                 get_all_cards_use_case: GetAllCardsUseCase,
+                 toggle_card_active_use_case: ToggleCardActiveUseCase,
+                 get_card_by_number_use_case: GetCardByNumberUseCase):  
+        self.create_card_use_case = create_card_use_case
+        self.delete_card_use_case = delete_card_use_case
+        self.update_card_use_case = update_card_use_case
+        self.get_card_by_id_use_case = get_card_by_id_use_case
+        self.get_all_cards_use_case = get_all_cards_use_case
+        self.toggle_card_active_use_case = toggle_card_active_use_case
+        self.get_card_by_number_use_case = get_card_by_number_use_case  
 
-        def create_card(self, card_number: str, card_pin: str, amount: float) -> Optional[Card]:
-                return self.create_card_use_case.execute(card_number, card_pin, amount)
+    def create_card(self, card_number: str, card_pin: str, amount: float) -> Optional[Card]:
+        return self.create_card_use_case.execute(card_number, card_pin, amount)
 
-        def delete_card(self, card_id: int) -> bool:
-                return self.delete_card_use_case.execute(card_id)
+    def delete_card(self, card_id: int) -> bool:
+        return self.delete_card_use_case.execute(card_id)
 
-        def update_card(self, card_id: int, card_number: str, description: str, amount: float, is_active: bool) -> Optional[Card]:
-                return self.update_card_use_case.execute(card_id, card_number, description, amount, is_active)
+    def update_card(self, card_id: int, card_number: str, card_pin: str, amount: float, is_active: bool) -> Optional[Card]:
+        return self.update_card_use_case.execute(card_id, card_number, card_pin, amount, is_active)
 
-        def get_card_by_id(self, card_id: int) -> Optional[Card]:
-                return self.get_card_by_id_use_case.execute(card_id)
+    def get_card_by_id(self, card_id: int) -> Optional[Card]:
+        return self.get_card_by_id_use_case.execute(card_id)
 
-        def get_all_cards(self) -> List[Card]:
-                return self.get_all_cards_use_case.execute()
+    def get_card_by_card_number(self, card_number: str) -> Optional[Card]:
+        return self.get_card_by_number_use_case.execute(card_number)
 
-        def toggle_card_active(self, card_id: int) -> Optional[Card]:
-                return self.toggle_card_active_use_case.execute(card_id)
+    def get_all_cards(self) -> List[Card]:
+        return self.get_all_cards_use_case.execute()
+
+    def toggle_card_active(self, card_id: int) -> Optional[Card]:
+        return self.toggle_card_active_use_case.execute(card_id)

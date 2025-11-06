@@ -1,11 +1,12 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from application.services.card_service import CardService
 from presentation.gui.card_presentation.widgets.card_form import CardForm
 
 class CardDialog:
     """Diálogo para crear/editar tarjetas - VERSIÓN CORREGIDA"""
     
-    def __init__(self, parent, card_service, card=None):
+    def __init__(self, parent, card_service: CardService, card=None):
         self.parent = parent
         self.card_service = card_service
         self.card = card
@@ -17,12 +18,11 @@ class CardDialog:
         """Crea el diálogo"""
         self.dialog = tk.Toplevel(self.parent)
         self.dialog.title("Editar Tarjeta" if self.card else "Crear Tarjeta")
-        self.dialog.geometry("450x400")
+        self.dialog.geometry("450x350")  
         self.dialog.resizable(False, False)
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
         
-        # Centrar diálogo
         self.dialog.update_idletasks()
         x = self.parent.winfo_x() + (self.parent.winfo_width() // 2) - (self.dialog.winfo_width() // 2)
         y = self.parent.winfo_y() + (self.parent.winfo_height() // 2) - (self.dialog.winfo_height() // 2)
@@ -54,21 +54,22 @@ class CardDialog:
             
         try:
             if self.card:
-                # Para actualizar - usar card_number en lugar de name
-                success = self.card_service.update_card(
-                    self.card.id,
-                    data['card_number'],
-                    data['description'],
-                    data['balance'],
-                    data['is_active']
+                updated_card = self.card_service.update_card(
+                    card_id=self.card.id,
+                    card_number=data['card_number'],
+                    card_pin=data['card_pin'],  
+                    amount=data['balance'],    
+                    is_active=data['is_active']
                 )
+                success = updated_card is not None
             else:
-                # Para crear - usar card_number en lugar de name
-                success = self.card_service.create_card(
-                    data['card_number'],
-                    data['card_pin'],
-                    data['balance']
+                # Para crear
+                new_card = self.card_service.create_card(
+                    card_number=data['card_number'],
+                    card_pin=data['card_pin'],
+                    amount=data['balance']
                 )
+                success = new_card is not None
                 
             if success:
                 messagebox.showinfo("Éxito", "Tarjeta guardada correctamente")
@@ -79,7 +80,6 @@ class CardDialog:
                 
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo guardar la tarjeta: {str(e)}")
-            # Para debugging
             import traceback
             print("Error completo:", traceback.format_exc())
 

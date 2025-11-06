@@ -104,6 +104,8 @@ class CardModule(ttk.Frame):
             
         try:
             card = self.card_service.toggle_card_active(self.selected_card_id)
+            if not card:
+                return messagebox.showerror("Error", "Tarjeta no encontrada")
             status = "activada" if card.is_active else "desactivada"
             messagebox.showinfo("Éxito", f"Tarjeta {status} correctamente")
             self._load_cards()
@@ -111,7 +113,7 @@ class CardModule(ttk.Frame):
             messagebox.showerror("Error", f"No se pudo cambiar el estado: {str(e)}")
 
     def _delete_card(self):
-        """Elimina la tarjeta seleccionada - VERSIÓN ACTUALIZADA"""
+        """Elimina la tarjeta seleccionada - SIN DESCRIPTION"""
         if not self.selected_card_id:
             return
             
@@ -133,13 +135,10 @@ class CardModule(ttk.Frame):
                 except Exception as e:
                     messagebox.showerror("Error", f"No se pudo eliminar la tarjeta: {str(e)}")
 
-            # Mostrar información de la tarjeta (usando card_number en lugar de name)
+            # Mostrar información de la tarjeta (SIN DESCRIPTION)
             card_number = getattr(card, 'card_number', 'N/A')
             card_info = f"Número: **** **** **** {card_number[-4:]}\n" if len(card_number) >= 4 else f"Número: {card_number}\n"
-            if hasattr(card, 'balance'):
-                card_info += f"Monto: ${card.balance:.2f}\n"
-            if hasattr(card, 'description') and card.description:
-                card_info += f"Descripción: {card.description[:50]}...\n" if len(card.description) > 50 else f"Descripción: {card.description}\n"
+            card_info += f"Balance: ${card.balance:.2f}\n" if hasattr(card, 'balance') else ""
 
             ConfirmDialog(
                 self.winfo_toplevel(),

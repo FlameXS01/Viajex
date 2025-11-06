@@ -2,6 +2,7 @@ import tkinter as tk
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from core.use_cases.cards.get_card_by_number import GetCardByNumberUseCase
 from infrastructure.database.session import Base, engine
 from infrastructure.database.repositories.user_repository import UserRepositoryImpl
 from infrastructure.security.password_hasher import BCryptPasswordHasher
@@ -15,6 +16,13 @@ from core.use_cases.users.toggle_user_active import ToggleUserActiveUseCase
 from core.use_cases.users.delete_user import DeleteUserUseCase
 from core.use_cases.auth.login import LoginUseCase
 
+from core.use_cases.cards.create_card import CreateCardUseCase
+from core.use_cases.cards.delete_card import DeleteCardUseCase
+from core.use_cases.cards.update_card import UpdateCardUseCase
+from core.use_cases.cards.toggle_card_active import ToggleCardActiveUseCase
+from core.use_cases.cards.get_card_use_case import GetCardByIdUseCase
+from core.use_cases.cards.get_all_cards import GetAllCardsUseCase
+
 # Services
 from application.services.user_service import UserService
 from application.services.auth_service import AuthService
@@ -27,11 +35,8 @@ from presentation.gui.main_dashboard import MainDashboard
 # Entities
 from core.entities.user import User, UserRole
 from infrastructure.database.repositories.card_repository import CardRepositoryImpl
-from core.use_cases.cards.create_card import CreateCardUseCase
-from core.use_cases.cards.update_card import UpdateCardUseCase
-from core.use_cases.cards.toggle_card_active import ToggleCardActiveUseCase
-from core.use_cases.cards.delete_card import DeleteCardUseCase
-from core.use_cases.cards.get_card_use_case import GetCardUseCase
+
+
 
 def initialize_admin_user(user_service, password_hasher):
     """
@@ -74,10 +79,12 @@ def main():
         
         # Inicializar casos de uso de card
         create_card_use_case = CreateCardUseCase(card_repository)
+        delete_card_use_case = DeleteCardUseCase(card_repository)
         update_card_use_case = UpdateCardUseCase(card_repository)
         toggle_card_active_use_case = ToggleCardActiveUseCase(card_repository)
-        get_card_use_case=GetCardUseCase(card_repository)
-        delete_card_use_case = DeleteCardUseCase(card_repository)
+        get_card_use_case = GetCardByIdUseCase(card_repository)
+        get_all_cards = GetAllCardsUseCase(card_repository)
+        get_card_by_number_use_case = GetCardByNumberUseCase(card_repository)
 
         # Inicializar servicio de usuarios
         user_service = UserService(
@@ -92,12 +99,13 @@ def main():
         
         # Inicializar servicio de card
         card_service = CardService(
-            card_repository=card_repository,
-            create_card_use_case=create_card_use_case,
-            update_card_use_case=update_card_use_case,
-            toggle_card_active_use_case=toggle_card_active_use_case,
-            delete_card_use_case=delete_card_use_case,
-            get_card_use_case=get_card_use_case
+            create_card_use_case = create_card_use_case,
+            delete_card_use_case = delete_card_use_case,
+            update_card_use_case = update_card_use_case,
+            toggle_card_active_use_case = toggle_card_active_use_case,
+            get_card_by_id_use_case = get_card_use_case,
+            get_all_cards_use_case = get_all_cards,
+            get_card_by_number_use_case=get_card_by_number_use_case
         )
 
         # Crear usuario admin por defecto
