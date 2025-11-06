@@ -57,21 +57,12 @@ from application.dtos.diet_dtos import (
 
 
 class DietAppService:
-    """
-
-    Servicio de aplicación para el módulo de dietas.
-    Orquesta los casos de uso y adapta entre entidades y DTOs.
-    
-    """
-    
-    def __init__(
-        self,
-        diet_repository: DietRepository,
-        diet_service_repository: DietServiceRepository,
-        diet_liquidation_repository: DietLiquidationRepository,
-        diet_member_repository: DietMemberRepository,
-        request_user_repository: RequestUserRepository
-    ):
+    def __init__(self,
+                 diet_repository: DietRepository,
+                 diet_service_repository: DietServiceRepository,
+                 diet_liquidation_repository: DietLiquidationRepository,
+                 diet_member_repository: DietMemberRepository,
+                 request_user_repository: RequestUserRepository):
         self.diet_repository = diet_repository
         self.diet_service_repository = diet_service_repository
         self.diet_liquidation_repository = diet_liquidation_repository

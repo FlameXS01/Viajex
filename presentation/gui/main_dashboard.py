@@ -6,7 +6,7 @@ from presentation.gui.user_presentation.user_module import UserModule
 class MainDashboard:
     """Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA"""
     
-    def __init__(self, user, user_service, auth_service, department_service, request_user_service ):
+    def __init__(self, user, user_service, auth_service, department_service, request_user_service, diet_service ):
         self.user = user
         self.user_service = user_service
         self.auth_service = auth_service
@@ -14,6 +14,7 @@ class MainDashboard:
         self.current_module = None
         self.current_module_instance = None  
         self.request_user_service = request_user_service
+        self.diet_service = diet_service
         
         self.root = tk.Tk()
         self.root.title(f"Sistema de Gestión de Dietas - {user.username}")
@@ -267,13 +268,6 @@ class MainDashboard:
                 self.module_title.config(text="Gestión de Usuarios")
                 self.current_module_instance = UserModule(self.module_container, self.user_service)
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
-                
-            elif module_name == 'patients':
-                self.module_title.config(text="Gestión de Pacientes")
-                placeholder = ttk.Frame(self.module_container, style='Content.TFrame')
-                placeholder.pack(fill=tk.BOTH, expand=True)
-                ttk.Label(placeholder, text="Módulo de Gestión de Pacientes - En desarrollo", 
-                         font=('Arial', 16), style='Content.TLabel').pack(expand=True)
             
             elif module_name == 'targets':
                 self.module_title.config(text="Gestión de Tarjetas")
@@ -292,12 +286,14 @@ class MainDashboard:
                 )
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
                 
-            elif module_name == 'diets':
+            elif module_name == 'diets': 
                 self.module_title.config(text="Gestión de Dietas")
-                placeholder = ttk.Frame(self.module_container, style='Content.TFrame')
-                placeholder.pack(fill=tk.BOTH, expand=True)
-                ttk.Label(placeholder, text="Módulo de Gestión de Dietas - En desarrollo", 
-                         font=('Arial', 16), style='Content.TLabel').pack(expand=True)
+                from presentation.gui.diet_presentation.diet_module import DietModule
+                self.current_module_instance = DietModule(
+                    self.module_container,
+                    self.diet_service
+                )
+                self.current_module_instance.pack(fill=tk.BOTH, expand=True)
                 
             elif module_name == 'reports':
                 self.module_title.config(text="Reportes y Estadísticas")
@@ -315,7 +311,7 @@ class MainDashboard:
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo cargar el módulo: {str(e)}")
             import traceback
-            traceback.print_exc()  # Para debug
+            traceback.print_exc()  
             self._show_welcome_screen()
 
     def _update_nav_buttons(self, active_module):
