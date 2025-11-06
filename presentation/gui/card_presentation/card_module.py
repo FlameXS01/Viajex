@@ -133,8 +133,9 @@ class CardModule(ttk.Frame):
                 except Exception as e:
                     messagebox.showerror("Error", f"No se pudo eliminar la tarjeta: {str(e)}")
 
-            # Mostrar información adicional en el diálogo de confirmación
-            card_info = f"Número: {card.card_number}\n"
+            # Mostrar información de la tarjeta (usando card_number en lugar de name)
+            card_number = getattr(card, 'card_number', 'N/A')
+            card_info = f"Número: **** **** **** {card_number[-4:]}\n" if len(card_number) >= 4 else f"Número: {card_number}\n"
             if hasattr(card, 'balance'):
                 card_info += f"Monto: ${card.balance:.2f}\n"
             if hasattr(card, 'description') and card.description:

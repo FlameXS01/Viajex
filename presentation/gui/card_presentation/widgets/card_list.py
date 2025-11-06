@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 class CardList(ttk.Frame):
-    """Componente de lista de tarjetas - VERSIÓN ACTUALIZADA CON MONTO"""
+    """Componente de lista de tarjetas - MEJORADO PARA DIFERENTES LONGITUDES"""
     
     def __init__(self, parent, on_select_callback):
         super().__init__(parent)
@@ -25,18 +25,18 @@ class CardList(ttk.Frame):
         main_frame.pack(fill=tk.BOTH, expand=True)
         
         # Treeview para mostrar las tarjetas
-        columns = ('id', 'number', 'balance', 'status', 'created_at')
+        columns = ('id', 'card_number', 'balance', 'status', 'created_at')
         self.tree = ttk.Treeview(main_frame, columns=columns, show='headings', style='Card.Treeview')
         
         # Configurar columnas
         self.tree.heading('id', text='ID')
-        self.tree.heading('number', text='Número')
+        self.tree.heading('card_number', text='Número de Tarjeta')
         self.tree.heading('balance', text='Monto')
         self.tree.heading('status', text='Estado')
         self.tree.heading('created_at', text='Creado')
         
         self.tree.column('id', width=50, anchor='center')
-        self.tree.column('number', width=150)
+        self.tree.column('card_number', width=180)  # Un poco más ancho para diferentes longitudes
         self.tree.column('balance', width=100, anchor='center')
         self.tree.column('status', width=100, anchor='center')
         self.tree.column('created_at', width=120, anchor='center')
@@ -82,11 +82,21 @@ class CardList(ttk.Frame):
             balance = getattr(card, 'balance', 0)
             balance_str = f"${balance:.2f}" if isinstance(balance, (int, float)) else str(balance)
             
+            # Obtener el número de tarjeta (formateado para mostrar)
+            card_number = getattr(card, 'card_number', '')
+            
+            # Formatear para mostrar según la longitud
+            if len(card_number) >= 4:
+                # Mostrar solo los últimos 4 dígitos por seguridad
+                display_number = f"**** **** **** {card_number[-4:]}"
+            else:
+                display_number = card_number
+            
             # Insertar en el treeview
             item_id = self.tree.insert('', tk.END, values=(
                 card.id, 
-                card.name, 
+                display_number,
                 balance_str,
-                '✅ Activa' if card.is_active else '❌ Inactiva',
+                '✅ Activa' if getattr(card, 'is_active', True) else '❌ Inactiva',
                 created_at
             ))

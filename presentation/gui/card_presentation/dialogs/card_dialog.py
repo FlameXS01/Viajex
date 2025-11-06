@@ -1,12 +1,11 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from presentation.gui.card_presentation.widgets.card_form import CardForm
-from application.services.card_service import CardService
 
 class CardDialog:
-    """Diálogo para crear/editar tarjetas"""
+    """Diálogo para crear/editar tarjetas - VERSIÓN CORREGIDA"""
     
-    def __init__(self, parent, card_service: CardService, card=None):
+    def __init__(self, parent, card_service, card=None):
         self.parent = parent
         self.card_service = card_service
         self.card = card
@@ -48,98 +47,39 @@ class CardDialog:
         ttk.Button(button_frame, text="Cancelar", command=self.dialog.destroy).pack(side=tk.RIGHT)
 
     def _save(self):
-        """Guarda la tarjeta - VERSIÓN CORREGIDA PARA MÚLTIPLES FIRMAS"""
+        """Guarda la tarjeta - VERSIÓN CORREGIDA"""
         data = self.form.get_data()
         if data is None:
             return
             
         try:
             if self.card:
-                # Diferentes formas de llamar a update_card basadas en la firma esperada
-                try:
-                    # Intento 1: Con argumentos posicionales
-                    success = self.card_service.update_card(
-                        self.card.id,
-                        data['card_card_number'],
-                        data['description'],
-                        data['balance'],
-                        data['is_active']
-                    )
-                except TypeError:
-                    try:
-                        # Intento 2: Con diccionario de datos
-                        success = self.card_service.update_card({
-                            'id': self.card.id,
-                            'card_number': data['card_number'],
-                            'description': data['description'],
-                            'balance': data['balance'],
-                            'is_active': data['is_active']
-                        })
-                    except TypeError:
-                        # Intento 3: Con argumentos nombrados pero en orden diferente
-                        success = self.card_service.update_card(
-                            card_id=self.card.id,
-                            card_card_number=data['card_number'],
-                            description=data['description'],
-                            balance=data['balance'],
-                            is_active=data['is_active']
-                        )
-                
-                if success:
-                    messagebox.showinfo("Éxito", "Tarjeta actualizada correctamente")
-                    self.result = True
-                    self.dialog.destroy()
-                else:
-                    messagebox.showerror("Error", "No se pudo actualizar la tarjeta")
-                    
+                # Para actualizar - usar card_number en lugar de name
+                success = self.card_service.update_card(
+                    self.card.id,
+                    data['card_number'],
+                    data['description'],
+                    data['balance'],
+                    data['is_active']
+                )
             else:
-                # Diferentes formas de llamar a create_card basadas en la firma esperada
-                try:
-                    # Intento 1: Con argumentos posicionales
-                    success = self.card_service.create_card(
-                        data['card_number'],
-                        data['card_pin'],
-                        data['balance'],
-                    )
-                except TypeError:
-                    try:
-                        # Intento 2: Con diccionario de datos
-                        success = self.card_service.create_card({
-                            'card_number': data['card_number'],
-                            'description': data['description'],
-                            'card_pin': data['card_pin'],
-                            'balance': data['balance'],
-                            'is_active': data['is_active']
-                        })
-                    except TypeError:
-                        try:
-                            # Intento 3: Con argumentos en orden diferente
-                            success = self.card_service.create_card(
-                                data['card_card_number'],
-                                data['card_pin'],
-                                data['balance'],
-                                data['description'],
-                                data['is_active']
-                            )
-                        except TypeError:
-                            # Intento 4: Con menos parámetros
-                            success = self.card_service.create_card(
-                                card_card_number = data['card_card_number'],
-                                card_pin = data['card_pin'],
-                                amount = data['balance']
-                            )
+                # Para crear - usar card_number en lugar de name
+                success = self.card_service.create_card(
+                    data['card_number'],
+                    data['card_pin'],
+                    data['balance']
+                )
                 
-                if success:
-                    messagebox.showinfo("Éxito", "Tarjeta creada correctamente")
-                    self.result = True
-                    self.dialog.destroy()
-                else:
-                    messagebox.showerror("Error", "No se pudo crear la tarjeta")
-                    
+            if success:
+                messagebox.showinfo("Éxito", "Tarjeta guardada correctamente")
+                self.result = True
+                self.dialog.destroy()
+            else:
+                messagebox.showerror("Error", "No se pudo guardar la tarjeta")
+                
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo guardar la tarjeta: {str(e)}")
-            traceback.print(e)
-            # Para debugging - mostrar información completa del error
+            # Para debugging
             import traceback
             print("Error completo:", traceback.format_exc())
 
