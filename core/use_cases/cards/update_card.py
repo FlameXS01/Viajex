@@ -1,5 +1,5 @@
-from core.entities.card import Card # pyright: ignore[reportMissingImports]
-from core.repositories.card_repository import CardRepository # pyright: ignore[reportMissingImports]
+from core.entities.cards import Card
+from core.repositories.card_repository import CardRepository
 
 class UpdateCardUseCase:
     """Caso de uso para actualizar información de una tarjeta"""

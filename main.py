@@ -18,6 +18,7 @@ from core.use_cases.auth.login import LoginUseCase
 # Services
 from application.services.user_service import UserService
 from application.services.auth_service import AuthService
+from application.services.card_service import CardService
 
 # GUI
 from presentation.gui.login_window import LoginWindow
@@ -25,6 +26,12 @@ from presentation.gui.main_dashboard import MainDashboard
 
 # Entities
 from core.entities.user import User, UserRole
+from infrastructure.database.repositories.card_repository import CardRepositoryImpl
+from core.use_cases.cards.create_card import CreateCardUseCase
+from core.use_cases.cards.update_card import UpdateCardUseCase
+from core.use_cases.cards.toggle_card_active import ToggleCardActiveUseCase
+from core.use_cases.cards.delete_card import DeleteCardUseCase
+from core.use_cases.cards.get_card_use_case import GetCardUseCase
 
 def initialize_admin_user(user_service, password_hasher):
     """
@@ -55,6 +62,7 @@ def main():
         # Inicializar dependencias
         user_repository = UserRepositoryImpl(db_session)
         password_hasher = BCryptPasswordHasher()
+        card_repository = CardRepositoryImpl(db_session)
         
         # Inicializar casos de uso de usuarios
         create_user_use_case = CreateUserUseCase(user_repository, password_hasher)
@@ -63,6 +71,13 @@ def main():
         update_user_password_use_case = UpdateUserPasswordUseCase(user_repository, password_hasher)
         toggle_user_active_use_case = ToggleUserActiveUseCase(user_repository)
         delete_user_use_case = DeleteUserUseCase(user_repository)
+        
+        # Inicializar casos de uso de card
+        create_card_use_case = CreateCardUseCase(card_repository)
+        update_card_use_case = UpdateCardUseCase(card_repository)
+        toggle_card_active_use_case = ToggleCardActiveUseCase(card_repository)
+        get_card_use_case=GetCardUseCase(card_repository)
+        delete_card_use_case = DeleteCardUseCase(card_repository)
 
         # Inicializar servicio de usuarios
         user_service = UserService(
@@ -73,6 +88,16 @@ def main():
             update_user_password_use_case=update_user_password_use_case,
             toggle_user_active_use_case=toggle_user_active_use_case,
             delete_user_use_case=delete_user_use_case
+        )
+        
+        # Inicializar servicio de card
+        card_service = CardService(
+            card_repository=card_repository,
+            create_card_use_case=create_card_use_case,
+            update_card_use_case=update_card_use_case,
+            toggle_card_active_use_case=toggle_card_active_use_case,
+            delete_card_use_case=delete_card_use_case,
+            get_card_use_case=get_card_use_case
         )
 
         # Crear usuario admin por defecto
@@ -87,7 +112,7 @@ def main():
         # Función que se ejecuta cuando el login es exitoso
         def on_login_success(user):
             """Callback que se ejecuta después de un login exitoso"""
-            dashboard = MainDashboard(user, user_service, auth_service)
+            dashboard = MainDashboard(user, user_service, auth_service, card_service)
             dashboard.run()
 
         # Ciclo principal de la aplicación

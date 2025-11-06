@@ -1,9 +1,10 @@
-from core.entities.card import Card
+from core.entities.cards import Card
 from core.repositories.card_repository import CardRepository
 from core.use_cases.cards.create_card import CreateCardUseCase
 from core.use_cases.cards.toggle_card_active import ToggleCardActiveUseCase
 from core.use_cases.cards.update_card import UpdateCardUseCase
 from core.use_cases.cards.delete_card import DeleteCardUseCase
+from core.use_cases.cards.get_card_use_case import GetCardUseCase
 from typing import Optional, List
 
 class CardService:
@@ -13,7 +14,8 @@ class CardService:
                 create_card_use_case: CreateCardUseCase,
                 update_card_use_case: UpdateCardUseCase,
                 toggle_card_active_use_case: ToggleCardActiveUseCase,
-                delete_card_use_case: DeleteCardUseCase
+                delete_card_use_case: DeleteCardUseCase,
+                get_card_use_case=GetCardUseCase
         ):
                 self.card_repository = card_repository  # ✅ Instancia
                 self.create_card_use_case = create_card_use_case

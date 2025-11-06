@@ -1,5 +1,5 @@
-from core.entities.card import Card  # pyright: ignore[reportMissingImports] # ✅ PascalCase
-from core.repositories.card_repository import CardRepository  # pyright: ignore[reportMissingImports] # ✅ PascalCase
+from core.entities.cards import Card
+from core.repositories.card_repository import CardRepository
 
 class ToggleCardActiveUseCase:
     """

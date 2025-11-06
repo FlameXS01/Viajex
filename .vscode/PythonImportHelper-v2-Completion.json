@@ -112,14 +112,6 @@
         "documentation": {}
     },
     {
-        "label": "bool",
-        "importPath": "typing",
-        "description": "typing",
-        "isExtraImport": true,
-        "detail": "typing",
-        "documentation": {}
-    },
-    {
         "label": "Optional",
         "importPath": "typing",
         "description": "typing",
@@ -173,6 +165,38 @@
         "description": "typing",
         "isExtraImport": true,
         "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "CardService",
+        "importPath": "application.services.card_service",
+        "description": "application.services.card_service",
+        "isExtraImport": true,
+        "detail": "application.services.card_service",
+        "documentation": {}
+    },
+    {
+        "label": "CardService",
+        "importPath": "application.services.card_service",
+        "description": "application.services.card_service",
+        "isExtraImport": true,
+        "detail": "application.services.card_service",
+        "documentation": {}
+    },
+    {
+        "label": "CardService",
+        "importPath": "application.services.card_service",
+        "description": "application.services.card_service",
+        "isExtraImport": true,
+        "detail": "application.services.card_service",
+        "documentation": {}
+    },
+    {
+        "label": "CardService",
+        "importPath": "application.services.card_service",
+        "description": "application.services.card_service",
+        "isExtraImport": true,
+        "detail": "application.services.card_service",
         "documentation": {}
     },
     {
@@ -609,58 +633,74 @@
     },
     {
         "label": "Card",
-        "importPath": "core.entities.card",
-        "description": "core.entities.card",
+        "importPath": "core.entities.cards",
+        "description": "core.entities.cards",
         "isExtraImport": true,
-        "detail": "core.entities.card",
+        "detail": "core.entities.cards",
         "documentation": {}
     },
     {
         "label": "Card",
-        "importPath": "core.entities.card",
-        "description": "core.entities.card",
+        "importPath": "core.entities.cards",
+        "description": "core.entities.cards",
         "isExtraImport": true,
-        "detail": "core.entities.card",
+        "detail": "core.entities.cards",
         "documentation": {}
     },
     {
         "label": "Card",
-        "importPath": "core.entities.card",
-        "description": "core.entities.card",
+        "importPath": "core.entities.cards",
+        "description": "core.entities.cards",
         "isExtraImport": true,
-        "detail": "core.entities.card",
+        "detail": "core.entities.cards",
         "documentation": {}
     },
     {
         "label": "Card",
-        "importPath": "core.entities.card",
-        "description": "core.entities.card",
+        "importPath": "core.entities.cards",
+        "description": "core.entities.cards",
         "isExtraImport": true,
-        "detail": "core.entities.card",
+        "detail": "core.entities.cards",
         "documentation": {}
     },
     {
         "label": "Card",
-        "importPath": "core.entities.card",
-        "description": "core.entities.card",
+        "importPath": "core.entities.cards",
+        "description": "core.entities.cards",
         "isExtraImport": true,
-        "detail": "core.entities.card",
+        "detail": "core.entities.cards",
         "documentation": {}
     },
     {
         "label": "Card",
-        "importPath": "core.entities.card",
-        "description": "core.entities.card",
+        "importPath": "core.entities.cards",
+        "description": "core.entities.cards",
         "isExtraImport": true,
-        "detail": "core.entities.card",
+        "detail": "core.entities.cards",
         "documentation": {}
     },
     {
         "label": "Card",
-        "importPath": "core.entities.card",
-        "description": "core.entities.card",
+        "importPath": "core.entities.cards",
+        "description": "core.entities.cards",
         "isExtraImport": true,
-        "detail": "core.entities.card",
+        "detail": "core.entities.cards",
+        "documentation": {}
+    },
+    {
+        "label": "Card",
+        "importPath": "core.entities.cards",
+        "description": "core.entities.cards",
+        "isExtraImport": true,
+        "detail": "core.entities.cards",
+        "documentation": {}
+    },
+    {
+        "label": "Card",
+        "importPath": "core.entities.cards",
+        "description": "core.entities.cards",
+        "isExtraImport": true,
+        "detail": "core.entities.cards",
         "documentation": {}
     },
     {
@@ -960,6 +1000,22 @@
         "documentation": {}
     },
     {
+        "label": "CreateCardUseCase",
+        "importPath": "core.use_cases.cards.create_card",
+        "description": "core.use_cases.cards.create_card",
+        "isExtraImport": true,
+        "detail": "core.use_cases.cards.create_card",
+        "documentation": {}
+    },
+    {
+        "label": "ToggleCardActiveUseCase",
+        "importPath": "core.use_cases.cards.toggle_card_active",
+        "description": "core.use_cases.cards.toggle_card_active",
+        "isExtraImport": true,
+        "detail": "core.use_cases.cards.toggle_card_active",
+        "documentation": {}
+    },
+    {
         "label": "ToggleCardActiveUseCase",
         "importPath": "core.use_cases.cards.toggle_card_active",
         "description": "core.use_cases.cards.toggle_card_active",
@@ -976,11 +1032,43 @@
         "documentation": {}
     },
     {
+        "label": "UpdateCardUseCase",
+        "importPath": "core.use_cases.cards.update_card",
+        "description": "core.use_cases.cards.update_card",
+        "isExtraImport": true,
+        "detail": "core.use_cases.cards.update_card",
+        "documentation": {}
+    },
+    {
         "label": "DeleteCardUseCase",
         "importPath": "core.use_cases.cards.delete_card",
         "description": "core.use_cases.cards.delete_card",
         "isExtraImport": true,
         "detail": "core.use_cases.cards.delete_card",
+        "documentation": {}
+    },
+    {
+        "label": "DeleteCardUseCase",
+        "importPath": "core.use_cases.cards.delete_card",
+        "description": "core.use_cases.cards.delete_card",
+        "isExtraImport": true,
+        "detail": "core.use_cases.cards.delete_card",
+        "documentation": {}
+    },
+    {
+        "label": "GetCardUseCase",
+        "importPath": "core.use_cases.cards.get_card_use_case",
+        "description": "core.use_cases.cards.get_card_use_case",
+        "isExtraImport": true,
+        "detail": "core.use_cases.cards.get_card_use_case",
+        "documentation": {}
+    },
+    {
+        "label": "GetCardUseCase",
+        "importPath": "core.use_cases.cards.get_card_use_case",
+        "description": "core.use_cases.cards.get_card_use_case",
+        "isExtraImport": true,
+        "detail": "core.use_cases.cards.get_card_use_case",
         "documentation": {}
     },
     {
@@ -1176,22 +1264,6 @@
         "documentation": {}
     },
     {
-        "label": "Card",
-        "importPath": "core.entities.cards",
-        "description": "core.entities.cards",
-        "isExtraImport": true,
-        "detail": "core.entities.cards",
-        "documentation": {}
-    },
-    {
-        "label": "Card",
-        "importPath": "core.entities.cards",
-        "description": "core.entities.cards",
-        "isExtraImport": true,
-        "detail": "core.entities.cards",
-        "documentation": {}
-    },
-    {
         "label": "Session",
         "importPath": "sqlalchemy.orm",
         "description": "sqlalchemy.orm",
@@ -1273,6 +1345,14 @@
     },
     {
         "label": "DateTime",
+        "importPath": "sqlalchemy",
+        "description": "sqlalchemy",
+        "isExtraImport": true,
+        "detail": "sqlalchemy",
+        "documentation": {}
+    },
+    {
+        "label": "Numeric",
         "importPath": "sqlalchemy",
         "description": "sqlalchemy",
         "isExtraImport": true,
@@ -1410,6 +1490,94 @@
         "documentation": {}
     },
     {
+        "label": "messagebox",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "ttk",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "ttk",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "messagebox",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "ttk",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "messagebox",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "ttk",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "ttk",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "ttk",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "messagebox",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "ttk",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
         "label": "ttk",
         "importPath": "tkinter",
         "description": "tkinter",
@@ -1498,11 +1666,11 @@
         "documentation": {}
     },
     {
-        "label": "WindowUtils",
-        "importPath": "presentation.gui.utils.windows_utils",
-        "description": "presentation.gui.utils.windows_utils",
+        "label": "CardForm",
+        "importPath": "presentation.gui.card_presentation.widgets.card_form",
+        "description": "presentation.gui.card_presentation.widgets.card_form",
         "isExtraImport": true,
-        "detail": "presentation.gui.utils.windows_utils",
+        "detail": "presentation.gui.card_presentation.widgets.card_form",
         "documentation": {}
     },
     {
@@ -1559,6 +1727,86 @@
         "description": "presentation.gui.utils.windows_utils",
         "isExtraImport": true,
         "detail": "presentation.gui.utils.windows_utils",
+        "documentation": {}
+    },
+    {
+        "label": "WindowUtils",
+        "importPath": "presentation.gui.utils.windows_utils",
+        "description": "presentation.gui.utils.windows_utils",
+        "isExtraImport": true,
+        "detail": "presentation.gui.utils.windows_utils",
+        "documentation": {}
+    },
+    {
+        "label": "WindowUtils",
+        "importPath": "presentation.gui.utils.windows_utils",
+        "description": "presentation.gui.utils.windows_utils",
+        "isExtraImport": true,
+        "detail": "presentation.gui.utils.windows_utils",
+        "documentation": {}
+    },
+    {
+        "label": "CardList",
+        "importPath": "presentation.gui.card_presentation.widgets.card_list",
+        "description": "presentation.gui.card_presentation.widgets.card_list",
+        "isExtraImport": true,
+        "detail": "presentation.gui.card_presentation.widgets.card_list",
+        "documentation": {}
+    },
+    {
+        "label": "CardList",
+        "importPath": "presentation.gui.card_presentation.widgets.card_list",
+        "description": "presentation.gui.card_presentation.widgets.card_list",
+        "isExtraImport": true,
+        "detail": "presentation.gui.card_presentation.widgets.card_list",
+        "documentation": {}
+    },
+    {
+        "label": "CardActions",
+        "importPath": "presentation.gui.card_presentation.widgets.card_actions",
+        "description": "presentation.gui.card_presentation.widgets.card_actions",
+        "isExtraImport": true,
+        "detail": "presentation.gui.card_presentation.widgets.card_actions",
+        "documentation": {}
+    },
+    {
+        "label": "CardActions",
+        "importPath": "presentation.gui.card_presentation.widgets.card_actions",
+        "description": "presentation.gui.card_presentation.widgets.card_actions",
+        "isExtraImport": true,
+        "detail": "presentation.gui.card_presentation.widgets.card_actions",
+        "documentation": {}
+    },
+    {
+        "label": "CardDialog",
+        "importPath": "presentation.gui.card_presentation.dialogs.card_dialog",
+        "description": "presentation.gui.card_presentation.dialogs.card_dialog",
+        "isExtraImport": true,
+        "detail": "presentation.gui.card_presentation.dialogs.card_dialog",
+        "documentation": {}
+    },
+    {
+        "label": "CardDialog",
+        "importPath": "presentation.gui.card_presentation.dialogs.card_dialog",
+        "description": "presentation.gui.card_presentation.dialogs.card_dialog",
+        "isExtraImport": true,
+        "detail": "presentation.gui.card_presentation.dialogs.card_dialog",
+        "documentation": {}
+    },
+    {
+        "label": "ConfirmDialog",
+        "importPath": "presentation.gui.card_presentation.dialogs.confirm_dialog",
+        "description": "presentation.gui.card_presentation.dialogs.confirm_dialog",
+        "isExtraImport": true,
+        "detail": "presentation.gui.card_presentation.dialogs.confirm_dialog",
+        "documentation": {}
+    },
+    {
+        "label": "ConfirmDialog",
+        "importPath": "presentation.gui.card_presentation.dialogs.confirm_dialog",
+        "description": "presentation.gui.card_presentation.dialogs.confirm_dialog",
+        "isExtraImport": true,
+        "detail": "presentation.gui.card_presentation.dialogs.confirm_dialog",
         "documentation": {}
     },
     {
@@ -1714,6 +1962,22 @@
         "documentation": {}
     },
     {
+        "label": "CardModule",
+        "importPath": "presentation.gui.card_presentation.card_module",
+        "description": "presentation.gui.card_presentation.card_module",
+        "isExtraImport": true,
+        "detail": "presentation.gui.card_presentation.card_module",
+        "documentation": {}
+    },
+    {
+        "label": "CardMainWindow",
+        "importPath": "presentation.gui.card_presentation.card_main_window",
+        "description": "presentation.gui.card_presentation.card_main_window",
+        "isExtraImport": true,
+        "detail": "presentation.gui.card_presentation.card_main_window",
+        "documentation": {}
+    },
+    {
         "label": "UserRepositoryImpl",
         "importPath": "infrastructure.database.repositories.user_repository",
         "description": "infrastructure.database.repositories.user_repository",
@@ -1743,6 +2007,14 @@
         "description": "presentation.gui.main_dashboard",
         "isExtraImport": true,
         "detail": "presentation.gui.main_dashboard",
+        "documentation": {}
+    },
+    {
+        "label": "CardRepositoryImpl",
+        "importPath": "infrastructure.database.repositories.card_repository",
+        "description": "infrastructure.database.repositories.card_repository",
+        "isExtraImport": true,
+        "detail": "infrastructure.database.repositories.card_repository",
         "documentation": {}
     },
     {
@@ -1804,7 +2076,7 @@
         "kind": 6,
         "importPath": "application.dtos.cards_dtos",
         "description": "application.dtos.cards_dtos",
-        "peekOfCode": "class UpdateCardRequest:\n    card_id: int\n    card_number: Optional[str] = None\n    card_pin: Optional[str] = None\n    is_active: Optional[bool] = None\n    amount: Optional[float] = None\n@dataclass\nclass UpdateCardResponse:  # ✅ Corregido nombre\n    success: bool\n    card_id: int",
+        "peekOfCode": "class UpdateCardRequest:\n    card_id: int\n    card_number: Optional[str] = None\n    card_pin: Optional[str] = None\n    is_active: Optional[bool] = None\n    amount: Optional[float] = None\n@dataclass\nclass UpdateCardResponse:\n    success: bool\n    card_id: int",
         "detail": "application.dtos.cards_dtos",
         "documentation": {}
     },
@@ -1813,7 +2085,7 @@
         "kind": 6,
         "importPath": "application.dtos.cards_dtos",
         "description": "application.dtos.cards_dtos",
-        "peekOfCode": "class UpdateCardResponse:  # ✅ Corregido nombre\n    success: bool\n    card_id: int\n    card_number: str\n    card_pin: str\n    amount: float\n    is_active: bool\n    message: Optional[str] = None\n@dataclass\nclass DeleteCardRequest:",
+        "peekOfCode": "class UpdateCardResponse:\n    success: bool\n    card_id: int\n    card_number: str\n    card_pin: str\n    amount: float\n    is_active: bool\n    message: Optional[str] = None\n@dataclass\nclass DeleteCardRequest:",
         "detail": "application.dtos.cards_dtos",
         "documentation": {}
     },
@@ -1822,7 +2094,7 @@
         "kind": 6,
         "importPath": "application.dtos.cards_dtos",
         "description": "application.dtos.cards_dtos",
-        "peekOfCode": "class DeleteCardRequest:\n    card_id: int  # ✅ Usar card_id consistente\n@dataclass\nclass DeleteCardResponse:\n    success: bool\n    message: str\n@dataclass\nclass ListCardsResponse:\n    success: bool\n    cards: List[GetCardResponse]  # ✅ Corregido \"users\" por \"cards\"",
+        "peekOfCode": "class DeleteCardRequest:\n    card_id: int\n@dataclass\nclass DeleteCardResponse:\n    success: bool\n    message: str\n@dataclass\nclass ListCardsResponse:\n    success: bool\n    cards: List[GetCardResponse]",
         "detail": "application.dtos.cards_dtos",
         "documentation": {}
     },
@@ -1831,7 +2103,7 @@
         "kind": 6,
         "importPath": "application.dtos.cards_dtos",
         "description": "application.dtos.cards_dtos",
-        "peekOfCode": "class DeleteCardResponse:\n    success: bool\n    message: str\n@dataclass\nclass ListCardsResponse:\n    success: bool\n    cards: List[GetCardResponse]  # ✅ Corregido \"users\" por \"cards\"\n    count: int\n    message: Optional[str] = None",
+        "peekOfCode": "class DeleteCardResponse:\n    success: bool\n    message: str\n@dataclass\nclass ListCardsResponse:\n    success: bool\n    cards: List[GetCardResponse]\n    count: int\n    message: Optional[str] = None",
         "detail": "application.dtos.cards_dtos",
         "documentation": {}
     },
@@ -1840,7 +2112,7 @@
         "kind": 6,
         "importPath": "application.dtos.cards_dtos",
         "description": "application.dtos.cards_dtos",
-        "peekOfCode": "class ListCardsResponse:\n    success: bool\n    cards: List[GetCardResponse]  # ✅ Corregido \"users\" por \"cards\"\n    count: int\n    message: Optional[str] = None",
+        "peekOfCode": "class ListCardsResponse:\n    success: bool\n    cards: List[GetCardResponse]\n    count: int\n    message: Optional[str] = None",
         "detail": "application.dtos.cards_dtos",
         "documentation": {}
     },
@@ -1939,7 +2211,7 @@
         "kind": 6,
         "importPath": "application.services.card_service",
         "description": "application.services.card_service",
-        "peekOfCode": "class CardService:\n        def __init__(\n                self,\n                card_repository: CardRepository,\n                create_card_use_case: CreateCardUseCase,\n                update_card_use_case: UpdateCardUseCase,\n                toggle_card_active_use_case: ToggleCardActiveUseCase,\n                delete_card_use_case: DeleteCardUseCase\n        ):\n                self.card_repository = card_repository  # ✅ Instancia",
+        "peekOfCode": "class CardService:\n        def __init__(\n                self,\n                card_repository: CardRepository,\n                create_card_use_case: CreateCardUseCase,\n                update_card_use_case: UpdateCardUseCase,\n                toggle_card_active_use_case: ToggleCardActiveUseCase,\n                delete_card_use_case: DeleteCardUseCase,\n                get_card_use_case=GetCardUseCase\n        ):",
         "detail": "application.services.card_service",
         "documentation": {}
     },
@@ -1957,7 +2229,7 @@
         "kind": 6,
         "importPath": "core.entities.cards",
         "description": "core.entities.cards",
-        "peekOfCode": "class Card:\n    card_id: int\n    card_number: str\n    card_pin: str\n    is_active: bool\n    balance: Decimal  # ✅ Mejor nombre que \"amount\"\n    # Constantes de validación\n    CARD_NUMBER_LENGTH: ClassVar[int] = 16\n    PIN_LENGTH: ClassVar[int] = 4\n    def __post_init__(self):",
+        "peekOfCode": "class Card:\n    card_id: int\n    card_number: str\n    card_pin: str\n    is_active: bool\n    balance: Decimal \n    # Constantes de validación\n    CARD_NUMBER_LENGTH: ClassVar[int] = 16\n    PIN_LENGTH: ClassVar[int] = 4\n    def __post_init__(self):",
         "detail": "core.entities.cards",
         "documentation": {}
     },
@@ -2191,7 +2463,7 @@
         "kind": 6,
         "importPath": "infrastructure.database.models",
         "description": "infrastructure.database.models",
-        "peekOfCode": "class CardModel(Base):\n    __tablename__ = \"cards\"\n    card_id = Column(Integer, primary_key=True, index=True)\n    card_number = Column(String(16), unique=True, index=True, nullable=False) \n    card_pin = Column(String(255), nullable=False)  \n    is_active = Column(Boolean, default=True)\n    with_money = Column(bool, default=True)\n    balance = Column(float())\n    def __repr__(self): \n        return f\"<CardModel(card_id={self.card_id}, card_number='{self.card_number}')>\"",
+        "peekOfCode": "class CardModel(Base):\n    __tablename__ = \"cards\"\n    card_id = Column(Integer, primary_key=True, index=True)\n    card_number = Column(String(16), unique=True, index=True, nullable=False) \n    card_pin = Column(String(255), nullable=False)  \n    is_active = Column(Boolean, default=True)\n    with_money = Column(Boolean, default=True)\n    balance = Column(Numeric)\n    def __repr__(self): \n        return f\"<CardModel(card_id={self.card_id}, card_number='{self.card_number}')>\"",
         "detail": "infrastructure.database.models",
         "documentation": {}
     },
@@ -2247,6 +2519,69 @@
         "description": "infrastructure.security.password_hasher",
         "peekOfCode": "class BCryptPasswordHasher(PasswordHasher):\n    \"\"\"Implementación usando bcrypt para el hasheo seguro de contraseñas\"\"\"\n    def hash_password(self, password: str) -> str:\n        \"\"\"Genera hash seguro de la contraseña usando bcrypt\"\"\"\n        # Genera salt y hash la contraseña\n        salt = bcrypt.gensalt()\n        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)\n        return hashed.decode('utf-8')\n    def verify_password(self, password: str, hashed: str) -> bool:\n        \"\"\"Verifica si la contraseña coincide con el hash almacenado\"\"\"",
         "detail": "infrastructure.security.password_hasher",
+        "documentation": {}
+    },
+    {
+        "label": "CardDialog",
+        "kind": 6,
+        "importPath": "presentation.gui.card_presentation.dialogs.card_dialog",
+        "description": "presentation.gui.card_presentation.dialogs.card_dialog",
+        "peekOfCode": "class CardDialog:\n    \"\"\"Diálogo para crear/editar tarjetas\"\"\"\n    def __init__(self, parent, card_service: CardService, card=None):\n        self.parent = parent\n        self.card_service = card_service\n        self.card = card\n        self.result = None\n        self._create_dialog()\n    def _create_dialog(self):\n        \"\"\"Crea el diálogo\"\"\"",
+        "detail": "presentation.gui.card_presentation.dialogs.card_dialog",
+        "documentation": {}
+    },
+    {
+        "label": "ConfirmDialog",
+        "kind": 6,
+        "importPath": "presentation.gui.card_presentation.dialogs.confirm_dialog",
+        "description": "presentation.gui.card_presentation.dialogs.confirm_dialog",
+        "peekOfCode": "class ConfirmDialog:\n    \"\"\"Diálogo de confirmación genérico - VERSIÓN MEJORADA\"\"\"\n    def __init__(self, parent, title, message, on_confirm, confirm_text=\"Confirmar\", cancel_text=\"Cancelar\"):\n        self.parent = parent\n        self.on_confirm = on_confirm\n        self.confirm_text = confirm_text\n        self.cancel_text = cancel_text\n        self._create_dialog(title, message)\n    def _create_dialog(self, title, message):\n        \"\"\"Crea el diálogo de confirmación\"\"\"",
+        "detail": "presentation.gui.card_presentation.dialogs.confirm_dialog",
+        "documentation": {}
+    },
+    {
+        "label": "CardActions",
+        "kind": 6,
+        "importPath": "presentation.gui.card_presentation.widgets.card_actions",
+        "description": "presentation.gui.card_presentation.widgets.card_actions",
+        "peekOfCode": "class CardActions(ttk.Frame):\n    \"\"\"Botones de acciones para tarjetas\"\"\"\n    def __init__(self, parent, actions):\n        super().__init__(parent)\n        self.actions = actions\n        self._create_widgets()\n    def _create_widgets(self):\n        \"\"\"Crea los botones de acciones\"\"\"\n        self.edit_btn = ttk.Button(self, text=\"Editar Tarjeta\", \n                                command=self.actions['edit'])",
+        "detail": "presentation.gui.card_presentation.widgets.card_actions",
+        "documentation": {}
+    },
+    {
+        "label": "CardForm",
+        "kind": 6,
+        "importPath": "presentation.gui.card_presentation.widgets.card_form",
+        "description": "presentation.gui.card_presentation.widgets.card_form",
+        "peekOfCode": "class CardForm(ttk.Frame):\n    \"\"\"Formulario para crear/editar tarjetas - VERSIÓN ACTUALIZADA CON PIN Y MONTO\"\"\"\n    def __init__(self, parent, card_service, card=None):\n        super().__init__(parent)\n        self.card_service = card_service\n        self.card = card\n        self._create_widgets()\n        if self.card:\n            self._load_data()\n    def _create_widgets(self):",
+        "detail": "presentation.gui.card_presentation.widgets.card_form",
+        "documentation": {}
+    },
+    {
+        "label": "CardList",
+        "kind": 6,
+        "importPath": "presentation.gui.card_presentation.widgets.card_list",
+        "description": "presentation.gui.card_presentation.widgets.card_list",
+        "peekOfCode": "class CardList(ttk.Frame):\n    \"\"\"Componente de lista de tarjetas - VERSIÓN ACTUALIZADA CON MONTO\"\"\"\n    def __init__(self, parent, on_select_callback):\n        super().__init__(parent)\n        self.on_select_callback = on_select_callback\n        self.selected_card_id = None\n        self._create_widgets()\n        self._setup_styles()\n    def _setup_styles(self):\n        \"\"\"Configura estilos para el treeview\"\"\"",
+        "detail": "presentation.gui.card_presentation.widgets.card_list",
+        "documentation": {}
+    },
+    {
+        "label": "CardMainWindow",
+        "kind": 6,
+        "importPath": "presentation.gui.card_presentation.card_main_window",
+        "description": "presentation.gui.card_presentation.card_main_window",
+        "peekOfCode": "class CardMainWindow:\n    \"\"\"Ventana principal para la gestión de tarjetas\"\"\"\n    def __init__(self, parent, card_service: CardService):\n        self.parent = parent\n        self.card_service = card_service\n        self.selected_card_id = None\n        self._create_widgets()\n        self._load_cards()\n    def _create_widgets(self):\n        \"\"\"Crea los widgets principales usando componentes modulares\"\"\"",
+        "detail": "presentation.gui.card_presentation.card_main_window",
+        "documentation": {}
+    },
+    {
+        "label": "CardModule",
+        "kind": 6,
+        "importPath": "presentation.gui.card_presentation.card_module",
+        "description": "presentation.gui.card_presentation.card_module",
+        "peekOfCode": "class CardModule(ttk.Frame):\n    \"\"\"Módulo de gestión de tarjetas para embeber en el dashboard\"\"\"\n    def __init__(self, parent, card_service: CardService):\n        super().__init__(parent, style='Content.TFrame')\n        self.card_service = card_service\n        self.selected_card_id = None\n        self._create_widgets()\n        self._load_cards()\n    def _create_widgets(self):\n        \"\"\"Crea la interfaz del módulo de tarjetas\"\"\"",
+        "detail": "presentation.gui.card_presentation.card_module",
         "documentation": {}
     },
     {
@@ -2353,7 +2688,7 @@
         "kind": 6,
         "importPath": "presentation.gui.main_dashboard",
         "description": "presentation.gui.main_dashboard",
-        "peekOfCode": "class MainDashboard:\n    \"\"\"Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA\"\"\"\n    def __init__(self, user, user_service, auth_service):\n        self.user = user\n        self.user_service = user_service\n        self.auth_service = auth_service\n        self.current_module = None\n        self.current_module_instance = None  # Para mantener referencia al módulo actual\n        self.root = tk.Tk()\n        self.root.title(f\"Sistema de Gestión de Dietas - {user.username}\")",
+        "peekOfCode": "class MainDashboard:\n    \"\"\"Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA\"\"\"\n    def __init__(self, user, user_service, auth_service, card_service):\n        self.user = user\n        self.user_service = user_service\n        self.auth_service = auth_service\n        self.current_module = None\n        self.card_service = card_service\n        self.current_module_instance = None  \n        self.root = tk.Tk()",
         "detail": "presentation.gui.main_dashboard",
         "documentation": {}
     },

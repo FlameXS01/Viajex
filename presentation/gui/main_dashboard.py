@@ -2,16 +2,19 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from presentation.gui.utils.windows_utils import WindowUtils
 from presentation.gui.user_presentation.user_module import UserModule
+from presentation.gui.card_presentation.card_module import CardModule
+from presentation.gui.card_presentation.card_main_window import CardMainWindow
 
 class MainDashboard:
     """Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA"""
     
-    def __init__(self, user, user_service, auth_service):
+    def __init__(self, user, user_service, auth_service, card_service):
         self.user = user
         self.user_service = user_service
         self.auth_service = auth_service
         self.current_module = None
-        self.current_module_instance = None  # Para mantener referencia al módulo actual
+        self.card_service = card_service
+        self.current_module_instance = None  
         
         self.root = tk.Tk()
         self.root.title(f"Sistema de Gestión de Dietas - {user.username}")
@@ -129,12 +132,12 @@ class MainDashboard:
         btn.pack(fill=tk.X, pady=5)
         self.nav_buttons['request'] = btn
         
-        # Módulo de Solicitantes 
+        # Módulo de Tarjetas
         btn = ttk.Button(nav_frame, text="💳 Gestión de Tarjetas", 
                         style='Sidebar.TButton',
-                        command=lambda: self._show_module('targets'))
+                        command=lambda: self._show_module('cards'))
         btn.pack(fill=tk.X, pady=5)
-        self.nav_buttons['request'] = btn
+        self.nav_buttons['cards'] = btn
         
         # Módulo de Dietas
         btn = ttk.Button(nav_frame, text="🥦 Gestión de Dietas", 
@@ -265,12 +268,11 @@ class MainDashboard:
                 ttk.Label(placeholder, text="Módulo de Gestión de Pacientes - En desarrollo", 
                          font=('Arial', 16), style='Content.TLabel').pack(expand=True)
             
-            elif module_name == 'targets':
+            elif module_name == 'cards':  
                 self.module_title.config(text="Gestión de Tarjetas")
-                placeholder = ttk.Frame(self.module_container, style='Content.TFrame')
-                placeholder.pack(fill=tk.BOTH, expand=True)
-                ttk.Label(placeholder, text="Módulo de Gestión de Tarjetas - En desarrollo", 
-                         font=('Arial', 16), style='Content.TLabel').pack(expand=True)
+                self.current_module_instance = CardModule(self.module_container, self.card_service)
+                self.current_module_instance.pack(fill=tk.BOTH, expand=True)
+                
             
             elif module_name == 'request':
                 self.module_title.config(text="Gestión de Solicitantes")

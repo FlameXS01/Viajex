@@ -8,7 +8,7 @@ class Card:
     card_number: str
     card_pin: str
     is_active: bool
-    balance: Decimal  # ✅ Mejor nombre que "amount"
+    balance: Decimal 
     
     # Constantes de validación
     CARD_NUMBER_LENGTH: ClassVar[int] = 16

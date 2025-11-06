@@ -1,5 +1,5 @@
-from core.repositories.card_repository import CardRepository # pyright: ignore[reportMissingImports]
-from typing import bool
+from core.repositories.card_repository import CardRepository
+
 
 class DeleteCardUseCase:
     """

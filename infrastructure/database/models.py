@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Numeric
 from sqlalchemy.sql import func
 from infrastructure.database.session import Base 
 
@@ -27,7 +27,7 @@ class CardModel(Base):
     card_number = Column(String(16), unique=True, index=True, nullable=False) 
     card_pin = Column(String(255), nullable=False)  
     is_active = Column(Boolean, default=True)
-    with_money = Column(bool, default=True)
-    balance = Column(float())
+    with_money = Column(Boolean, default=True)
+    balance = Column(Numeric)
     def __repr__(self): 
         return f"<CardModel(card_id={self.card_id}, card_number='{self.card_number}')>"

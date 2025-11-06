@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from core.entities.cards import Card  # ✅ Import correcto
+from core.entities.cards import Card  
 from core.repositories.card_repository import CardRepository
 from infrastructure.database.models import CardModel
 from typing import Optional, List
@@ -18,7 +18,7 @@ class CardRepositoryImpl(CardRepository):
             card_number=card.card_number,
             card_pin=card.card_pin,  # ✅ Coma añadida
             is_active=card.is_active,
-            amount=card.amount  # ✅ Campo añadido
+            balance=card.balance  
         )
         self.db.add(db_card)
         self.db.commit()
@@ -46,7 +46,7 @@ class CardRepositoryImpl(CardRepository):
         if db_card:
             db_card.card_number = card.card_number
             db_card.card_pin = card.card_pin  # ✅ Campo añadido
-            db_card.amount = card.amount  # ✅ Campo añadido
+            db_card.balance = card.balance  # ✅ Campo añadido
             db_card.is_active = card.is_active
             self.db.commit()
             self.db.refresh(db_card)
@@ -70,3 +70,13 @@ class CardRepositoryImpl(CardRepository):
             is_active=db_card.is_active,
             amount=Decimal(str(db_card.amount)) if db_card.amount else Decimal('0')  # ✅ Campo añadido
         )
+    
+    
+    
+    def exists_by_card_number() -> List[Card]:
+        pass
+    def get_active_cards(is_active: bool) -> List[Card]:
+        pass
+    def get_by_status(card_number: str) -> bool:
+        pass
+    
