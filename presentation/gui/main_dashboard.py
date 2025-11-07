@@ -8,7 +8,7 @@ from presentation.gui.card_presentation.card_main_window import CardMainWindow
 class MainDashboard:
     """Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA"""
     
-    def __init__(self, user, user_service, auth_service, department_service, request_user_service, card_service ):
+    def __init__(self, user, user_service, auth_service, department_service, request_user_service, card_service, diet_service ):
         self.user = user
         self.user_service = user_service
         self.auth_service = auth_service

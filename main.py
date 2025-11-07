@@ -237,6 +237,20 @@ def main():
         toggle_user_active_use_case = ToggleUserActiveUseCase(user_repository)
         delete_user_use_case = DeleteUserUseCase(user_repository)
 
+        # Inicializar casos de uso de solicitantes
+        create_request_user = CreateRequestUserUseCase(request_user_repository)
+        update_user_request = UpdateRequestUserUseCase(request_user_repository)
+        get_request_user = GetRequestUserUseCase(request_user_repository)
+        delete_request_user = DeleteRequestUserUseCase(request_user_repository)
+        get_request_user_list = ListRequestUsersUseCase(request_user_repository)
+
+        # Inicializar casos de uso de department
+        create_department = CreateDepartmentUseCase(department_repository)
+        update_department = UpdateDepartmentUseCase(department_repository)
+        get_department = GetDepartmentUseCase(department_repository)
+        delete_department = DeleteDepartmentUseCase(department_repository)
+        get_department_list = ListDepartmentUseCase(department_repository)
+
         # Inicializar casos de uso de dietas
         # calculate_diet_amount = CalculateDietAmountUseCase(diet_service_repository)
         # list_diets = ListDietsUseCase(diet_repository)
