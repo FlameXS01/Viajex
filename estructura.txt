@@ -1,76 +1,110 @@
 dietas_app/
-├── main.py                         # Punto de entrada de la aplicación
+├── main.py
 ├── core/
-│   ├── __init__.py
 │   ├── entities/
-│   │   ├── __init__.py
 │   │   ├── user.py
+│   │   ├── request_user.py
+│   │   └── department.py
 │   ├── repositories/
-│   │   ├── __init__.py
 │   │   ├── user_repository.py
+│   │   ├── request_user_repository.py
+│   │   └── department_repository.py
 │   └── use_cases/
-│       ├── __init__.py
 │       ├── auth/
-│       │   ├── __init__.py
 │       │   └── login.py
 │       ├── users/
-│       │   ├── __init__.py
 │       │   ├── create_user.py
 │       │   ├── update_user.py
 │       │   ├── update_user_role.py
 │       │   ├── update_user_password.py
 │       │   ├── toggle_user_active.py
 │       │   └── delete_user.py
+│       ├── request_users/
+│       │   ├── create_request_user.py
+│       │   ├── update_user_request.py
+│       │   ├── get_request_user.py
+│       │   ├── delete_request_user.py
+│       │   └── list_users_request.py
+│       └── departments/
+│           ├── create_department.py
+│           ├── update_department.py
+│           ├── get_department.py
+│           ├── delete_department.py
+│           └── list_department.py
 ├── infrastructure/
-│   ├── __init__.py
 │   ├── database/
-│   │   ├── __init__.py
 │   │   ├── models.py
 │   │   ├── repositories/
-│   │   │   ├── __init__.py
-│   │   │   └── user_repository_impl.py
+│   │   │   ├── user_repository_impl.py
+│   │   │   ├── request_user_repository_impl.py
+│   │   │   └── department_repository_impl.py
 │   │   └── session.py
 │   ├── email/
-│   │   ├── __init__.py
 │   │   └── email_sender.py
 │   └── security/
-│       ├── __init__.py
 │       └── password_hasher.py
 ├── presentation/
-│   ├── __init__.py
 │   ├── gui/
-│   │   ├── __init__.py
-│   │   ├── login_window.py          
-│   │   ├── main_app_window.py       # Ventana principal de la aplicación (después del login)
-│   │   ├── user_presentation/       
-│   │   │   ├── __init__.py
-│   │   │   ├── user_main_window.py  
+│   │   ├── login_window.py
+│   │   ├── main_app_window.py
+│   │   ├── user_presentation/
+│   │   │   ├── user_main_window.py
 │   │   │   ├── widgets/
-│   │   │   │   ├── __init__.py
 │   │   │   │   ├── user_form.py
 │   │   │   │   ├── user_list.py
 │   │   │   │   └── user_actions.py
 │   │   │   ├── dialogs/
-│   │   │   │   ├── __init__.py
 │   │   │   │   ├── user_dialog.py
 │   │   │   │   ├── change_role_dialog.py
 │   │   │   │   ├── change_password_dialog.py
 │   │   │   │   └── confirm_dialog.py
 │   │   │   └── utils/
-│   │   │       ├── __init__.py
+│   │   │       └── window_utils.py
+│   │   ├── department_presentation/
+│   │   │   ├── department_module.py
+│   │   │   ├── widgets/
+│   │   │   │   ├── department_form.py
+│   │   │   │   ├── department_list.py
+│   │   │   │   └── department_actions.py
+│   │   │   ├── dialogs/
+│   │   │   │   ├── department_dialog.py
+│   │   │   │   └── confirm_dialog.py
+│   │   │   └── utils/
+│   │   │       └── window_utils.py
+│   │   ├── request_user_presentation/
+│   │   │   ├── request_user_module.py
+│   │   │   ├── widgets/
+│   │   │   │   ├── request_user_form.py
+│   │   │   │   ├── request_user_list.py
+│   │   │   │   └── request_user_actions.py
+│   │   │   ├── dialogs/
+│   │   │   │   ├── request_user_dialog.py
+│   │   │   │   └── confirm_dialog.py
+│   │   │   └── utils/
 │   │   │       └── window_utils.py
 │   │   └── utils/
-│   │       ├── __init__.py
-│   │       └── window_utils.py      # Utilidades generales para ventanas
-│   └── cli/                         # (futuras interfaces)
+│   │       └── window_utils.py
+│   └── cli/
+│       ├── main_cli.py
+│       ├── commands/
+│       │   ├── user_commands.py
+│       │   ├── request_commands.py
+│       │   └── department_commands.py
+│       └── utils/
+│           └── display_utils.py
 ├── application/
-│   ├── __init__.py
 │   ├── controllers/
+│   │   ├── user_controller.py
+│   │   ├── request_user_controller.py
+│   │   └── department_controller.py
 │   ├── dtos/
+│   │   ├── user_dtos.py
+│   │   ├── request_user_dtos.py
+│   │   └── department_dtos.py
 │   └── services/
-│       ├── __init__.py
 │       ├── user_service.py
-│       └── auth_service.py          
+│       ├── auth_service.py
+│       ├── request_user_service.py
+│       └── department_service.py
 └── config/
-    ├── __init__.py
     └── settings.py

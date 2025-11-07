@@ -8,13 +8,15 @@ from presentation.gui.card_presentation.card_main_window import CardMainWindow
 class MainDashboard:
     """Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA"""
     
-    def __init__(self, user, user_service, auth_service, card_service):
+    def __init__(self, user, user_service, auth_service, department_service, request_user_service, card_service ):
         self.user = user
         self.user_service = user_service
         self.auth_service = auth_service
-        self.current_module = None
+        self.department_service = department_service
         self.card_service = card_service
         self.current_module_instance = None  
+        self.request_user_service = request_user_service
+        self.current_module = None
         
         self.root = tk.Tk()
         self.root.title(f"Sistema de Gestión de Dietas - {user.username}")
@@ -124,13 +126,21 @@ class MainDashboard:
                            command=lambda: self._show_module('users'))
             btn.pack(fill=tk.X, pady=5)
             self.nav_buttons['users'] = btn
-            
-        # Módulo de Solicitantes 
-        btn = ttk.Button(nav_frame, text="👤 Gestión de Solicitantes", 
-                        style='Sidebar.TButton',
-                        command=lambda: self._show_module('request'))
-        btn.pack(fill=tk.X, pady=5)
-        self.nav_buttons['request'] = btn
+        
+        # Módulo de Departments (solo para admin/manager)
+        if self.user.role.value in ['admin', 'manager', 'user']:
+            dept_btn = ttk.Button(nav_frame, text="🏢 Gestión de Departamentos", 
+                                style='Sidebar.TButton',
+                                command=lambda: self._show_module('departments'))
+            dept_btn.pack(fill=tk.X, pady=5)
+            self.nav_buttons['departments'] = dept_btn
+
+        # Módulo de Solicitantes
+        request_btn = ttk.Button(nav_frame, text="👥 Gestión de Solicitantes", 
+                            style='Sidebar.TButton',
+                            command=lambda: self._show_module('request_users'))
+        request_btn.pack(fill=tk.X, pady=5)
+        self.nav_buttons['request_users'] = request_btn
         
         # Módulo de Tarjetas
         btn = ttk.Button(nav_frame, text="💳 Gestión de Tarjetas", 
@@ -173,6 +183,11 @@ class MainDashboard:
         self.content_frame = ttk.Frame(parent, style='Content.TFrame')
         self.content_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         
+        # Navbar superior elegante
+        self.navbar_frame = ttk.Frame(self.content_frame, style='Content.TFrame', height=35)
+        self.navbar_frame.pack(fill=tk.X)
+        self.navbar_frame.pack_propagate(False)
+
         # Header del contenido
         self.header_frame = ttk.Frame(self.content_frame, style='Content.TFrame', height=80)
         self.header_frame.pack(fill=tk.X)
@@ -187,11 +202,6 @@ class MainDashboard:
         self.module_container = ttk.Frame(self.content_frame, style='Content.TFrame')
         self.module_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
-        
-        # Navbar superior elegante
-        self.navbar_frame = ttk.Frame(self.content_frame, style='Content.TFrame', height=35)
-        self.navbar_frame.pack(fill=tk.X)
-        self.navbar_frame.pack_propagate(False)
 
         # Separador decorativo
         separator = ttk.Separator(self.navbar_frame, orient=tk.HORIZONTAL)
@@ -274,12 +284,15 @@ class MainDashboard:
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
                 
             
-            elif module_name == 'request':
+            elif module_name == 'request_users':
                 self.module_title.config(text="Gestión de Solicitantes")
-                placeholder = ttk.Frame(self.module_container, style='Content.TFrame')
-                placeholder.pack(fill=tk.BOTH, expand=True)
-                ttk.Label(placeholder, text="Módulo de Gestión de Solicitantes - En desarrollo", 
-                         font=('Arial', 16), style='Content.TLabel').pack(expand=True)
+                from presentation.gui.request_user_presentation.request_user_module import RequestUserModule
+                self.current_module_instance = RequestUserModule(
+                    self.module_container, 
+                    self.request_user_service,
+                    self.department_service
+                )
+                self.current_module_instance.pack(fill=tk.BOTH, expand=True)
                 
             elif module_name == 'diets':
                 self.module_title.config(text="Gestión de Dietas")
@@ -295,6 +308,12 @@ class MainDashboard:
                 ttk.Label(placeholder, text="Módulo de Reportes - En desarrollo", 
                          font=('Arial', 16), style='Content.TLabel').pack(expand=True)
                 
+            elif module_name == 'departments':
+                self.module_title.config(text="Gestión de Departamentos")
+                from presentation.gui.department_presentation.department_module import DepartmentModule
+                self.current_module_instance = DepartmentModule(self.module_container, self.department_service)
+                self.current_module_instance.pack(fill=tk.BOTH, expand=True)
+                                        
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo cargar el módulo: {str(e)}")
             import traceback
