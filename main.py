@@ -1,12 +1,14 @@
 import tkinter as tk
 import pandas as pd
 from application.dtos.request_user_dtos import RequestUserCreateDTO
+from application.services.card_service import CardService
 from application.services.department_service import DepartmentService
 from core.entities.department import Department
 from core.entities.diet_service import DietService
 from core.repositories.department_repository import DepartmentRepository
 from core.use_cases.request_user import create_request_user, delete_request_user, get_request_user, update_user_request
 from core.use_cases.request_user.list_users_request import ListRequestUsersUseCase
+from infrastructure.database.repositories import card_repository
 from infrastructure.database.repositories.department_repository import DepartmentRepositoryImpl
 from infrastructure.database.repositories.diet_liquidation_repository import DietLiquidationRepositoryImpl
 from infrastructure.database.repositories.diet_member_repository import DietMemberRepositoryImpl
@@ -23,7 +25,7 @@ from infrastructure.database.session import Base, engine
 from infrastructure.database.repositories.user_repository import UserRepositoryImpl
 from infrastructure.security.password_hasher import BCryptPasswordHasher
 
-# Use Cases
+# Use Cases System user
 from core.use_cases.users.create_user import CreateUserUseCase
 from core.use_cases.users.update_user import UpdateUserUseCase
 from core.use_cases.users.update_user_role import UpdateUserRoleUseCase
@@ -32,19 +34,28 @@ from core.use_cases.users.toggle_user_active import ToggleUserActiveUseCase
 from core.use_cases.users.delete_user import DeleteUserUseCase
 from core.use_cases.auth.login import LoginUseCase
 
-# Use Cases department 
+# Use Cases Department 
 from core.use_cases.department.create_department import CreateDepartmentUseCase
 from core.use_cases.department.update_department import UpdateDepartmentUseCase
 from core.use_cases.department.get_department import GetDepartmentUseCase
 from core.use_cases.department.delete_department import DeleteDepartmentUseCase
 from core.use_cases.department.list_department import ListDepartmentUseCase
 
-# Use Cases request user 
+# Use Cases rSolicitant 
 from core.use_cases.request_user.create_request_user import CreateRequestUserUseCase
 from core.use_cases.request_user.update_user_request import UpdateRequestUserUseCase
 from core.use_cases.request_user.get_request_user import GetRequestUserUseCase
 from core.use_cases.request_user.delete_request_user import DeleteRequestUserUseCase
 from core.use_cases.request_user.list_users_request import ListRequestUsersUseCase
+
+# Use Cases Card 
+from core.use_cases.cards.create_card import CreateCardUseCase
+from core.use_cases.cards.delete_card import DeleteCardUseCase
+from core.use_cases.cards.get_all_cards import GetAllCardsUseCase
+from core.use_cases.cards.get_card_by_number import GetCardByNumberUseCase
+from core.use_cases.cards.get_card_use_case import GetCardByIdUseCase
+from core.use_cases.cards.toggle_card_active import ToggleCardActiveUseCase
+from core.use_cases.cards.update_card import UpdateCardUseCase
 
 # Use Case diets
 # from core.use_cases.diets.calculate_diet_amount import CalculateDietAmountUseCase
@@ -223,6 +234,7 @@ def main():
         password_hasher = BCryptPasswordHasher()
         department_repository = DepartmentRepositoryImpl(db_session)
         request_user_repository = RequestUserRepositoryImpl(db_session)
+        card_repository= CardRepositoryImpl(db_session)
 
         diet_liquidation_repository = DietLiquidationRepositoryImpl(db_session)
         diet_member_repository = DietMemberRepositoryImpl(db_session)
@@ -250,6 +262,15 @@ def main():
         get_department = GetDepartmentUseCase(department_repository)
         delete_department = DeleteDepartmentUseCase(department_repository)
         get_department_list = ListDepartmentUseCase(department_repository)
+
+        # Inicializar casos de uso de Card
+        create_card_use_case = CreateCardUseCase(card_repository)
+        delete_card_use_case = DeleteCardUseCase(card_repository)
+        update_card_use_case = UpdateCardUseCase(card_repository)
+        get_card_by_id_use_case = GetCardByIdUseCase(card_repository)
+        get_all_cards_use_case = GetAllCardsUseCase(card_repository)
+        toggle_card_active_use_case = ToggleCardActiveUseCase(card_repository)
+        get_card_by_number_use_case = GetCardByNumberUseCase(card_repository)
 
         # Inicializar casos de uso de dietas
         # calculate_diet_amount = CalculateDietAmountUseCase(diet_service_repository)
@@ -312,12 +333,24 @@ def main():
             delete_user_request=delete_request_user
         )
 
+        # Inicializar servicio de dietas
         diet_service = DietAppService(
             diet_liquidation_repository=diet_liquidation_repository,
             diet_service_repository = diet_service_repository,
             diet_repository = diet_repository,
             diet_member_repository = diet_member_repository,
             request_user_repository = request_user_repository,
+        )
+
+        # Inicializar servicio de cards
+        card_service = CardService(
+            create_card_use_case = create_card_use_case,
+            delete_card_use_case = delete_card_use_case,
+            update_card_use_case = update_card_use_case,
+            get_card_by_id_use_case = get_card_by_id_use_case,
+            get_all_cards_use_case = get_all_cards_use_case,
+            toggle_card_active_use_case = toggle_card_active_use_case,
+            get_card_by_number_use_case = get_card_by_number_use_case
         )
 
         # Crear usuario admin por defecto
@@ -345,6 +378,7 @@ def main():
                 auth_service, 
                 department_service, 
                 request_user_service,
+                card_service,
                 diet_service
                 )
             dashboard.run()
