@@ -4,11 +4,21 @@ dietas_app/
 │   ├── entities/
 │   │   ├── user.py
 │   │   ├── request_user.py
-│   │   └── department.py
+│   │   ├── department.py
+│   │   ├── card.py
+│   │   ├── diet.py
+│   │   ├── diet_service.py
+│   │   ├── diet_liquidation.py
+│   │   └── diet_member.py
 │   ├── repositories/
 │   │   ├── user_repository.py
 │   │   ├── request_user_repository.py
-│   │   └── department_repository.py
+│   │   ├── department_repository.py
+│   │   ├── card_repository.py
+│   │   ├── diet_service_repository.py
+│   │   ├── diet_repository.py
+│   │   ├── diet_liquidation_repository.py
+│   │   └── diet_member_repository.py
 │   └── use_cases/
 │       ├── auth/
 │       │   └── login.py
@@ -25,19 +35,53 @@ dietas_app/
 │       │   ├── get_request_user.py
 │       │   ├── delete_request_user.py
 │       │   └── list_users_request.py
-│       └── departments/
-│           ├── create_department.py
-│           ├── update_department.py
-│           ├── get_department.py
-│           ├── delete_department.py
-│           └── list_department.py
+│       ├── departments/
+│       │   ├── create_department.py
+│       │   ├── update_department.py
+│       │   ├── get_department.py
+│       │   ├── delete_department.py
+│       │   └── list_department.py
+│       └── diets/
+│           ├── calculate_diet_amount.py
+│           ├── list_diets.py
+│           ├── reset_counters.py
+│           ├── diet_services/
+│           │   ├── get_diet_service_by_local.py
+│           │   └── list_all_diet_services.py
+│           ├── diets/
+│           │   ├── create_diet.py
+│           │   ├── get_diet.py
+│           │   ├── list_diets_by_status.py
+│           │   ├── list_diets_pending_liquidation.py
+│           │   ├── update_diet.py
+│           │   ├── delete_diet.py
+│           │   ├── get_last_advance_number.py
+│           │   └── reset_advance_numbers.py
+│           ├── diet_liquidations/
+│           │   ├── create_diet_liquidation.py
+│           │   ├── get_diet_liquidation.py
+│           │   ├── get_liquidation_by_diet.py
+│           │   ├── list_liquidations_by_date_range.py
+│           │   ├── update_diet_liquidation.py
+│           │   ├── delete_diet_liquidation.py
+│           │   ├── get_last_liquidation_number.py
+│           │   └── reset_liquidation_numbers.py
+│           └── diet_members/
+│               ├── add_diet_member.py
+│               ├── remove_diet_member.py
+│               └── list_diet_members.py
 ├── infrastructure/
 │   ├── database/
 │   │   ├── models.py
 │   │   ├── repositories/
 │   │   │   ├── user_repository_impl.py
 │   │   │   ├── request_user_repository_impl.py
-│   │   │   └── department_repository_impl.py
+│   │   │   ├── department_repository_impl.py
+│   │   │   ├── card_repository_impl.py
+│   │   │   ├── diet_service_repository_impl.py
+│   │   │   ├── diet_repository_impl.py
+│   │   │   ├── diet_liquidation_repository_impl.py
+│   │   │   └── diet_member_repository_impl.py
 │   │   └── session.py
 │   ├── email/
 │   │   └── email_sender.py
@@ -82,6 +126,30 @@ dietas_app/
 │   │   │   │   └── confirm_dialog.py
 │   │   │   └── utils/
 │   │   │       └── window_utils.py
+│   │   ├── card_presentation/
+│   │   │   ├── card_module.py
+│   │   │   ├── widgets/
+│   │   │   │   ├── card_form.py
+│   │   │   │   ├── card_list.py
+│   │   │   │   └── card_actions.py
+│   │   │   ├── dialogs/
+│   │   │   │   ├── card_dialog.py
+│   │   │   │   └── confirm_dialog.py
+│   │   │   └── utils/
+│   │   │       └── window_utils.py
+│   │   ├── diet_presentation/
+│   │   │   ├── diet_module.py
+│   │   │   ├── widgets/
+│   │   │   │   ├── diet_form.py
+│   │   │   │   ├── diet_list.py
+│   │   │   │   └── diet_actions.py
+│   │   │   ├── dialogs/
+│   │   │   │   ├── diet_dialog.py
+│   │   │   │   ├── diet_liquidation_dialog.py
+│   │   │   │   ├── diet_member_dialog.py
+│   │   │   │   └── confirm_dialog.py
+│   │   │   └── utils/
+│   │   │       └── window_utils.py
 │   │   └── utils/
 │   │       └── window_utils.py
 │   └── cli/
@@ -89,22 +157,30 @@ dietas_app/
 │       ├── commands/
 │       │   ├── user_commands.py
 │       │   ├── request_commands.py
-│       │   └── department_commands.py
+│       │   ├── department_commands.py
+│       │   ├── card_commands.py
+│       │   └── diet_commands.py
 │       └── utils/
 │           └── display_utils.py
 ├── application/
 │   ├── controllers/
 │   │   ├── user_controller.py
 │   │   ├── request_user_controller.py
-│   │   └── department_controller.py
+│   │   ├── department_controller.py
+│   │   ├── card_controller.py
+│   │   └── diet_controller.py
 │   ├── dtos/
 │   │   ├── user_dtos.py
 │   │   ├── request_user_dtos.py
-│   │   └── department_dtos.py
+│   │   ├── department_dtos.py
+│   │   ├── card_dtos.py
+│   │   └── diet_dtos.py
 │   └── services/
 │       ├── user_service.py
 │       ├── auth_service.py
 │       ├── request_user_service.py
-│       └── department_service.py
+│       ├── department_service.py
+│       ├── card_service.py
+│       └── diet_service.py
 └── config/
     └── settings.py

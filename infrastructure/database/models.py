@@ -245,7 +245,7 @@ class CardModel(Base):
         card_pin: PIN de la tarjeta (hasheado)
         is_active: Boolean que indica si la tarjeta está activa
         with_money: Boolean que indica si la tarjeta tiene fondos
-        amount: Monto disponible en la tarjeta
+        balance: Monto disponible en la tarjeta
     """
     __tablename__ = "cards"
     
@@ -254,9 +254,9 @@ class CardModel(Base):
     card_pin = Column(String(255), nullable=False)  
     is_active = Column(Boolean, default=True)
     with_money = Column(Boolean, default=True)
-    balance = Column(Numeric)
-
-    def __repr__(self): 
+    balance = Column(Float)
+    
+    def __repr__(self):  
         return f"<CardModel(card_id={self.card_id}, card_number='{self.card_number}')>"
 
     
