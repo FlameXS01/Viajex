@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
-from core.entities.card import Card  # type: ignore # ✅ Import corregido
+from core.entities.cards import Card
 
 class CardRepository(ABC):
     """

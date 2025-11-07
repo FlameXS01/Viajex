@@ -1,8 +1,7 @@
-from ast import Index
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Float, Date, Enum, Text
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Numeric, ForeignKey, Float, Date, Enum, Text
 from sqlalchemy.sql import func
+from infrastructure.database.session import Base 
 from sqlalchemy.orm import relationship
-from infrastructure.database.session import Base
 import enum
 
 class DietStatus(enum.Enum):
@@ -251,7 +250,7 @@ class CardModel(Base):
     __tablename__ = "cards"
     
     card_id = Column(Integer, primary_key=True, index=True)
-    card_number = Column(String(16), unique=True, index=True, nullable=False)  
+    card_number = Column(String(16), unique=True, index=True, nullable=False) 
     card_pin = Column(String(255), nullable=False)  
     is_active = Column(Boolean, default=True)
     with_money = Column(Boolean, default=True)
@@ -259,6 +258,7 @@ class CardModel(Base):
     
     def __repr__(self):  
         return f"<CardModel(card_id={self.card_id}, card_number='{self.card_number}')>"
+
     
 class UserModel(Base):
     """
@@ -287,3 +287,7 @@ class UserModel(Base):
 
     def __repr__(self):
         return f"<UserModel(id={self.id}, username='{self.username}')>"
+
+
+    
+       

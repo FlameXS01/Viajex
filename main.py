@@ -1,6 +1,7 @@
 import tkinter as tk
 import pandas as pd
 from application.dtos.request_user_dtos import RequestUserCreateDTO
+from application.services.department_service import DepartmentService
 from core.entities.department import Department
 from core.entities.diet_service import DietService
 from core.repositories.department_repository import DepartmentRepository
@@ -18,7 +19,11 @@ from infrastructure.security.password_hasher import BCryptPasswordHasher
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# Use Cases User
+from infrastructure.database.session import Base, engine
+from infrastructure.database.repositories.user_repository import UserRepositoryImpl
+from infrastructure.security.password_hasher import BCryptPasswordHasher
+
+# Use Cases
 from core.use_cases.users.create_user import CreateUserUseCase
 from core.use_cases.users.update_user import UpdateUserUseCase
 from core.use_cases.users.update_user_role import UpdateUserRoleUseCase
@@ -84,6 +89,9 @@ from presentation.gui.main_dashboard import MainDashboard
 
 # Entities
 from core.entities.user import User, UserRole
+from infrastructure.database.repositories.card_repository import CardRepositoryImpl
+
+
 
 def _departaments_by_file() -> list[str]:
     """
@@ -228,20 +236,6 @@ def main():
         update_user_password_use_case = UpdateUserPasswordUseCase(user_repository, password_hasher)
         toggle_user_active_use_case = ToggleUserActiveUseCase(user_repository)
         delete_user_use_case = DeleteUserUseCase(user_repository)
-        
-        # Inicializar casos de uso de department
-        create_department = CreateDepartmentUseCase(department_repository)
-        update_department = UpdateDepartmentUseCase(department_repository)
-        get_department = GetDepartmentUseCase(department_repository)
-        delete_department = DeleteDepartmentUseCase(department_repository)
-        get_department_list = ListDepartmentUseCase(department_repository)
-
-        # Inicializar casos de uso de solicitantes
-        create_request_user = CreateRequestUserUseCase(request_user_repository)
-        update_user_request = UpdateRequestUserUseCase(request_user_repository)
-        get_request_user = GetRequestUserUseCase(request_user_repository)
-        delete_request_user = DeleteRequestUserUseCase(request_user_repository)
-        get_request_user_list = ListRequestUsersUseCase(request_user_repository)
 
         # Inicializar casos de uso de dietas
         # calculate_diet_amount = CalculateDietAmountUseCase(diet_service_repository)
