@@ -30,7 +30,7 @@ class UserDialog:
         self._create_widgets()
 
     def _create_widgets(self):
-        """Crea los widgets del diálogo - VERSIÓN CORREGIDA"""
+        """Crea los widgets del diálogo """
         main_frame = ttk.Frame(self.dialog, padding="20")
         main_frame.pack(fill=tk.BOTH, expand=True)
         main_frame.columnconfigure(1, weight=1)
@@ -82,7 +82,7 @@ class UserDialog:
         ttk.Button(button_frame, text="Guardar", command=self._save).grid(row=0, column=1, padx=5)
 
     def _save(self):
-        """Guarda los datos del usuario - VERSIÓN CORREGIDA"""
+        """Guarda los datos del usuario """
         username = self.username_entry.get()
         email = self.email_entry.get()
         role = UserRole(self.role_combo.get())

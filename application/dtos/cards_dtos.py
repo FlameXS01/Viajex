@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional, List
-from core.entities.card import Card  # ✅ Corregido import
+from core.entities.cards import Card 
 
 @dataclass
 class CreateCardRequest:
@@ -41,7 +41,7 @@ class UpdateCardRequest:
     amount: Optional[float] = None
 
 @dataclass
-class UpdateCardResponse:  # ✅ Corregido nombre
+class UpdateCardResponse:
     success: bool
     card_id: int
     card_number: str
@@ -52,7 +52,7 @@ class UpdateCardResponse:  # ✅ Corregido nombre
 
 @dataclass
 class DeleteCardRequest:
-    card_id: int  # ✅ Usar card_id consistente
+    card_id: int
 
 @dataclass
 class DeleteCardResponse:
@@ -62,6 +62,6 @@ class DeleteCardResponse:
 @dataclass
 class ListCardsResponse:
     success: bool
-    cards: List[GetCardResponse]  # ✅ Corregido "users" por "cards"
+    cards: List[GetCardResponse]
     count: int
     message: Optional[str] = None

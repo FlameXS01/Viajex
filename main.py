@@ -1,6 +1,7 @@
 import tkinter as tk
 import pandas as pd
 from application.dtos.request_user_dtos import RequestUserCreateDTO
+from application.services.department_service import DepartmentService
 from core.entities.department import Department
 from core.repositories.department_repository import DepartmentRepository
 from core.use_cases.request_user import create_request_user, delete_request_user, get_request_user, update_user_request
@@ -13,7 +14,11 @@ from infrastructure.security.password_hasher import BCryptPasswordHasher
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# Use Cases User
+from infrastructure.database.session import Base, engine
+from infrastructure.database.repositories.user_repository import UserRepositoryImpl
+from infrastructure.security.password_hasher import BCryptPasswordHasher
+
+# Use Cases
 from core.use_cases.users.create_user import CreateUserUseCase
 from core.use_cases.users.update_user import UpdateUserUseCase
 from core.use_cases.users.update_user_role import UpdateUserRoleUseCase
@@ -22,27 +27,9 @@ from core.use_cases.users.toggle_user_active import ToggleUserActiveUseCase
 from core.use_cases.users.delete_user import DeleteUserUseCase
 from core.use_cases.auth.login import LoginUseCase
 
-# Use Cases department 
-from core.use_cases.department.create_department import CreateDepartmentUseCase
-from core.use_cases.department.update_department import UpdateDepartmentUseCase
-from core.use_cases.department.get_department import GetDepartmentUseCase
-from core.use_cases.department.delete_department import DeleteDepartmentUseCase
-from core.use_cases.department.list_department import ListDepartmentUseCase
-
-# Use Cases request user 
-from core.use_cases.request_user.create_request_user import CreateRequestUserUseCase
-from core.use_cases.request_user.update_user_request import UpdateRequestUserUseCase
-from core.use_cases.request_user.get_request_user import GetRequestUserUseCase
-from core.use_cases.request_user.delete_request_user import DeleteRequestUserUseCase
-from core.use_cases.request_user.list_users_request import ListRequestUsersUseCase
-
-
-
 # Services
 from application.services.user_service import UserService
 from application.services.auth_service import AuthService
-from application.services.department_service import DepartmentService
-from application.services.request_service import UserRequestService
 
 # GUI
 from presentation.gui.login_window import LoginWindow
@@ -50,6 +37,9 @@ from presentation.gui.main_dashboard import MainDashboard
 
 # Entities
 from core.entities.user import User, UserRole
+from infrastructure.database.repositories.card_repository import CardRepositoryImpl
+
+
 
 def _departaments_by_file() -> list[str]:
     """
@@ -179,8 +169,6 @@ def main():
         # Inicializar dependencias
         user_repository = UserRepositoryImpl(db_session)
         password_hasher = BCryptPasswordHasher()
-        department_repository = DepartmentRepositoryImpl(db_session)
-        request_user_repository = RequestUserRepositoryImpl(db_session)
         
         # Inicializar casos de uso de usuarios
         create_user_use_case = CreateUserUseCase(user_repository, password_hasher)
@@ -189,20 +177,6 @@ def main():
         update_user_password_use_case = UpdateUserPasswordUseCase(user_repository, password_hasher)
         toggle_user_active_use_case = ToggleUserActiveUseCase(user_repository)
         delete_user_use_case = DeleteUserUseCase(user_repository)
-        
-        # Inicializar casos de uso de department
-        create_department = CreateDepartmentUseCase(department_repository)
-        update_department = UpdateDepartmentUseCase(department_repository)
-        get_department = GetDepartmentUseCase(department_repository)
-        delete_department = DeleteDepartmentUseCase(department_repository)
-        get_department_list = ListDepartmentUseCase(department_repository)
-
-        # Inicializar casos de uso de solicitantes
-        create_request_user = CreateRequestUserUseCase(request_user_repository)
-        update_user_request = UpdateRequestUserUseCase(request_user_repository)
-        get_request_user = GetRequestUserUseCase(request_user_repository)
-        delete_request_user = DeleteRequestUserUseCase(request_user_repository)
-        get_request_user_list = ListRequestUsersUseCase(request_user_repository)
 
         # Inicializar servicio de usuarios
         user_service = UserService(
@@ -213,24 +187,6 @@ def main():
             update_user_password_use_case=update_user_password_use_case,
             toggle_user_active_use_case=toggle_user_active_use_case,
             delete_user_use_case=delete_user_use_case
-        )
-
-        department_service = DepartmentService(
-            department_repository=department_repository,
-            create_department=create_department,
-            update_department=update_department,
-            get_department=get_department,
-            delete_department=delete_department,
-            get_department_list=get_department_list
-        )
-
-        request_user_service = UserRequestService(
-            request_user_repository=request_user_repository,
-            create_request_user=create_request_user,
-            update_user_request=update_user_request,
-            get_user_request=get_request_user,
-            get_user_request_list=get_request_user_list,
-            delete_user_request=delete_request_user
         )
 
         # Crear usuario admin por defecto
@@ -258,7 +214,7 @@ def main():
         # Función que se ejecuta cuando el login es exitoso
         def on_login_success(user):
             """Callback que se ejecuta después de un login exitoso"""
-            dashboard = MainDashboard(user, user_service, auth_service, department_service, request_user_service)
+            dashboard = MainDashboard(user, user_service, auth_service)
             dashboard.run()
 
         # Ciclo principal de la aplicación

@@ -1,10 +1,10 @@
-from typing import Optional
 from core.entities.cards import Card
 from core.repositories.card_repository import CardRepository
+from typing import Optional
 
-class GetCardByIdUseCase:
+class GetCardByNumberUseCase:
     def __init__(self, card_repository: CardRepository):
         self.card_repository = card_repository
 
-    def execute(self, card_id: int) -> Optional[Card]:
-        return self.card_repository.get_by_id(card_id)
+    def execute(self, card_number: str) -> Optional[Card]:
+        return self.card_repository.get_by_card_number(card_number)
