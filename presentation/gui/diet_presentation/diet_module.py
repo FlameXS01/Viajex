@@ -3,6 +3,8 @@ from tkinter import ttk, messagebox
 from typing import Optional, List
 from application.controller.diet_controller import DietController
 from application.dtos.diet_dtos import DietResponseDTO, DietLiquidationResponseDTO
+from application.services.diet_service import DietAppService
+from core.entities.enums import DietStatus
 from .widgets.diet_list import DietList
 from .widgets.diet_actions import DietActions
 from .dialogs.diet_dialog import DietDialog
@@ -14,11 +16,12 @@ class DietModule(ttk.Frame):
     Módulo principal de gestión de dietas
     """
     
-    def __init__(self, parent, diet_controller: DietController, **kwargs):
+    def __init__(self, parent, diet_service: DietAppService, request_user_service, card_service, **kwargs):
         super().__init__(parent, **kwargs)
-        self.diet_controller = diet_controller
+        self.diet_service = diet_service
         self.current_diet: Optional[DietResponseDTO] = None
-        
+        self.request_user_service = request_user_service
+        self.card_service = card_service
         self.create_widgets()
         self.refresh_diets()
     
@@ -70,13 +73,11 @@ class DietModule(ttk.Frame):
         """Actualiza las listas de dietas y liquidaciones"""
         try:
             # Obtener anticipos
-            diets = self.diet_controller.list_diets()
+            diets = self.diet_service.list_diets(status='requested')                        
             self.advances_list.update_data(diets)
             
             # Obtener liquidaciones
-            liquidations = self.diet_controller.list_liquidations_by_date_range(
-                start_date=None, end_date=None  # Últimos 30 días
-            )
+            liquidations = self.diet_service.list_diets(status='liquidated')
             self.liquidations_list.update_data(liquidations)
             
         except Exception as e:
@@ -94,7 +95,7 @@ class DietModule(ttk.Frame):
     
     def create_diet(self):
         """Abre diálogo para crear nueva dieta"""
-        dialog = DietDialog(self, self.diet_controller)
+        dialog = DietDialog(self, self.diet_service, self.request_user_service, self.card_service)
         if dialog.result:
             self.refresh_diets()
     
@@ -104,7 +105,7 @@ class DietModule(ttk.Frame):
             messagebox.showwarning("Advertencia", "Seleccione una dieta para editar")
             return
         
-        dialog = DietDialog(self, self.diet_controller, self.current_diet)
+        dialog = DietDialog(self, self.diet_service, self.request_user_service, self.card_service, self.current_diet)
         if dialog.result:
             self.refresh_diets()
     
@@ -116,7 +117,7 @@ class DietModule(ttk.Frame):
         
         if messagebox.askyesno("Confirmar", "¿Está seguro de eliminar esta dieta?"):
             try:
-                success = self.diet_controller.delete_diet(self.current_diet.id)
+                success = self.diet_service.delete_diet(self.current_diet.id)
                 if success:
                     messagebox.showinfo("Éxito", "Dieta eliminada correctamente")
                     self.refresh_diets()
@@ -131,7 +132,7 @@ class DietModule(ttk.Frame):
             messagebox.showwarning("Advertencia", "Seleccione una dieta para liquidar")
             return
         
-        dialog = DietLiquidationDialog(self, self.diet_controller, self.current_diet)
+        dialog = DietLiquidationDialog(self, self.diet_service, self.current_diet)
         if dialog.result:
             self.refresh_diets()
     
@@ -141,6 +142,6 @@ class DietModule(ttk.Frame):
             messagebox.showwarning("Advertencia", "Seleccione una dieta grupal")
             return
         
-        dialog = DietMemberDialog(self, self.diet_controller, self.current_diet)
+        dialog = DietMemberDialog(self, self.diet_service, self.current_diet)
         if dialog.result:
             self.refresh_diets()

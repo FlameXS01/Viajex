@@ -21,39 +21,42 @@ class CreateDietUseCase:
         self.diet_service_repository = diet_service_repository
         self.request_user_repository = request_user_repository
     
-    def execute(self, diet_data: dict) -> Diet:
+    def execute(self, diet_data: dict) -> Optional[list[Diet]]:
         # Validar que el solicitante existe
-        request_user = self.request_user_repository.get_by_id(diet_data['request_user_id'])
-        if not request_user:
-            raise ValueError("El solicitante no existe")
+        for user_id in diet_data['request_user_id']:
+
+            request_user = self.request_user_repository.get_by_id(user_id)
+            if not request_user:
+                raise ValueError("El solicitante no existe")
+            
+            # Validar que el servicio de dieta existe
+            diet_service = self.diet_service_repository.get_by_id(diet_data['diet_service_id'])
+            if not diet_service:
+                raise ValueError("El servicio de dieta no existe")
+            
+            # Obtener el próximo número de anticipo
+            last_advance_number = self.diet_repository.get_last_advance_number()
+            advance_number = last_advance_number + 1
+            
+            # Crear la entidad Diet
+            diet = Diet(
+                is_local=diet_data['is_local'],
+                start_date=diet_data['start_date'],
+                end_date=diet_data['end_date'],
+                description=diet_data['description'],
+                advance_number=advance_number,
+                is_group=diet_data['is_group'],
+                status=DietStatus.REQUESTED,
+                request_user_id=diet_data['request_user_id'],
+                diet_service_id=diet_data['diet_service_id'],
+                breakfast_count=diet_data['breakfast_count'],
+                lunch_count=diet_data['lunch_count'],
+                dinner_count=diet_data['dinner_count'],
+                accommodation_count=diet_data['accommodation_count'],
+                accommodation_payment_method=diet_data['accommodation_payment_method'],
+                accommodation_card_id=diet_data.get('accommodation_card_id'),
+                created_at=diet_data['created_at']
+            )
+            
+            self.diet_repository.create(diet)
         
-        # Validar que el servicio de dieta existe
-        diet_service = self.diet_service_repository.get_by_id(diet_data['diet_service_id'])
-        if not diet_service:
-            raise ValueError("El servicio de dieta no existe")
-        
-        # Obtener el próximo número de anticipo
-        last_advance_number = self.diet_repository.get_last_advance_number()
-        advance_number = last_advance_number + 1
-        
-        # Crear la entidad Diet
-        diet = Diet(
-            is_local=diet_data['is_local'],
-            start_date=diet_data['start_date'],
-            end_date=diet_data['end_date'],
-            description=diet_data['description'],
-            advance_number=advance_number,
-            is_group=diet_data['is_group'],
-            status=DietStatus.REQUESTED,
-            request_user_id=diet_data['request_user_id'],
-            diet_service_id=diet_data['diet_service_id'],
-            breakfast_count=diet_data['breakfast_count'],
-            lunch_count=diet_data['lunch_count'],
-            dinner_count=diet_data['dinner_count'],
-            accommodation_count=diet_data['accommodation_count'],
-            accommodation_payment_method=diet_data['accommodation_payment_method'],
-            accommodation_card_id=diet_data.get('accommodation_card_id'),
-            created_at=diet_data['created_at']
-        )
-        
-        return self.diet_repository.create(diet)

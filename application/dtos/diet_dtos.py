@@ -42,7 +42,7 @@ class DietCreateDTO:
     end_date: date
     description: str
     is_group: bool
-    request_user_id: int
+    request_user_id: list[int]
     diet_service_id: int
     breakfast_count: int
     lunch_count: int

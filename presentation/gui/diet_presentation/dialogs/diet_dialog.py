@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 from application.dtos.diet_dtos import DietCreateDTO, DietUpdateDTO
+from application.services.diet_service import DietAppService
 from ..widgets.diet_form import DietForm
 
 class DietDialog(tk.Toplevel):
@@ -9,10 +10,12 @@ class DietDialog(tk.Toplevel):
     Diálogo para crear/editar dietas
     """
     
-    def __init__(self, parent, diet_controller, diet=None):
+    def __init__(self, parent, diet_service : DietAppService, request_user_service, card_service, diet=None):
         super().__init__(parent)
-        self.diet_controller = diet_controller
+        self.diet_service = diet_service
         self.diet = diet
+        self.request_user_service = request_user_service
+        self.card_service = card_service
         self.result = False
         
         title = "Editar Dieta" if diet else "Crear Dieta"
@@ -38,7 +41,7 @@ class DietDialog(tk.Toplevel):
         form_frame = ttk.Frame(main_frame)
         form_frame.pack(fill=tk.BOTH, expand=True)
         
-        self.form = DietForm(form_frame, self.diet_controller, self.diet)
+        self.form = DietForm(form_frame, self.diet_service, self.request_user_service, self.card_service, self.diet)
         self.form.pack(fill=tk.BOTH, expand=True)
         
         # Información de precios
@@ -87,14 +90,14 @@ class DietDialog(tk.Toplevel):
         """Cuando cambia la localidad, actualizar precios de referencia"""
         is_local = self.form.is_local_var.get()
         try:
-            service = self.diet_controller.get_diet_service_by_local(is_local)
+            service = self.diet_service.get_diet_service_by_local(is_local)
             if service:
                 self.prices_label.config(
                     text=f"Des: ${service.breakfast_price} | Alm: ${service.lunch_price} | "
                          f"Com: ${service.dinner_price} | Aloj: ${service.accommodation_cash_price} (Efectivo)"
                 )
             else:
-                self.prices_label.config(text="No hay precios configurados para esta localidad")
+                self.prices_label.config(text=f"No hay precios configurados para esta localidad" )
         except Exception:
             self.prices_label.config(text="Error al cargar precios")
     
@@ -102,7 +105,7 @@ class DietDialog(tk.Toplevel):
         """Calcula el total estimado basado en cantidades y precios"""
         try:
             is_local = self.form.is_local_var.get()
-            service = self.diet_controller.get_diet_service_by_local(is_local)
+            service = self.diet_service.get_diet_service_by_local(is_local)
             
             if not service:
                 self.total_label.config(text="$0.00")
@@ -177,7 +180,7 @@ class DietDialog(tk.Toplevel):
             form_data = self.form.get_form_data()
             
             # Obtener el servicio de dieta según localidad
-            diet_service = self.diet_controller.get_diet_service_by_local(form_data["is_local"])
+            diet_service = self.diet_service.get_diet_service_by_local(form_data["is_local"])
             if not diet_service:
                 messagebox.showerror("Error", "No se encontró servicio de dieta para la localidad seleccionada")
                 return
@@ -198,7 +201,7 @@ class DietDialog(tk.Toplevel):
                 accommodation_card_id=form_data["accommodation_card_id"]
             )
             
-            result = self.diet_controller.create_diet(create_dto)
+            result = self.diet_service.create_diet(create_dto)
             if result:
                 self.result = True
                 messagebox.showinfo("Éxito", "Dieta creada correctamente")
@@ -228,7 +231,7 @@ class DietDialog(tk.Toplevel):
                 accommodation_card_id=form_data["accommodation_card_id"]
             )
             
-            result = self.diet_controller.update_diet(self.diet.id, update_dto)
+            result = self.diet_service.update_diet(self.diet.id, update_dto)
             if result:
                 self.result = True
                 messagebox.showinfo("Éxito", "Dieta actualizada correctamente")

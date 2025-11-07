@@ -32,7 +32,7 @@ class DietRepositoryImpl(DietRepository):
             lunch_count=diet.lunch_count,
             dinner_count=diet.dinner_count,
             accommodation_count=diet.accommodation_count,
-            accommodation_payment_method=diet.accommodation_payment_method.value,
+            accommodation_payment_method=diet.accommodation_payment_method,
             accommodation_card_id=diet.accommodation_card_id
         )
         self.session.add(model)
