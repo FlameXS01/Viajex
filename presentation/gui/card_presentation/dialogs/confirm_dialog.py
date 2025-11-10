@@ -16,7 +16,7 @@ class ConfirmDialog:
         """Crea el diálogo de confirmación"""
         self.dialog = tk.Toplevel(self.parent)
         self.dialog.title(title)
-        self.dialog.geometry("450x180") 
+        self.dialog.geometry("450x220") 
         self.dialog.resizable(False, False)
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
