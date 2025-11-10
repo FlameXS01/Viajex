@@ -1,7 +1,7 @@
-# application/services/diet_service.py
 from typing import List, Optional, Dict, Any
 from decimal import Decimal
 from datetime import date, datetime
+from tkinter import ttk, messagebox
 
 from core.entities.diet import Diet, DietStatus
 from core.entities.diet_service import DietService
@@ -118,7 +118,8 @@ class DietAppService:
         use_case = CreateDietUseCase(
             self.diet_repository,
             self.diet_service_repository,
-            self.request_user_repository
+            self.request_user_repository,
+            self.diet_member_repository
         )
         
         diet_data = {
@@ -147,19 +148,17 @@ class DietAppService:
         diet = use_case.execute(diet_id)
         return self._to_diet_response_dto(diet) if diet else None
     
-    def list_diets(self, status: Optional[str] = None, request_user_id: Optional[int] = None) -> List[DietResponseDTO]:
+    def list_diets(self, status: DietStatus = None, request_user_id: Optional[int] = None) -> List[DietResponseDTO]:
         """Lista dietas con filtros opcionales"""
         use_case = ListDietsUseCase(self.diet_repository)
-        
-        if status:
-            diet_status = DietStatus(status)
-            diets = use_case.execute(status=diet_status, request_user_id=request_user_id)
-        elif request_user_id:
-            diets = use_case.execute(request_user_id=request_user_id)
-        else:
-            diets = use_case.execute()
-            
-        return [self._to_diet_response_dto(diet) for diet in diets]
+        try:
+            diets = use_case.execute(status=status, request_user_id=request_user_id)
+            return [self._to_diet_response_dto(diet) for diet in diets]
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudieron cargar los datos: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return []
     
     def list_diets_by_status(self, status: str) -> List[DietResponseDTO]:
         """Lista dietas por estado específico"""
@@ -391,7 +390,6 @@ class DietAppService:
             accommodation_count=diet.accommodation_count,
             accommodation_payment_method=diet.accommodation_payment_method.value,
             accommodation_card_id=diet.accommodation_card_id,
-            created_at=diet.created_at,
             total_amount=total_amount
         )
     

@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from typing import Optional, List
-from application.controller.diet_controller import DietController
+from typing import Optional
 from application.dtos.diet_dtos import DietResponseDTO, DietLiquidationResponseDTO
 from application.services.diet_service import DietAppService
 from core.entities.enums import DietStatus
@@ -73,15 +72,17 @@ class DietModule(ttk.Frame):
         """Actualiza las listas de dietas y liquidaciones"""
         try:
             # Obtener anticipos
-            diets = self.diet_service.list_diets(status='requested')                        
+            diets = self.diet_service.list_diets(status=DietStatus.REQUESTED)                         
             self.advances_list.update_data(diets)
             
             # Obtener liquidaciones
-            liquidations = self.diet_service.list_diets(status='liquidated')
+            liquidations = self.diet_service.list_diets(status=DietStatus.LIQUIDATED) 
             self.liquidations_list.update_data(liquidations)
             
         except Exception as e:
             messagebox.showerror("Error", f"No se pudieron cargar los datos: {str(e)}")
+            import traceback
+            traceback.print_exc()
     
     def on_diet_selected(self, diet: DietResponseDTO):
         """Maneja la selección de una dieta"""

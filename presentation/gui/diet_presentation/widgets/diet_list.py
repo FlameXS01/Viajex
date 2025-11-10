@@ -62,7 +62,7 @@ class DietList(ttk.Frame):
                     item.id,
                     item.advance_number,
                     item.description,
-                    f"Solicitante {item.request_user_id}",  # En realidad debería ser el nombre
+                    f"Solicitante {item.request_user_id}",  
                     item.start_date.strftime("%d/%m/%Y"),
                     item.end_date.strftime("%d/%m/%Y"),
                     self._get_status_text(item.status),

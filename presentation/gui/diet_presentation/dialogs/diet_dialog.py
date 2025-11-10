@@ -2,15 +2,10 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 from application.dtos.diet_dtos import DietCreateDTO, DietUpdateDTO
-from application.services.diet_service import DietAppService
 from ..widgets.diet_form import DietForm
 
 class DietDialog(tk.Toplevel):
-    """
-    Diálogo para crear/editar dietas
-    """
-    
-    def __init__(self, parent, diet_service : DietAppService, request_user_service, card_service, diet=None):
+    def __init__(self, parent, diet_service, request_user_service, card_service, diet=None):
         super().__init__(parent)
         self.diet_service = diet_service
         self.diet = diet
@@ -20,48 +15,67 @@ class DietDialog(tk.Toplevel):
         
         title = "Editar Dieta" if diet else "Crear Dieta"
         self.title(title)
-        self.geometry("600x600")
-        self.resizable(False, False)
+        
+        # Configurar dimensiones fijas adecuadas
+        self.geometry("900x750")  # Más alto para mostrar todos los componentes
+        self.minsize(900, 750)   # Establecer tamaño mínimo
+        self.resizable(True, True)
+        
         self.transient(parent)
         self.grab_set()
         
         self.create_widgets()
         self.center_on_parent(parent)
+        
+        # Asegurar que todos los elementos se muestren correctamente
+        self.update_idletasks()
     
     def create_widgets(self):
+        # Frame principal con scrollbar
         main_frame = ttk.Frame(self, padding=10)
         main_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Título
+        # Configurar grid para expansión
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.rowconfigure(1, weight=1)
+        
         title_text = f"Editando Dieta #{self.diet.advance_number}" if self.diet else "Nueva Dieta"
         title_label = ttk.Label(main_frame, text=title_text, font=("Arial", 12, "bold"))
-        title_label.pack(pady=(0, 10))
+        title_label.grid(row=0, column=0, sticky=tk.W, pady=(0, 10))
         
-        # Formulario
-        form_frame = ttk.Frame(main_frame)
-        form_frame.pack(fill=tk.BOTH, expand=True)
+        # Frame para el formulario con tamaño fijo
+        form_container = ttk.Frame(main_frame)
+        form_container.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
+        form_container.columnconfigure(0, weight=1)
+        form_container.rowconfigure(0, weight=1)
         
-        self.form = DietForm(form_frame, self.diet_service, self.request_user_service, self.card_service, self.diet)
+        self.form = DietForm(
+            form_container, 
+            self.request_user_service, 
+            self.card_service,   
+            self.diet
+        )
         self.form.pack(fill=tk.BOTH, expand=True)
         
-        # Información de precios
+        # Frame de precios
         prices_frame = ttk.LabelFrame(main_frame, text="Precios de Referencia", padding=10)
-        prices_frame.pack(fill=tk.X, pady=(10, 0))
+        prices_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        prices_frame.columnconfigure(0, weight=1)
         
         self.prices_label = ttk.Label(prices_frame, text="Seleccione 'Local' para ver precios")
-        self.prices_label.pack()
+        self.prices_label.pack(anchor=tk.W)
         
-        # Total calculado
+        # Frame del total
         total_frame = ttk.Frame(main_frame)
-        total_frame.pack(fill=tk.X, pady=(10, 0))
+        total_frame.grid(row=3, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
         
         ttk.Label(total_frame, text="Total estimado:", font=("Arial", 10, "bold")).pack(side=tk.LEFT)
         self.total_label = ttk.Label(total_frame, text="$0.00", font=("Arial", 10, "bold"))
         self.total_label.pack(side=tk.LEFT, padx=(5, 0))
         
-        # Botones
+        # Frame de botones
         buttons_frame = ttk.Frame(main_frame)
-        buttons_frame.pack(fill=tk.X, pady=(10, 0))
+        buttons_frame.grid(row=4, column=0, sticky=tk.E, pady=(10, 0))
         
         if self.diet:
             ttk.Button(buttons_frame, text="Guardar Cambios", command=self.on_save).pack(side=tk.RIGHT, padx=(5, 0))
@@ -70,24 +84,19 @@ class DietDialog(tk.Toplevel):
         
         ttk.Button(buttons_frame, text="Cancelar", command=self.destroy).pack(side=tk.RIGHT)
         
-        # Configurar eventos para cálculo automático
         self.setup_calculation_events()
     
+    # Los demás métodos permanecen igual...
     def setup_calculation_events(self):
-        """Configura eventos para calcular total automáticamente"""
-        # Conectar eventos de cambio en los campos de cantidad
         for var in self.form.service_vars.values():
             var.trace_add("write", self.calculate_total)
         
-        # Conectar evento de cambio en localidad
         self.form.is_local_var.trace_add("write", self.on_local_changed)
         
-        # Calcular inicialmente
         self.on_local_changed()
         self.calculate_total()
-    
+
     def on_local_changed(self, *args):
-        """Cuando cambia la localidad, actualizar precios de referencia"""
         is_local = self.form.is_local_var.get()
         try:
             service = self.diet_service.get_diet_service_by_local(is_local)
@@ -97,12 +106,11 @@ class DietDialog(tk.Toplevel):
                          f"Com: ${service.dinner_price} | Aloj: ${service.accommodation_cash_price} (Efectivo)"
                 )
             else:
-                self.prices_label.config(text=f"No hay precios configurados para esta localidad" )
-        except Exception:
-            self.prices_label.config(text="Error al cargar precios")
-    
+                self.prices_label.config(text="No hay precios configurados para esta localidad")
+        except Exception as e:
+            self.prices_label.config(text=f"Error al cargar precios: {str(e)}")
+
     def calculate_total(self, *args):
-        """Calcula el total estimado basado en cantidades y precios"""
         try:
             is_local = self.form.is_local_var.get()
             service = self.diet_service.get_diet_service_by_local(is_local)
@@ -111,25 +119,24 @@ class DietDialog(tk.Toplevel):
                 self.total_label.config(text="$0.00")
                 return
             
-            # Obtener cantidades
-            breakfast_count = self.form.service_vars["breakfast_count"].get()
-            lunch_count = self.form.service_vars["lunch_count"].get()
-            dinner_count = self.form.service_vars["dinner_count"].get()
-            accommodation_count = self.form.service_vars["accommodation_count"].get()
+            form_data = self.form.get_form_data()
+            breakfast_count = form_data["breakfast_count"]
+            lunch_count = form_data["lunch_count"]
+            dinner_count = form_data["dinner_count"]
+            accommodation_count = form_data["accommodation_count"]
             
-            # Calcular total
             total = (
                 breakfast_count * service.breakfast_price +
                 lunch_count * service.lunch_price +
                 dinner_count * service.dinner_price +
-                accommodation_count * service.accommodation_cash_price  # Por defecto efectivo
+                accommodation_count * service.accommodation_cash_price  
             )
             
             self.total_label.config(text=f"${total:.2f}")
             
-        except Exception:
+        except Exception as e:
             self.total_label.config(text="$0.00")
-    
+
     def center_on_parent(self, parent):
         self.update_idletasks()
         parent_x = parent.winfo_rootx()
@@ -144,34 +151,40 @@ class DietDialog(tk.Toplevel):
         y = parent_y + (parent_height - height) // 2
         
         self.geometry(f"+{x}+{y}")
-    
-    def validate_form(self) -> bool:
-        """Valida los datos del formulario"""
-        data = self.form.get_form_data()
-        
-        if not data["description"].strip():
-            messagebox.showwarning("Validación", "La descripción es obligatoria")
-            return False
-        
+
+    def validate_form(self):
         try:
-            start_date = datetime.strptime(data["start_date"], "%d/%m/%Y").date()
-            end_date = datetime.strptime(data["end_date"], "%d/%m/%Y").date()
+            data = self.form.get_form_data()
             
-            if start_date > end_date:
-                messagebox.showwarning("Validación", "La fecha de inicio no puede ser posterior a la fecha fin")
+            if not data["description"].strip():
+                messagebox.showwarning("Validación", "La descripción es obligatoria")
                 return False
-        except ValueError:
-            messagebox.showwarning("Validación", "Formato de fecha inválido. Use DD/MM/AAAA")
+            
+            try:
+                start_date = datetime.strptime(data["start_date"], "%d/%m/%Y").date()
+                end_date = datetime.strptime(data["end_date"], "%d/%m/%Y").date()
+                
+                if start_date > end_date:
+                    messagebox.showwarning("Validación", "La fecha de inicio no puede ser posterior a la fecha fin")
+                    return False
+            except ValueError:
+                messagebox.showwarning("Validación", "Formato de fecha inválido. Use DD/MM/AAAA")
+                return False
+            
+            if (data["breakfast_count"] == 0 and data["lunch_count"] == 0 and 
+                data["dinner_count"] == 0 and data["accommodation_count"] == 0):
+                messagebox.showwarning("Validación", "Debe solicitar al menos un servicio")
+                return False
+            
+            if not data.get("user_ids"):
+                messagebox.showwarning("Validación", "Debe seleccionar al menos un usuario")
+                return False
+            
+            return True
+        except Exception as e:
+            messagebox.showerror("Error", f"Error en validación: {str(e)}")
             return False
-        
-        # Validar que al menos un servicio tenga cantidad > 0
-        if (data["breakfast_count"] == 0 and data["lunch_count"] == 0 and 
-            data["dinner_count"] == 0 and data["accommodation_count"] == 0):
-            messagebox.showwarning("Validación", "Debe solicitar al menos un servicio")
-            return False
-        
-        return True
-    
+
     def on_create(self):
         if not self.validate_form():
             return
@@ -179,11 +192,17 @@ class DietDialog(tk.Toplevel):
         try:
             form_data = self.form.get_form_data()
             
-            # Obtener el servicio de dieta según localidad
-            diet_service = self.diet_service.get_diet_service_by_local(form_data["is_local"])
-            if not diet_service:
+            diet_service_obj = self.diet_service.get_diet_service_by_local(form_data["is_local"])
+            if not diet_service_obj:
                 messagebox.showerror("Error", "No se encontró servicio de dieta para la localidad seleccionada")
                 return
+            
+            user_ids = form_data.get("user_ids", [])
+            if not user_ids:
+                messagebox.showwarning("Validación", "Debe seleccionar al menos un usuario")
+                return
+            
+            request_user_id = user_ids[0]
             
             create_dto = DietCreateDTO(
                 is_local=form_data["is_local"],
@@ -191,8 +210,8 @@ class DietDialog(tk.Toplevel):
                 end_date=datetime.strptime(form_data["end_date"], "%d/%m/%Y").date(),
                 description=form_data["description"],
                 is_group=form_data["is_group"],
-                request_user_id=1,  # Esto debería venir de un combobox de solicitantes
-                diet_service_id=diet_service.id,
+                request_user_id=request_user_id,
+                diet_service_id=diet_service_obj.id,
                 breakfast_count=form_data["breakfast_count"],
                 lunch_count=form_data["lunch_count"],
                 dinner_count=form_data["dinner_count"],
@@ -211,7 +230,7 @@ class DietDialog(tk.Toplevel):
                 
         except Exception as e:
             messagebox.showerror("Error", f"Error al crear dieta: {str(e)}")
-    
+
     def on_save(self):
         if not self.validate_form():
             return
@@ -231,7 +250,7 @@ class DietDialog(tk.Toplevel):
                 accommodation_card_id=form_data["accommodation_card_id"]
             )
             
-            result = self.diet_service.update_diet(self.diet.id, update_dto)
+            result = self.diet_service.update_diet(self.diet.id, update_dto)    # type: ignore
             if result:
                 self.result = True
                 messagebox.showinfo("Éxito", "Dieta actualizada correctamente")

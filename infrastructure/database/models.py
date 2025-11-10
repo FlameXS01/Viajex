@@ -117,8 +117,7 @@ class DietModel(Base):
     diet_members = relationship("DietMemberModel", back_populates="diet", cascade="all, delete-orphan")
     liquidations = relationship("DietLiquidationModel", back_populates="diet")
 
-    def __repr__(self):
-        return f"<DietModel(id={self.id}, request_user={self.request_user_id}, status='{self.status.value}')>"
+    
 
 class DietLiquidationModel(Base):
     """

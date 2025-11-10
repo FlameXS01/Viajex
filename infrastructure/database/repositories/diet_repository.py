@@ -123,7 +123,7 @@ class DietRepositoryImpl(DietRepository):
             description=model.description,
             advance_number=model.advance_number,
             is_group=model.is_group,
-            status=DietStatus(model.status),
+            status=model.status.value,
             request_user_id=model.request_user_id,
             diet_service_id=model.diet_service_id,
             breakfast_count=model.breakfast_count,
@@ -131,6 +131,5 @@ class DietRepositoryImpl(DietRepository):
             dinner_count=model.dinner_count,
             accommodation_count=model.accommodation_count,
             accommodation_payment_method=PaymentMethod(model.accommodation_payment_method),
-            accommodation_card_id=model.accommodation_card_id,
-            created_at=model.created_at
+            accommodation_card_id=model.accommodation_card_id
         )
