@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import Optional
 from application.dtos.diet_dtos import DietResponseDTO, DietLiquidationResponseDTO
+from application.services import user_service
 from application.services.diet_service import DietAppService
 from core.entities.enums import DietStatus
 from .widgets.diet_list import DietList
@@ -59,12 +60,12 @@ class DietModule(ttk.Frame):
         self.notebook.add(self.liquidations_frame, text="Liquidaciones")
         
         # Lista de anticipos
-        self.advances_list = DietList(self.advances_frame, "advances")
+        self.advances_list = DietList(self.advances_frame, "advances", self.request_user_service, self.diet_service)
         self.advances_list.pack(fill=tk.BOTH, expand=True)
         self.advances_list.bind_selection(self.on_diet_selected)
         
         # Lista de liquidaciones
-        self.liquidations_list = DietList(self.liquidations_frame, "liquidations")
+        self.liquidations_list = DietList(self.liquidations_frame, "liquidations", self.request_user_service, self.diet_service)
         self.liquidations_list.pack(fill=tk.BOTH, expand=True)
         self.liquidations_list.bind_selection(self.on_liquidation_selected)
     
@@ -78,6 +79,8 @@ class DietModule(ttk.Frame):
             # Obtener liquidaciones
             liquidations = self.diet_service.list_diets(status=DietStatus.LIQUIDATED) 
             self.liquidations_list.update_data(liquidations)
+
+            self.actions_widget.refresh_counters()
             
         except Exception as e:
             messagebox.showerror("Error", f"No se pudieron cargar los datos: {str(e)}")
@@ -97,6 +100,7 @@ class DietModule(ttk.Frame):
     def create_diet(self):
         """Abre diálogo para crear nueva dieta"""
         dialog = DietDialog(self, self.diet_service, self.request_user_service, self.card_service)
+        self.wait_window(dialog)
         if dialog.result:
             self.refresh_diets()
     
@@ -107,8 +111,12 @@ class DietModule(ttk.Frame):
             return
         
         dialog = DietDialog(self, self.diet_service, self.request_user_service, self.card_service, self.current_diet)
+        self.wait_window(dialog)
         if dialog.result:
             self.refresh_diets()
+            self.current_diet = None
+            self.actions_widget.update_buttons_state(None)
+            self.advances_list.clear_selection()
     
     def delete_diet(self):
         """Elimina la dieta seleccionada"""
@@ -122,6 +130,9 @@ class DietModule(ttk.Frame):
                 if success:
                     messagebox.showinfo("Éxito", "Dieta eliminada correctamente")
                     self.refresh_diets()
+                    self.current_diet = None
+                    self.actions_widget.update_buttons_state(None)
+                    self.advances_list.clear_selection()
                 else:
                     messagebox.showerror("Error", "No se pudo eliminar la dieta")
             except Exception as e:
@@ -136,6 +147,9 @@ class DietModule(ttk.Frame):
         dialog = DietLiquidationDialog(self, self.diet_service, self.current_diet)
         if dialog.result:
             self.refresh_diets()
+            self.current_diet = None
+            self.actions_widget.update_buttons_state(None)
+            self.advances_list.clear_selection()
     
     def manage_members(self):
         """Abre diálogo para gestionar miembros de dieta grupal"""
@@ -146,3 +160,20 @@ class DietModule(ttk.Frame):
         dialog = DietMemberDialog(self, self.diet_service, self.current_diet)
         if dialog.result:
             self.refresh_diets()
+
+    def get_counters_info(self):
+        """Obtiene información de contadores para el widget de acciones"""
+        try:
+            advances_count = len(self.diet_service.list_diets(status=DietStatus.REQUESTED) or [])
+            liquidations_count = len(self.diet_service.list_diets(status=DietStatus.LIQUIDATED) or [])
+            
+            return type('Counters', (), {
+                'total_advance_number': advances_count,
+                'total_liquidation_number': liquidations_count
+            })()
+        except Exception as e:
+            print(f"Error obteniendo contadores: {e}")
+            return type('Counters', (), {
+                'total_advance_number': 0,
+                'total_liquidation_number': 0
+            })()

@@ -2,18 +2,52 @@ import tkinter as tk
 from tkinter import ttk
 from typing import List, Optional, Callable
 from application.dtos.diet_dtos import DietResponseDTO, DietLiquidationResponseDTO
+from application.services import user_service
+from application.services.request_service import UserRequestService
+from application.services.diet_service import DietAppService, DietService
 
 class DietList(ttk.Frame):
     """
     Widget para mostrar listas de dietas (anticipos o liquidaciones)
     """
     
-    def __init__(self, parent, list_type: str):
+    def __init__(self, parent, list_type: str, request_user_service: UserRequestService, diet_service: DietAppService): 
         super().__init__(parent)
         self.list_type = list_type  # "advances" o "liquidations"
         self.selection_callback: Optional[Callable] = None
-        
+        self.request_user_service = request_user_service
+        self.diet_service = diet_service          
         self.create_widgets()
+    
+    def calculate_total(self, diet: DietResponseDTO) -> float:
+        """Calcula el total de una dieta basado en los precios del servicio"""
+        try:            
+            if not diet:
+                return 0.0
+            
+            if not self.diet_service:
+                return 0.0
+            
+            # Obtener el servicio de dieta según si es local o no
+            service = self.diet_service.get_diet_service_by_local(diet.is_local)
+            
+            if not service:
+                return 0.0
+            
+            # Calcular total
+            breakfast_total = diet.breakfast_count * service.breakfast_price
+            lunch_total = diet.lunch_count * service.lunch_price
+            dinner_total = diet.dinner_count * service.dinner_price
+            accommodation_total = diet.accommodation_count * service.accommodation_cash_price
+            
+            total = breakfast_total + lunch_total + dinner_total + accommodation_total            
+            return total
+            
+        except Exception as e:
+            print(f"ERROR calculando total: {e}")
+            import traceback
+            traceback.print_exc()
+            return 0.0
     
     def create_widgets(self):
         # Frame principal
@@ -22,22 +56,25 @@ class DietList(ttk.Frame):
         
         # Treeview
         if self.list_type == "advances":
-            columns = ["id", "advance_number", "description", "solicitante", "fecha_inicio", 
-                      "fecha_fin", "estado", "monto"]
-            column_names = ["ID", "N° Anticipo", "Descripción", "Solicitante", "Fecha Inicio", 
-                          "Fecha Fin", "Estado", "Monto"]
+            columns = ["advance_number", "description", "solicitante", "fecha_inicio", 
+                      "fecha_fin", "monto"]
+            column_names = ["N° Anticipo", "Descripción", "Solicitante", "Fecha Inicio", 
+                          "Fecha Fin", "Monto"]
         else:
-            columns = ["id", "liquidation_number", "diet_id", "fecha_liquidacion", 
-                      "monto_liquidado", "estado"]
-            column_names = ["ID", "N° Liquidación", "ID Dieta", "Fecha Liquidación", 
-                          "Monto Liquidado", "Estado"]
+            columns = ["liquidation_number", "diet_id", "fecha_liquidacion", 
+                      "monto_liquidado"]
+            column_names = ["N° Liquidación", "ID Dieta", "Fecha Liquidación", 
+                          "Monto Liquidado"]
         
         self.tree = ttk.Treeview(main_frame, columns=columns, show="headings", height=15)
         
         # Configurar columnas
         for col, name in zip(columns, column_names):
             self.tree.heading(col, text=name)
-            self.tree.column(col, width=100)
+            if col == "monto" or col == "monto_liquidado":
+                self.tree.column(col, width=100, anchor="e")  
+            else:
+                self.tree.column(col, width=100)
         
         # Scrollbar
         scrollbar = ttk.Scrollbar(main_frame, orient=tk.VERTICAL, command=self.tree.yview)
@@ -49,43 +86,48 @@ class DietList(ttk.Frame):
         # Bind selección
         self.tree.bind("<<TreeviewSelect>>", self.on_selection)
     
-    def update_data(self, data: List):
+    def update_data(self, data: list):
         """Actualiza los datos en la lista"""
+        
         # Limpiar lista actual
         for item in self.tree.get_children():
             self.tree.delete(item)
         
+        self.current_data = data
+
+        # Verificar si data es None o vacía
+        if not data:
+            return
+        
         # Agregar nuevos datos
-        for item in data:
-            if self.list_type == "advances" and isinstance(item, DietResponseDTO):
-                self.tree.insert("", "end", values=(
-                    item.id,
-                    item.advance_number,
-                    item.description,
-                    f"Solicitante {item.request_user_id}",  
-                    item.start_date.strftime("%d/%m/%Y"),
-                    item.end_date.strftime("%d/%m/%Y"),
-                    self._get_status_text(item.status),
-                    f"${item.total_amount:.2f}" if item.total_amount else "$0.00"
-                ))
-            elif self.list_type == "liquidations" and isinstance(item, DietLiquidationResponseDTO):
-                self.tree.insert("", "end", values=(
-                    item.id,
-                    item.liquidation_number,
-                    item.diet_id,
-                    item.liquidation_date.strftime("%d/%m/%Y %H:%M"),
-                    f"${item.liquidated_amount:.2f}" if item.liquidated_amount else "$0.00",
-                    "Liquidado"
-                ))
-    
-    def _get_status_text(self, status: str) -> str:
-        """Convierte el estado a texto legible"""
-        status_map = {
-            "requested": "Solicitado",
-            "liquidated": "Liquidado",
-            "partially_liquidated": "Parcialmente Liquidado"
-        }
-        return status_map.get(status, status)
+        for i, item in enumerate(data):
+            
+            if self.list_type == "advances":
+                if hasattr(item, 'advance_number'):  # Verificar si es DietResponseDTO
+                    user = self.request_user_service.get_user_by_id(item.request_user_id)                    
+                    # Calcular el total usando nuestra nueva función
+                    total_amount = self.calculate_total(item)
+                    
+                    # Insertar en treeview
+                    self.tree.insert("", "end", values=(
+                        item.advance_number,
+                        item.description,
+                        f"{user.fullname}" if user and hasattr(user, 'fullname') else "N/A",  
+                        item.start_date.strftime("%d/%m/%Y") if item.start_date else "N/A",
+                        item.end_date.strftime("%d/%m/%Y") if item.end_date else "N/A",
+                        f"${total_amount:.2f}" if total_amount is not None else "$0.00"
+                    ))
+                else:
+                    pass
+
+            elif self.list_type == "liquidations":
+                if hasattr(item, 'liquidation_number'):  # Verificar si es DietLiquidationResponseDTO
+                    self.tree.insert("", "end", values=(
+                        item.liquidation_number,
+                        item.diet_id,
+                        item.liquidation_date.strftime("%d/%m/%Y %H:%M") if item.liquidation_date else "N/A",
+                        f"${item.liquidated_amount:.2f}" if item.liquidated_amount else "$0.00"
+                    ))
     
     def bind_selection(self, callback: Callable):
         """Establece el callback para cuando se selecciona un item"""
@@ -93,6 +135,7 @@ class DietList(ttk.Frame):
     
     def on_selection(self, event):
         """Maneja la selección de items"""
+
         if not self.selection_callback:
             return
         
@@ -100,46 +143,14 @@ class DietList(ttk.Frame):
         if not selection:
             return
         
-        # Obtener datos del item seleccionado
-        item = self.tree.item(selection[0])
-        values = item["values"]
-        
-        # En una implementación real, aquí buscarías el objeto completo por ID
-        # Por ahora, creamos un objeto simple con los datos básicos
-        if self.list_type == "advances":
-            diet = DietResponseDTO(
-                id=values[0],
-                advance_number=values[1],
-                description=values[2],
-                request_user_id=0,  # Esto debería venir de los datos
-                start_date=None,  # Debería convertirse de string a date
-                end_date=None,
-                status=self._get_status_key(values[6]),
-                is_local=True,
-                is_group=False,
-                diet_service_id=0,
-                breakfast_count=0,
-                lunch_count=0,
-                dinner_count=0,
-                accommodation_count=0,
-                accommodation_payment_method="CASH",
-                accommodation_card_id=None,
-                created_at=None,
-                total_amount=0.0
-            )
-            self.selection_callback(diet)
+        selected_index = self.tree.index(selection[0])
+
+        # Obtener el objeto correspondiente de current_data
+        if hasattr(self, 'current_data') and self.current_data and selected_index < len(self.current_data):
+            selected_item = self.current_data[selected_index]
+            self.selection_callback(selected_item)
         else:
-            # Para liquidaciones, podrías hacer algo similar
-            pass
-    
-    def _get_status_key(self, status_text: str) -> str:
-        """Convierte texto de estado a clave"""
-        status_map = {
-            "Solicitado": "requested",
-            "Liquidado": "liquidated", 
-            "Parcialmente Liquidado": "partially_liquidated"
-        }
-        return status_map.get(status_text, "requested")
+            self.selection_callback(None) 
     
     def get_selected_item(self):
         """Retorna el item seleccionado"""

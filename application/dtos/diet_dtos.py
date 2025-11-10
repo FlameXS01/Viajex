@@ -83,7 +83,6 @@ class DietResponseDTO:
     accommodation_count: int
     accommodation_payment_method: str
     accommodation_card_id: Optional[int]
-    created_at: datetime
     total_amount: Optional[Decimal] = None
 
 @dataclass

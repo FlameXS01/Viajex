@@ -381,14 +381,14 @@ class DietAppService:
             description=diet.description,
             advance_number=diet.advance_number,
             is_group=diet.is_group,
-            status=diet.status.value,
+            status=diet.status,
             request_user_id=diet.request_user_id,
             diet_service_id=diet.diet_service_id,
             breakfast_count=diet.breakfast_count,
             lunch_count=diet.lunch_count,
             dinner_count=diet.dinner_count,
             accommodation_count=diet.accommodation_count,
-            accommodation_payment_method=diet.accommodation_payment_method.value,
+            accommodation_payment_method=diet.accommodation_payment_method,
             accommodation_card_id=diet.accommodation_card_id,
             total_amount=total_amount
         )

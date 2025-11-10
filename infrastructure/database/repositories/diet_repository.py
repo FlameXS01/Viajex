@@ -112,9 +112,7 @@ class DietRepositoryImpl(DietRepository):
             self.session.rollback()
             return False
     
-    def _to_entity(self, model: DietModel) -> Diet:
-        from core.entities.diet import DietStatus, PaymentMethod
-        
+    def _to_entity(self, model: DietModel) -> Diet:        
         return Diet(
             id=model.id,
             is_local=model.is_local,
@@ -130,6 +128,6 @@ class DietRepositoryImpl(DietRepository):
             lunch_count=model.lunch_count,
             dinner_count=model.dinner_count,
             accommodation_count=model.accommodation_count,
-            accommodation_payment_method=PaymentMethod(model.accommodation_payment_method),
+            accommodation_payment_method=model.accommodation_payment_method.value,
             accommodation_card_id=model.accommodation_card_id
         )

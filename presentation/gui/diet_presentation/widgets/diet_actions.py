@@ -50,12 +50,16 @@ class DietActions(ttk.Frame):
         
         # Contadores
         self.counters_label = ttk.Label(secondary_buttons_frame, text="Anticipos: 0 | Liquidaciones: 0")
+        self.counters_label.pack(side=tk.LEFT, padx=(5, 0))
+        
+        # Llamar a refresh_counters después de crear los widgets
         self.refresh_counters()
     
     def update_buttons_state(self, selected_diet):
         """
         Actualiza el estado de los botones según la dieta seleccionada
         """
+        
         if selected_diet is None:
             # No hay dieta seleccionada
             self.edit_btn.config(state=tk.DISABLED)
@@ -63,18 +67,18 @@ class DietActions(ttk.Frame):
             self.liquidate_btn.config(state=tk.DISABLED)
             self.members_btn.config(state=tk.DISABLED)
         else:
-            # Hay dieta seleccionada
+            # Hay dieta seleccionada - CORREGIDO: Usar valores del enum en mayúsculas
             self.edit_btn.config(state=tk.NORMAL)
             self.delete_btn.config(state=tk.NORMAL)
             
             # Solo se puede liquidar si está en estado REQUESTED
-            if selected_diet.status == "requested":
+            if selected_diet.status == "REQUESTED":  # CORREGIDO: Mayúsculas
                 self.liquidate_btn.config(state=tk.NORMAL)
             else:
                 self.liquidate_btn.config(state=tk.DISABLED)
             
             # Solo se pueden gestionar miembros si es grupal
-            if selected_diet.is_group:
+            if hasattr(selected_diet, 'is_group') and selected_diet.is_group:
                 self.members_btn.config(state=tk.NORMAL)
             else:
                 self.members_btn.config(state=tk.DISABLED)
@@ -82,9 +86,11 @@ class DietActions(ttk.Frame):
     def refresh_counters(self):
         """Actualiza los contadores en la interfaz"""
         try:
-            counters = self.module.diet_controller.get_counters_info()
+            # CORREGIDO: Llamar al método del módulo en lugar de diet_controller
+            counters = self.module.get_counters_info()
             self.counters_label.config(
                 text=f"Anticipos: {counters.total_advance_number} | Liquidaciones: {counters.total_liquidation_number}"
             )
-        except Exception:
+        except Exception as e:
+            print(f"ERROR refrescando contadores: {e}")
             self.counters_label.config(text="Anticipos: 0 | Liquidaciones: 0")
