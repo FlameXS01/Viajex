@@ -37,8 +37,12 @@ class RequestUserRepositoryImpl(RequestUserRepository):
         db_request_user = self.db.query(RequestUserModel).filter(RequestUserModel.ci == ci).first()
         return self._to_entity(db_request_user) if db_request_user else None
 
+    # def get_all(self) -> list[RequestUser]:
+    #     db_request_users = self.db.query(RequestUserModel).all()
+    #     return [self._to_entity(user) for user in db_request_users]
+
     def get_all(self) -> list[RequestUser]:
-        db_request_users = self.db.query(RequestUserModel).all()
+        db_request_users = self.db.query(RequestUserModel).order_by(RequestUserModel.fullname.asc()).all()
         return [self._to_entity(user) for user in db_request_users]
 
     def update(self, req_user: RequestUser) -> RequestUser:

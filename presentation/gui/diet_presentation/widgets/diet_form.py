@@ -69,22 +69,11 @@ class DietForm(ttk.Frame):
             main_frame.rowconfigure(i, weight=0)
         main_frame.rowconfigure(5, weight=1)
         
-        self._create_header(main_frame)
         self._create_basic_info_section(main_frame)
         self._create_user_selection_section(main_frame)
         self._create_diet_details_section(main_frame)
         self._create_payment_section(main_frame)
 
-    def _create_header(self, parent):
-        """Crea el encabezado del formulario"""
-        title_text = "✏️ Editar Dieta" if self.is_edit_mode else "➕ Crear Nueva Dieta"
-        title_label = ttk.Label(
-            parent, 
-            text=title_text, 
-            font=('Arial', 14, 'bold'),
-            foreground='#2C3E50'
-        )
-        title_label.grid(row=0, column=0, columnspan=2, sticky=tk.W, pady=(0, 20))
 
     def _create_basic_info_section(self, parent):
         """Crea la sección de información básica"""
@@ -539,7 +528,7 @@ class DietForm(ttk.Frame):
             if card:
                 self.selected_card_var.set(f"{card.card_number} - {card.card_pin}")
 
-        # Cargar usuarios - CORREGIDO
+        # Cargar usuarios 
         if self.diet.user_ids:
             if self.diet.is_group:
                 # Modo grupal

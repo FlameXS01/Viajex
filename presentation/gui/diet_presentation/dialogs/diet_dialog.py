@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
-from application.dtos.diet_dtos import DietCreateDTO, DietUpdateDTO
+from application.dtos.diet_dtos import DietCreateDTO, DietMemberCreateDTO, DietUpdateDTO
 from ..widgets.diet_form import DietForm
 
 class DietDialog(tk.Toplevel):
@@ -17,10 +17,12 @@ class DietDialog(tk.Toplevel):
         self.title(title)
         
         # Configurar dimensiones fijas adecuadas
-        self.geometry("900x750")  
-        self.minsize(900, 750)   
+        self.geometry("900x875")  
+        self.minsize(900, 875)   
         self.resizable(True, True)
         
+        
+
         self.transient(parent)
         self.grab_set()
         
@@ -30,6 +32,8 @@ class DietDialog(tk.Toplevel):
         # Asegurar que todos los elementos se muestren correctamente
         self.update_idletasks()
     
+
+        
     def create_widgets(self):
         # Frame principal con scrollbar
         main_frame = ttk.Frame(self, padding=10)
@@ -148,7 +152,7 @@ class DietDialog(tk.Toplevel):
         height = self.winfo_height()
         
         x = parent_x + (parent_width - width) // 2
-        y = parent_y + (parent_height - height) // 2
+        y = parent_y + (parent_height - height) // 2 - 70
         
         self.geometry(f"+{x}+{y}")
 
@@ -192,16 +196,18 @@ class DietDialog(tk.Toplevel):
         try:
             form_data = self.form.get_form_data()
             
-            diet_service_obj = self.diet_service.get_diet_service_by_local(form_data["is_local"])
-            if not diet_service_obj:
-                messagebox.showerror("Error", "No se encontró servicio de dieta para la localidad seleccionada")
-                return
-            
+            # Validar usuarios
             user_ids = form_data.get("user_ids", [])
             if not user_ids:
                 messagebox.showwarning("Validación", "Debe seleccionar al menos un usuario")
                 return
             
+            diet_service_obj = self.diet_service.get_diet_service_by_local(form_data["is_local"])
+            if not diet_service_obj:
+                messagebox.showerror("Error", "No se encontró servicio de dieta para la localidad seleccionada")
+                return
+            
+            # Usar el primer usuario como request_user_id
             request_user_id = user_ids[0]
             
             create_dto = DietCreateDTO(
@@ -220,8 +226,27 @@ class DietDialog(tk.Toplevel):
                 accommodation_card_id=form_data["accommodation_card_id"]
             )
             
-            result = self.diet_service.create_diet(create_dto)
-            if result:
+            # CREAR LA DIETA PRIMERO
+            diet_id = self.diet_service.create_diet(create_dto)
+            
+            if diet_id:
+                # ASIGNAR TODOS LOS USUARIOS COMO MIEMBROS DE LA DIETA
+                if form_data["is_group"]:
+                    # Para dieta grupal: asignar TODOS los usuarios como miembros
+                    for user_id in user_ids:
+                        member_dto = DietMemberCreateDTO(
+                            diet_id=diet_id,
+                            request_user_id=user_id
+                        )
+                        self.diet_service.add_diet_member(member_dto)
+                else:
+                    # Para dieta individual: solo asignar el usuario principal
+                    member_dto = DietMemberCreateDTO(
+                        diet_id=diet_id,
+                        request_user_id=request_user_id
+                    )
+                    self.diet_service.add_diet_member(member_dto)
+                
                 self.result = True
                 messagebox.showinfo("Éxito", "Dieta creada correctamente")
                 self.destroy()
@@ -238,6 +263,12 @@ class DietDialog(tk.Toplevel):
         try:
             form_data = self.form.get_form_data()
             
+            # Validar usuarios
+            user_ids = form_data.get("user_ids", [])
+            if not user_ids:
+                messagebox.showwarning("Validación", "Debe seleccionar al menos un usuario")
+                return
+            
             update_dto = DietUpdateDTO(
                 start_date=datetime.strptime(form_data["start_date"], "%d/%m/%Y").date(),
                 end_date=datetime.strptime(form_data["end_date"], "%d/%m/%Y").date(),
@@ -250,8 +281,42 @@ class DietDialog(tk.Toplevel):
                 accommodation_card_id=form_data["accommodation_card_id"]
             )
             
+            # ACTUALIZAR LA DIETA
             result = self.diet_service.update_diet(self.diet.id, update_dto)    # type: ignore
+            
             if result:
+                # ACTUALIZAR LOS MIEMBROS DE LA DIETA
+                if self.diet.is_group:  # type: ignore
+                    # Para dieta grupal: sincronizar todos los miembros
+                    current_members = self.diet_service.get_diet_members(self.diet.id)  # type: ignore
+                    
+                    # Eliminar miembros que ya no están seleccionados
+                    for member in current_members:
+                        if member.request_user_id not in user_ids:
+                            self.diet_service.remove_diet_member(self.diet.id, member.request_user_id)  # type: ignore
+                    
+                    # Agregar nuevos miembros
+                    current_member_ids = [member.request_user_id for member in current_members]
+                    for user_id in user_ids:
+                        if user_id not in current_member_ids:
+                            member_dto = DietMemberCreateDTO(
+                                diet_id=self.diet.id,  # type: ignore
+                                request_user_id=user_id
+                            )
+                            self.diet_service.add_diet_member(member_dto)
+                else:
+                    # Para dieta individual: actualizar el usuario principal si cambió
+                    current_members = self.diet_service.get_diet_members(self.diet.id)  # type: ignore
+                    if current_members and current_members[0].request_user_id != user_ids[0]:
+                        # Eliminar el miembro actual
+                        self.diet_service.remove_diet_member(self.diet.id, current_members[0].request_user_id)  # type: ignore
+                        # Agregar el nuevo miembro
+                        member_dto = DietMemberCreateDTO(
+                            diet_id=self.diet.id,  # type: ignore
+                            request_user_id=user_ids[0]
+                        )
+                        self.diet_service.add_diet_member(member_dto)
+                
                 self.result = True
                 messagebox.showinfo("Éxito", "Dieta actualizada correctamente")
                 self.destroy()
