@@ -25,16 +25,16 @@ class CardList(ttk.Frame):
         main_frame.pack(fill=tk.BOTH, expand=True)
         
         # Treeview para mostrar las tarjetas
-        columns = ('id', 'card_number', 'balance', 'status')
+        columns = ('card_number', 'balance', 'status')
         self.tree = ttk.Treeview(main_frame, columns=columns, show='headings', style='Card.Treeview')
         
         # Configurar columnas
-        self.tree.heading('id', text='ID')
+        #self.tree.heading('id', text='ID')
         self.tree.heading('card_number', text='Número de Tarjeta')
         self.tree.heading('balance', text='Balance')
         self.tree.heading('status', text='Estado')
         
-        self.tree.column('id', width=50, anchor='center')
+        #self.tree.column('id', width=50, anchor='center')
         self.tree.column('card_number', width=180)
         self.tree.column('balance', width=100, anchor='center')
         self.tree.column('status', width=100, anchor='center')
@@ -59,28 +59,23 @@ class CardList(ttk.Frame):
         selected = self.tree.selection()
         if selected:
             item = self.tree.item(selected[0])
-            self.selected_card_id = item['values'][0]
+            self.selected_card_id = item['tags'][0] if item['tags'] else None
         else:
             self.selected_card_id = None
         
         self.on_select_callback(self.selected_card_id)
 
     def load_cards(self, cards):
-        """Carga la lista de tarjetas"""
+        """Carga las tarjetas en el treeview - SIN ID VISIBLE"""
         self.tree.delete(*self.tree.get_children())
-        
         for card in cards:
-            
+            # Usar los nombres de atributos correctos
+            card_number = getattr(card, 'card_number', 'N/A')
             balance = getattr(card, 'balance', 0)
-            balance_str = f"${balance:.2f}" if isinstance(balance, (int, float)) else str(balance)
+            is_active = getattr(card, 'is_active', True)
+            status = "Activa" if is_active else "Inactiva"
             
-            
-            card_number = getattr(card, 'card_number', '')
-            
-            # Insertar en el treeview
-            self.tree.insert('', tk.END, values=(
-                card.id, 
-                card_number,
-                balance_str,
-                '✅ Activa' if getattr(card, 'is_active', True) else '❌ Inactiva'
-            ))
+            # INSERTAR SOLO 3 VALORES - ID VA EN TAGS
+            self.tree.insert("", "end", 
+                            values=(card_number, f"${balance:.2f}", status), 
+                            tags=(card.id,))  # ID guardado en tags para referencia interna

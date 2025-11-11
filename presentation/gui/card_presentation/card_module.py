@@ -64,12 +64,17 @@ class CardModule(ttk.Frame):
         })
         self.card_actions.grid(row=0, column=0, sticky='ew')
 
-    def _on_card_select(self, card_id):
-        """Maneja la selección de tarjetas en la lista"""
-        self.selected_card_id = card_id
-        if card_id:
+    def _on_card_select(self, event):
+        """Maneja la selección de tarjetas en la lista - obtener ID desde tags"""
+        selection = self.card_list.tree.selection()
+        if selection:
+            # CAMBIAR: Obtener el ID desde los tags en lugar de desde la columna
+            item = self.card_list.tree.item(selection[0])
+            card_id = item['tags'][0] if item['tags'] else None  
+            self.selected_card_id = card_id
             self.card_actions.set_buttons_state(tk.NORMAL)
         else:
+            self.selected_card_id = None
             self.card_actions.set_buttons_state(tk.DISABLED)
 
     def _create_card(self):
