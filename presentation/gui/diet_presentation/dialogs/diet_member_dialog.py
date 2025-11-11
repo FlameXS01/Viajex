@@ -1,21 +1,23 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from application.dtos.diet_dtos import DietMemberCreateDTO
+from application.services.request_service import UserRequestService
 
 class DietMemberDialog(tk.Toplevel):
     """
     Diálogo para gestionar miembros de dieta grupal - MEJORADO
     """
     
-    def __init__(self, parent, diet_controller, diet):
+    def __init__(self, parent, diet_service, request_user_service: UserRequestService, diet):
         super().__init__(parent)
-        self.diet_controller = diet_controller
+        self.diet_service = diet_service
+        self.request_user_service = request_user_service
         self.diet = diet
         self.result = False
         
         self.title(f"👥 Miembros - Dieta #{diet.advance_number}")
-        self.geometry("700x500")  # Aumentado para mejor visualización
-        self.resizable(True, True)  # Permitir redimensionar
+        self.geometry("750x500")  
+        #self.resizable(True, True)  
         self.transient(parent)
         self.grab_set()
         
@@ -50,7 +52,7 @@ class DietMemberDialog(tk.Toplevel):
         # Botón con mejor estilo
         ttk.Button(
             add_frame, 
-            text="Agregar Miembro", 
+            text="Agregar", 
             command=self.on_add_member,
             width=15
         ).grid(row=0, column=2, padx=(5, 0), pady=8)
@@ -73,7 +75,7 @@ class DietMemberDialog(tk.Toplevel):
         
         # Configurar columnas (SIN ID)
         self.tree.heading("nombre", text="👤 Nombre Completo")
-        self.tree.heading("ci", text="📄 Cédula")
+        self.tree.heading("ci", text="📄 CI")
         self.tree.heading("departamento", text="🏢 Departamento")
         
         # Ajustar anchos de columnas
@@ -95,7 +97,7 @@ class DietMemberDialog(tk.Toplevel):
         
         ttk.Button(
             action_frame, 
-            text="🗑️ Eliminar Miembro Seleccionado", 
+            text="🗑️ Eliminar", 
             command=self.on_remove_member,
             width=25
         ).pack(pady=5)
@@ -135,22 +137,24 @@ class DietMemberDialog(tk.Toplevel):
         self.geometry(f"{width}x{height}+{x}+{y}")
     
     def load_available_users(self):
-        """Carga los usuarios disponibles en el combobox"""
+        """Carga los usuarios disponibles en el combobox guardando sus IDs"""
         try:
-            # Obtener usuarios disponibles (debes implementar este método)
-            available_users = self.diet_controller.get_available_users(self.diet.id)
+            available_users = self.request_user_service.get_all_users()
             
-            # Ordenar alfabéticamente por nombre
-            sorted_users = sorted(
-                available_users, 
-                key=lambda user: user.fullname.lower()
+            # Crear lista de tuplas (display_text, user_id) ordenada alfabéticamente
+            user_data = sorted(
+                [(f"{user.fullname}", user.id) for user in available_users],
+                key=lambda x: x[0].lower()
             )
+            user_display = [display for display, user_id in user_data]
+            self.user_id_mapping = {display: user_id for display, user_id in user_data}
             
-            user_display = [f"{user.fullname} ({user.ci})" for user in sorted_users]
             self.request_user_combo['values'] = user_display
             
             if user_display:
                 self.request_user_combo.set(user_display[0])
+            else:
+                self.request_user_combo.set('')
                 
         except Exception as e:
             messagebox.showerror("Error", f"No se pudieron cargar los usuarios: {str(e)}")
@@ -163,7 +167,7 @@ class DietMemberDialog(tk.Toplevel):
                 self.tree.delete(item)
                 
             # Cargar miembros actuales
-            members = self.diet_controller.list_diet_members(self.diet.id)
+            members = self.diet_service.list_diet_members(self.diet.id)
             
             # Ordenar miembros alfabéticamente
             sorted_members = sorted(
@@ -176,29 +180,29 @@ class DietMemberDialog(tk.Toplevel):
                     values=(
                         member.request_user_name,
                         member.request_user_ci,
-                        getattr(member, 'department', 'N/A')  # Manejar atributo opcional
+                        getattr(member, 'department', 'N/A')  
                     ),
-                    tags=(member.id,)  # Guardar ID como tag para referencia
+                    tags=(member.id,)  
                 )
                 
-            # Actualizar contador
-            member_count = len(sorted_members)
-            list_frame_text = f"📋 Miembros Actuales ({member_count} miembros)"
-            self.nametowidget(list_frame).configure(text=list_frame_text)
+            
+            
             
         except Exception as e:
-            messagebox.showerror("Error", f"No se pudieron cargar los miembros: {str(e)}")
+            messagebox.showerror("Error", f"No se pudieron cargar los miembros de la dieta: {str(e)}")
+            import traceback
+            traceback.print_exc()
     
     def on_add_member(self):
-        """Agrega un nuevo miembro a la dieta"""
+        """Agrega un nuevo miembro a la dieta usando el ID mapeado"""
         selected_display = self.request_user_combo.get()
         if not selected_display:
             messagebox.showwarning("Advertencia", "Seleccione un usuario para agregar")
             return
         
         try:
-            # Extraer ID del usuario seleccionado
-            user_id = self._get_user_id_from_display(selected_display)
+            # Obtener ID del usuario desde el mapeo
+            user_id = self.user_id_mapping.get(selected_display)
             if not user_id:
                 messagebox.showerror("Error", "No se pudo identificar el usuario seleccionado")
                 return
@@ -208,7 +212,7 @@ class DietMemberDialog(tk.Toplevel):
                 request_user_id=user_id
             )
             
-            result = self.diet_controller.add_diet_member(create_dto)
+            result = self.diet_service.add_diet_member(create_dto)
             if result:
                 self.load_members()  # Recargar lista
                 self.load_available_users()  # Actualizar combobox
@@ -216,7 +220,7 @@ class DietMemberDialog(tk.Toplevel):
                 messagebox.showinfo("Éxito", "✅ Miembro agregado correctamente")
             else:
                 messagebox.showerror("Error", "❌ No se pudo agregar el miembro")
-                
+                    
         except Exception as e:
             messagebox.showerror("Error", f"❌ Error al agregar miembro: {str(e)}")
     
@@ -225,6 +229,8 @@ class DietMemberDialog(tk.Toplevel):
         selected = self.tree.selection()
         if not selected:
             messagebox.showwarning("Advertencia", "Seleccione un miembro para eliminar")
+            import traceback
+            traceback.print_exc()
             return
         
         # Obtener datos del miembro seleccionado
@@ -236,7 +242,7 @@ class DietMemberDialog(tk.Toplevel):
             f"¿Está seguro de eliminar al miembro:\n\"{member_name}\"?"
         ):
             try:
-                success = self.diet_controller.remove_diet_member(member_id)
+                success = self.diet_service.remove_diet_member(member_id)
                 if success:
                     self.tree.delete(selected[0])
                     self.load_available_users()  # Actualizar combobox
@@ -244,7 +250,11 @@ class DietMemberDialog(tk.Toplevel):
                     messagebox.showinfo("Éxito", "✅ Miembro eliminado correctamente")
                 else:
                     messagebox.showerror("Error", "❌ No se pudo eliminar el miembro")
+                    import traceback
+                    traceback.print_exc()
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 messagebox.showerror("Error", f"❌ Error al eliminar: {str(e)}")
     
     def _get_user_id_from_display(self, display_text):
@@ -252,7 +262,7 @@ class DietMemberDialog(tk.Toplevel):
         try:
             # El formato es "Nombre Completo (CI)"
             # Buscar en la lista de usuarios disponibles
-            available_users = self.diet_controller.get_available_users(self.diet.id)
+            available_users = self.diet_service.list_diet_members(self.diet.id)
             
             for user in available_users:
                 user_display = f"{user.fullname} ({user.ci})"
@@ -261,4 +271,6 @@ class DietMemberDialog(tk.Toplevel):
                     
             return None
         except Exception:
+            import traceback
+            traceback.print_exc()
             return None

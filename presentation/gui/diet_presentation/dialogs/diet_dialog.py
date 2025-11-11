@@ -227,12 +227,11 @@ class DietDialog(tk.Toplevel):
             )
             
             # CREAR LA DIETA PRIMERO
-            diet_id = self.diet_service.create_diet(create_dto)
+            diet_id = self.diet_service.create_diet(create_dto).id
             
             if diet_id:
-                # ASIGNAR TODOS LOS USUARIOS COMO MIEMBROS DE LA DIETA
                 if form_data["is_group"]:
-                    # Para dieta grupal: asignar TODOS los usuarios como miembros
+
                     for user_id in user_ids:
                         member_dto = DietMemberCreateDTO(
                             diet_id=diet_id,
@@ -240,7 +239,6 @@ class DietDialog(tk.Toplevel):
                         )
                         self.diet_service.add_diet_member(member_dto)
                 else:
-                    # Para dieta individual: solo asignar el usuario principal
                     member_dto = DietMemberCreateDTO(
                         diet_id=diet_id,
                         request_user_id=request_user_id
@@ -287,7 +285,6 @@ class DietDialog(tk.Toplevel):
             if result:
                 # ACTUALIZAR LOS MIEMBROS DE LA DIETA
                 if self.diet.is_group:  # type: ignore
-                    # Para dieta grupal: sincronizar todos los miembros
                     current_members = self.diet_service.get_diet_members(self.diet.id)  # type: ignore
                     
                     # Eliminar miembros que ya no están seleccionados

@@ -157,7 +157,7 @@ class DietModule(ttk.Frame):
             messagebox.showwarning("Advertencia", "Seleccione una dieta grupal")
             return
         
-        dialog = DietMemberDialog(self, self.diet_service, self.current_diet)
+        dialog = DietMemberDialog(self, self.diet_service, self.request_user_service, self.current_diet)
         if dialog.result:
             self.refresh_diets()
 
