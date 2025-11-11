@@ -214,8 +214,8 @@ class DietMemberDialog(tk.Toplevel):
             
             result = self.diet_service.add_diet_member(create_dto)
             if result:
-                self.load_members()  # Recargar lista
-                self.load_available_users()  # Actualizar combobox
+                self.load_members()  
+                self.load_available_users()  
                 self.result = True
                 messagebox.showinfo("Éxito", "✅ Miembro agregado correctamente")
             else:

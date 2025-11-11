@@ -22,9 +22,6 @@ class AddDietMemberUseCase:
         if not diet:
             raise ValueError("La dieta no existe")
         
-        if not diet.is_group:
-            raise ValueError("Solo se pueden agregar miembros a dietas grupales")
-        
         # Validar que el solicitante existe
         request_user = self.request_user_repository.get_by_id(request_user_id)
         if not request_user:

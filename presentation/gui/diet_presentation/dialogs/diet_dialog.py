@@ -2,10 +2,11 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 from application.dtos.diet_dtos import DietCreateDTO, DietMemberCreateDTO, DietUpdateDTO
+from application.services.diet_service import DietAppService
 from ..widgets.diet_form import DietForm
 
 class DietDialog(tk.Toplevel):
-    def __init__(self, parent, diet_service, request_user_service, card_service, diet=None):
+    def __init__(self, parent, diet_service: DietAppService, request_user_service, card_service, diet=None):
         super().__init__(parent)
         self.diet_service = diet_service
         self.diet = diet
@@ -57,6 +58,7 @@ class DietDialog(tk.Toplevel):
             form_container, 
             self.request_user_service, 
             self.card_service,   
+            self.diet_service,
             self.diet
         )
         self.form.pack(fill=tk.BOTH, expand=True)
@@ -231,7 +233,6 @@ class DietDialog(tk.Toplevel):
             
             if diet_id:
                 if form_data["is_group"]:
-
                     for user_id in user_ids:
                         member_dto = DietMemberCreateDTO(
                             diet_id=diet_id,

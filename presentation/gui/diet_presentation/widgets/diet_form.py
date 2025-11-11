@@ -6,14 +6,16 @@ from typing import List, Optional, Dict, Any
 
 class DietForm(ttk.Frame):
     """
-    Formulario para crear y editar dietas con interfaz mejorada
-    y mejores prácticas de programación.
+    
+    Formulario para crear y editar dietas
+
     """
     
-    def __init__(self, parent, user_service, card_service, diet=None, **kwargs):
+    def __init__(self, parent, user_service, card_service, diet_member_service, diet=None, **kwargs):
         super().__init__(parent, **kwargs)
         self.user_service = user_service
         self.card_service = card_service
+        self.diet_member_service = diet_member_service
         self.diet = diet
         self.is_edit_mode = diet is not None
         self.current_diet_id = diet.id if diet else None
@@ -74,7 +76,6 @@ class DietForm(ttk.Frame):
         self._create_diet_details_section(main_frame)
         self._create_payment_section(main_frame)
 
-
     def _create_basic_info_section(self, parent):
         """Crea la sección de información básica"""
         # Frame principal
@@ -134,7 +135,7 @@ class DietForm(ttk.Frame):
             command=self._on_diet_type_change
         )
         group_radio.grid(row=0, column=3, sticky=tk.W)
-
+    
     def _create_user_selection_section(self, parent):
         """Crea la sección de selección de usuarios"""
         self.users_frame = ttk.LabelFrame(
@@ -437,12 +438,6 @@ class DietForm(ttk.Frame):
         new_title = "👤 Selección de Usuario" if self.diet_type_var.get() == "INDIVIDUAL" else "👥 Selección de Usuarios"
         self.users_frame.configure(text=new_title)
 
-    def _on_local_toggle(self):
-        """Maneja el toggle del checkbox Local - CORREGIDO"""
-        # Este método ahora puede agregar lógica adicional si es necesario
-        # El checkbox funciona independientemente de los radio buttons
-        pass
-
     def _on_payment_method_change(self):
         """Maneja el cambio de método de pago"""
         if self.payment_method_var.get() == "CARD":
@@ -528,7 +523,9 @@ class DietForm(ttk.Frame):
             if card:
                 self.selected_card_var.set(f"{card.card_number} - {card.card_pin}")
 
+        
         # Cargar usuarios 
+        self.diet.user_ids = self.diet_member_service.list_diet_members(self.diet.id)
         if self.diet.user_ids:
             if self.diet.is_group:
                 # Modo grupal
