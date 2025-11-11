@@ -8,7 +8,7 @@ from application.services.diet_service import DietAppService, DietService
 
 class DietList(ttk.Frame):
     """
-    Widget para mostrar listas de dietas (anticipos o liquidaciones)
+    Widget para mostrar listas de dietas (anticipos o liquidaciones) - CORREGIDO
     """
     
     def __init__(self, parent, list_type: str, request_user_service: UserRequestService, diet_service: DietAppService): 
@@ -16,7 +16,10 @@ class DietList(ttk.Frame):
         self.list_type = list_type  # "advances" o "liquidations"
         self.selection_callback: Optional[Callable] = None
         self.request_user_service = request_user_service
-        self.diet_service = diet_service          
+        self.diet_service = diet_service
+        self.sort_column = None
+        self.sort_reverse = False
+        self.current_data = []  # Inicializar current_data
         self.create_widgets()
     
     def calculate_total(self, diet: DietResponseDTO) -> float:
@@ -38,15 +41,18 @@ class DietList(ttk.Frame):
             breakfast_total = diet.breakfast_count * service.breakfast_price
             lunch_total = diet.lunch_count * service.lunch_price
             dinner_total = diet.dinner_count * service.dinner_price
-            accommodation_total = diet.accommodation_count * service.accommodation_cash_price
+            
+            # Usar precio correcto según método de pago
+            if diet.accommodation_payment_method == "CARD":
+                accommodation_total = diet.accommodation_count * service.accommodation_card_price
+            else:
+                accommodation_total = diet.accommodation_count * service.accommodation_cash_price
             
             total = breakfast_total + lunch_total + dinner_total + accommodation_total            
             return total
             
         except Exception as e:
             print(f"ERROR calculando total: {e}")
-            import traceback
-            traceback.print_exc()
             return 0.0
     
     def create_widgets(self):
@@ -54,12 +60,12 @@ class DietList(ttk.Frame):
         main_frame = ttk.Frame(self)
         main_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Treeview
+        # Treeview con COLUMNA DE TIPO GRUPAL/INDIVIDUAL
         if self.list_type == "advances":
-            columns = ["advance_number", "description", "solicitante", "fecha_inicio", 
-                      "fecha_fin", "monto"]
-            column_names = ["N° Anticipo", "Descripción", "Solicitante", "Fecha Inicio", 
-                          "Fecha Fin", "Monto"]
+            columns = ["advance_number", "type", "description", "solicitante", 
+                      "fecha_inicio", "fecha_fin", "monto"]
+            column_names = ["N° Anticipo", "Tipo", "Descripción", "Solicitante", 
+                          "Fecha Inicio", "Fecha Fin", "Monto"]
         else:
             columns = ["liquidation_number", "diet_id", "fecha_liquidacion", 
                       "monto_liquidado"]
@@ -73,6 +79,8 @@ class DietList(ttk.Frame):
             self.tree.heading(col, text=name)
             if col == "monto" or col == "monto_liquidado":
                 self.tree.column(col, width=100, anchor="e")  
+            elif col == "type":  # Columna para tipo grupal/individual
+                self.tree.column(col, width=80, anchor="center")
             else:
                 self.tree.column(col, width=100)
         
@@ -83,34 +91,66 @@ class DietList(ttk.Frame):
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        # Bind selección
-        self.tree.bind("<<TreeviewSelect>>", self.on_selection)
+        # Bind selección - CORREGIDO: usar el método correcto
+        self.tree.bind("<<TreeviewSelect>>", self._on_selection)
+    
+    def _on_selection(self, event):
+        """Maneja la selección de items - CORREGIDO"""
+        if not self.selection_callback:
+            return
+        
+        selection = self.tree.selection()
+        if not selection:
+            self.selection_callback(None)
+            return
+        
+        try:
+            selected_item_id = selection[0]
+            selected_index = self.tree.index(selected_item_id)
+
+            # Obtener el objeto correspondiente de current_data
+            if self.current_data and selected_index < len(self.current_data):
+                selected_item = self.current_data[selected_index]
+                self.selection_callback(selected_item)
+            else:
+                self.selection_callback(None)
+                
+        except Exception as e:
+            print(f"Error en selección: {e}")
+            self.selection_callback(None)
+    
+    def _get_diet_type(self, diet):
+        """Obtiene el tipo de dieta para mostrar en la columna"""
+        if hasattr(diet, 'is_group'):
+            return "👥 Grupal" if diet.is_group else "👤 Individual"
+        return "Individual"
     
     def update_data(self, data: list):
-        """Actualiza los datos en la lista"""
+        """Actualiza los datos en la lista - CORREGIDO"""
         
         # Limpiar lista actual
         for item in self.tree.get_children():
             self.tree.delete(item)
         
-        self.current_data = data
+        self.current_data = data or []  # Asegurar que no sea None
 
         # Verificar si data es None o vacía
         if not data:
             return
         
-        # Agregar nuevos datos
+        # Agregar nuevos datos CON LA NUEVA COLUMNA DE TIPO
         for i, item in enumerate(data):
             
             if self.list_type == "advances":
                 if hasattr(item, 'advance_number'):  # Verificar si es DietResponseDTO
                     user = self.request_user_service.get_user_by_id(item.request_user_id)                    
-                    # Calcular el total usando nuestra nueva función
+                    # Calcular el total usando nuestra función
                     total_amount = self.calculate_total(item)
                     
-                    # Insertar en treeview
+                    # Insertar en treeview CON LA COLUMNA DE TIPO
                     self.tree.insert("", "end", values=(
                         item.advance_number,
+                        self._get_diet_type(item),  # NUEVA COLUMNA: Tipo Grupal/Individual
                         item.description,
                         f"{user.fullname}" if user and hasattr(user, 'fullname') else "N/A",  
                         item.start_date.strftime("%d/%m/%Y") if item.start_date else "N/A",
@@ -118,7 +158,7 @@ class DietList(ttk.Frame):
                         f"${total_amount:.2f}" if total_amount is not None else "$0.00"
                     ))
                 else:
-                    pass
+                    print(f"Item no válido para advances: {type(item)}")
 
             elif self.list_type == "liquidations":
                 if hasattr(item, 'liquidation_number'):  # Verificar si es DietLiquidationResponseDTO
@@ -133,30 +173,13 @@ class DietList(ttk.Frame):
         """Establece el callback para cuando se selecciona un item"""
         self.selection_callback = callback
     
-    def on_selection(self, event):
-        """Maneja la selección de items"""
-
-        if not self.selection_callback:
-            return
-        
-        selection = self.tree.selection()
-        if not selection:
-            return
-        
-        selected_index = self.tree.index(selection[0])
-
-        # Obtener el objeto correspondiente de current_data
-        if hasattr(self, 'current_data') and self.current_data and selected_index < len(self.current_data):
-            selected_item = self.current_data[selected_index]
-            self.selection_callback(selected_item)
-        else:
-            self.selection_callback(None) 
-    
     def get_selected_item(self):
         """Retorna el item seleccionado"""
         selection = self.tree.selection()
         if selection:
-            return self.tree.item(selection[0])
+            selected_index = self.tree.index(selection[0])
+            if selected_index < len(self.current_data):
+                return self.current_data[selected_index]
         return None
     
     def clear_selection(self):

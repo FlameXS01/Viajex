@@ -282,44 +282,11 @@ class DietDialog(tk.Toplevel):
             
             # ACTUALIZAR LA DIETA
             result = self.diet_service.update_diet(self.diet.id, update_dto)    # type: ignore
-            
             if result:
-                # ACTUALIZAR LOS MIEMBROS DE LA DIETA
-                if self.diet.is_group:  # type: ignore
-                    current_members = self.diet_service.get_diet_members(self.diet.id)  # type: ignore
-                    
-                    # Eliminar miembros que ya no están seleccionados
-                    for member in current_members:
-                        if member.request_user_id not in user_ids:
-                            self.diet_service.remove_diet_member(self.diet.id, member.request_user_id)  # type: ignore
-                    
-                    # Agregar nuevos miembros
-                    current_member_ids = [member.request_user_id for member in current_members]
-                    for user_id in user_ids:
-                        if user_id not in current_member_ids:
-                            member_dto = DietMemberCreateDTO(
-                                diet_id=self.diet.id,  # type: ignore
-                                request_user_id=user_id
-                            )
-                            self.diet_service.add_diet_member(member_dto)
-                else:
-                    # Para dieta individual: actualizar el usuario principal si cambió
-                    current_members = self.diet_service.get_diet_members(self.diet.id)  # type: ignore
-                    if current_members and current_members[0].request_user_id != user_ids[0]:
-                        # Eliminar el miembro actual
-                        self.diet_service.remove_diet_member(self.diet.id, current_members[0].request_user_id)  # type: ignore
-                        # Agregar el nuevo miembro
-                        member_dto = DietMemberCreateDTO(
-                            diet_id=self.diet.id,  # type: ignore
-                            request_user_id=user_ids[0]
-                        )
-                        self.diet_service.add_diet_member(member_dto)
-                
-                self.result = True
-                messagebox.showinfo("Éxito", "Dieta actualizada correctamente")
+                messagebox.showinfo("Editado", f"Se editó la dieta satisfactoriamente")
                 self.destroy()
-            else:
-                messagebox.showerror("Error", "No se pudo actualizar la dieta")
                 
         except Exception as e:
             messagebox.showerror("Error", f"Error al actualizar dieta: {str(e)}")
+            import traceback
+            traceback.print_exc()

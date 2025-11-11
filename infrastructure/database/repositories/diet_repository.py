@@ -69,6 +69,7 @@ class DietRepositoryImpl(DietRepository):
     
     def update(self, diet: Diet) -> Diet:
         model = self.session.query(DietModel).filter(DietModel.id == diet.id).first()
+        
         if model:
             model.is_local = diet.is_local
             model.start_date = diet.start_date
@@ -76,14 +77,14 @@ class DietRepositoryImpl(DietRepository):
             model.description = diet.description
             model.advance_number = diet.advance_number
             model.is_group = diet.is_group
-            model.status = diet.status.value
+            model.status = diet.status.upper()
             model.request_user_id = diet.request_user_id
             model.diet_service_id = diet.diet_service_id
             model.breakfast_count = diet.breakfast_count
             model.lunch_count = diet.lunch_count
             model.dinner_count = diet.dinner_count
             model.accommodation_count = diet.accommodation_count
-            model.accommodation_payment_method = diet.accommodation_payment_method.value
+            model.accommodation_payment_method = diet.accommodation_payment_method.upper()
             model.accommodation_card_id = diet.accommodation_card_id
             self.session.commit()
             self.session.refresh(model)

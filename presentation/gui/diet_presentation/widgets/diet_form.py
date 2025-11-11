@@ -108,34 +108,39 @@ class DietForm(ttk.Frame):
             row=0, column=0, sticky=tk.W, padx=(0, 20)
         )
 
-        # Checkbutton para Local
-        local_check = ttk.Checkbutton(
+        # Checkbutton para Local - BLOQUEADO EN MODO EDICIÓN
+        self.local_check = ttk.Checkbutton(
             type_frame, 
             text="🏠 Local", 
-            variable=self.is_local_var,
-            command=self._on_local_toggle
+            variable=self.is_local_var
         )
-        local_check.grid(row=0, column=1, sticky=tk.W, padx=(0, 30))
+        self.local_check.grid(row=0, column=1, sticky=tk.W, padx=(0, 30))
 
-        # Radio buttons para Individual/Grupal
-        individual_radio = ttk.Radiobutton(
+        # Radio buttons para Individual/Grupal - BLOQUEADOS EN MODO EDICIÓN
+        self.individual_radio = ttk.Radiobutton(
             type_frame, 
             text="👤 Individual", 
             variable=self.diet_type_var, 
             value="INDIVIDUAL", 
             command=self._on_diet_type_change
         )
-        individual_radio.grid(row=0, column=2, sticky=tk.W, padx=(0, 20))
+        self.individual_radio.grid(row=0, column=2, sticky=tk.W, padx=(0, 20))
 
-        group_radio = ttk.Radiobutton(
+        self.group_radio = ttk.Radiobutton(
             type_frame, 
             text="👥 Grupal", 
             variable=self.diet_type_var, 
             value="GROUP", 
             command=self._on_diet_type_change
         )
-        group_radio.grid(row=0, column=3, sticky=tk.W)
-    
+        self.group_radio.grid(row=0, column=3, sticky=tk.W)
+
+        # BLOQUEAR CONTROLES EN MODO EDICIÓN
+        if self.is_edit_mode:
+            self.local_check.config(state='disabled')
+            self.individual_radio.config(state='disabled')
+            self.group_radio.config(state='disabled')
+
     def _create_user_selection_section(self, parent):
         """Crea la sección de selección de usuarios"""
         self.users_frame = ttk.LabelFrame(
@@ -146,7 +151,41 @@ class DietForm(ttk.Frame):
         self.users_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 15))
         self.users_frame.columnconfigure(0, weight=1)
 
-        # Contenedor para los dos modos de selección
+        # CONTENEDOR PARA VISUALIZACIÓN EN MODO EDICIÓN
+        self.view_only_container = ttk.Frame(self.users_frame)
+        self.view_only_container.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        self.view_only_container.columnconfigure(0, weight=1)
+        
+        # Treeview para mostrar usuarios en modo edición (solo lectura)
+        ttk.Label(self.view_only_container, text="Usuarios de la dieta:", 
+                font=('Arial', 10, 'bold')).grid(row=0, column=0, sticky=tk.W, pady=(0, 8))
+        
+        columns = ("nombre", "ci")
+        self.users_treeview = ttk.Treeview(
+            self.view_only_container, 
+            columns=columns, 
+            show="headings", 
+            height=6,
+            selectmode="none"  # Deshabilitar selección
+        )
+        
+        self.users_treeview.heading("nombre", text="Nombre Completo")
+        self.users_treeview.heading("ci", text="Cédula")
+        self.users_treeview.column("nombre", width=300)
+        self.users_treeview.column("ci", width=150)
+        
+        self.users_treeview.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # Scrollbar para el treeview
+        tree_scrollbar = ttk.Scrollbar(
+            self.view_only_container, 
+            orient=tk.VERTICAL, 
+            command=self.users_treeview.yview
+        )
+        tree_scrollbar.grid(row=1, column=1, sticky=(tk.N, tk.S))
+        self.users_treeview.configure(yscrollcommand=tree_scrollbar.set)
+
+        # Contenedor para los dos modos de selección (SOLO PARA CREACIÓN)
         self.selection_container = ttk.Frame(self.users_frame)
         self.selection_container.grid(row=0, column=0, sticky=(tk.W, tk.E))
         self.selection_container.columnconfigure(0, weight=1)
@@ -158,7 +197,15 @@ class DietForm(ttk.Frame):
         # Modo Grupal
         self.group_frame = self._create_group_selection()
         self.group_frame.grid(row=0, column=0, sticky=(tk.W, tk.E))
-
+        
+        # MOSTRAR U OCULTAR SEGÚN MODO
+        if self.is_edit_mode:
+            self.selection_container.grid_remove()  # Ocultar selectores
+            self.view_only_container.grid()         # Mostrar vista de solo lectura
+        else:
+            self.view_only_container.grid_remove()  # Ocultar vista de solo lectura
+            self.selection_container.grid() 
+            
     def _create_individual_selection(self):
         """Crea la interfaz para selección individual"""
         frame = ttk.Frame(self.selection_container)
@@ -523,65 +570,83 @@ class DietForm(ttk.Frame):
             if card:
                 self.selected_card_var.set(f"{card.card_number} - {card.card_pin}")
 
-        
         # Cargar usuarios 
-        self.diet.user_ids = self.diet_member_service.list_diet_members(self.diet.id)
-        if self.diet.user_ids:
-            if self.diet.is_group:
-                # Modo grupal
-                for user_id in self.diet.user_ids:
-                    user = next((u for u in self.users if u.id == user_id), None)
-                    if user:
-                        user_text = f"{user.fullname} ({user.ci})"
-                        # Mover de disponibles a seleccionados
-                        available_items = list(self.available_listbox.get(0, tk.END))
-                        if user_text in available_items:
-                            index = available_items.index(user_text)
-                            self.available_listbox.delete(index)
-                            self.selected_listbox.insert(tk.END, user_text)
-            else:
-                # Modo individual - CORREGIDO
-                user = next((u for u in self.users if u.id == self.diet.user_ids[0]), None)
+        diet_members = self.diet_member_service.list_diet_members(self.diet.id)
+        user_ids = [member.request_user_id for member in diet_members] if diet_members else []
+        
+        if self.is_edit_mode:
+            # MODO EDICIÓN: Cargar en el Treeview de solo lectura
+            for user_id in user_ids:
+                user = next((u for u in self.users if u.id == user_id), None)
                 if user:
-                    user_display = f"{user.fullname} ({user.ci})"
-                    current_values = list(self.user_combo['values'])
-                    if user_display in current_values:
-                        self.user_combo.set(user_display)
-                    else:
-                        # Si no está en los valores actuales, lo agregamos
-                        new_values = list(current_values) + [user_display]
-                        self.user_combo['values'] = new_values
-                        self.user_combo.set(user_display)
+                    self.users_treeview.insert("", "end", values=(user.fullname, user.ci))
+            
+            # Actualizar título según cantidad de usuarios
+            user_count = len(user_ids)
+            title_suffix = "Usuario" if user_count == 1 else "Usuarios"
+            self.users_frame.configure(text=f"👥 {user_count} {title_suffix} de la Dieta")
+            
+        else:
+            # MODO CREACIÓN: Cargar en los controles de selección normales
+            if user_ids:
+                if self.diet.is_group:
+                    # Modo grupal
+                    for user_id in user_ids:
+                        user = next((u for u in self.users if u.id == user_id), None)
+                        if user:
+                            user_text = f"{user.fullname} ({user.ci})"
+                            # Mover de disponibles a seleccionados
+                            available_items = list(self.available_listbox.get(0, tk.END))
+                            if user_text in available_items:
+                                index = available_items.index(user_text)
+                                self.available_listbox.delete(index)
+                                self.selected_listbox.insert(tk.END, user_text)
+                else:
+                    # Modo individual
+                    user = next((u for u in self.users if u.id == user_ids[0]), None)
+                    if user:
+                        user_display = f"{user.fullname} ({user.ci})"
+                        current_values = list(self.user_combo['values'])
+                        if user_display in current_values:
+                            self.user_combo.set(user_display)
+                        else:
+                            new_values = list(current_values) + [user_display]
+                            self.user_combo['values'] = new_values
+                            self.user_combo.set(user_display)
 
-        # Actualizar la vista según el tipo de dieta
-        self._on_diet_type_change()
+        # Actualizar la vista según el tipo de dieta (solo en modo creación)
+        if not self.is_edit_mode:
+            self._on_diet_type_change()
 
     def get_form_data(self):
         """
         Obtiene todos los datos del formulario en un diccionario
-        
-        Returns:
-            Dict con todos los datos del formulario
         """
         selected_user_ids = []
         
-        if self.diet_type_var.get() == "INDIVIDUAL":
-            # Modo individual
-            selected_user = self.user_combo.get()
-            if selected_user:
-                user = next((u for u in self.users if f"{u.fullname} ({u.ci})" == selected_user), None)
-                if user:
-                    selected_user_ids = [user.id]
+        if self.is_edit_mode:
+            # EN MODO EDICIÓN: Usar los usuarios existentes de la dieta
+            diet_members = self.diet_member_service.list_diet_members(self.diet.id)
+            selected_user_ids = [member.request_user_id for member in diet_members] if diet_members else []
         else:
-            # Modo grupal
-            selected_count = self.selected_listbox.size()
-            for i in range(selected_count):
-                user_text = self.selected_listbox.get(i)
-                user = next((u for u in self.users if f"{u.fullname} ({u.ci})" == user_text), None)
-                if user:
-                    selected_user_ids.append(user.id)
+            # EN MODO CREACIÓN: Usar la selección normal
+            if self.diet_type_var.get() == "INDIVIDUAL":
+                # Modo individual
+                selected_user = self.user_combo.get()
+                if selected_user:
+                    user = next((u for u in self.users if f"{u.fullname} ({u.ci})" == selected_user), None)
+                    if user:
+                        selected_user_ids = [user.id]
+            else:
+                # Modo grupal
+                selected_count = self.selected_listbox.size()
+                for i in range(selected_count):
+                    user_text = self.selected_listbox.get(i)
+                    user = next((u for u in self.users if f"{u.fullname} ({u.ci})" == user_text), None)
+                    if user:
+                        selected_user_ids.append(user.id)
         
-        # Determinar tarjeta seleccionada
+        # El resto del código se mantiene igual...
         selected_card = self.selected_card_var.get()
         card_id = None
         if selected_card and self.payment_method_var.get() == "CARD":
@@ -602,7 +667,7 @@ class DietForm(ttk.Frame):
             "accommodation_card_id": card_id,
             "user_ids": selected_user_ids
         }
-
+    
     def validate_form(self):
         """
         Valida todos los campos del formulario
