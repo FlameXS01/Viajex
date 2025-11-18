@@ -39,7 +39,7 @@ class DietRepository(ABC):
         pass
     
     @abstractmethod
-    def list_by_status(self, status: DietStatus) -> List[Diet]:
+    def list_by_status(self, status: str) -> List[Diet]:
         """
         
         Lista dietas por estado

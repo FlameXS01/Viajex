@@ -73,12 +73,12 @@ class DietModule(ttk.Frame):
         """Actualiza las listas de dietas y liquidaciones"""
         try:
             # Obtener anticipos
-            diets = self.diet_service.list_diets(status=DietStatus.REQUESTED)                         
-            self.advances_list.update_data(diets)
+            diets = self.diet_service.list_diets(status=DietStatus.REQUESTED)                          # type: ignore
+            self.advances_list.update_data(diets, type=1)
             
             # Obtener liquidaciones
-            liquidations = self.diet_service.list_diets(status=DietStatus.LIQUIDATED) 
-            self.liquidations_list.update_data(liquidations)
+            liquidations = self.diet_service.list_all_liquidations()                  
+            self.liquidations_list.update_data(liquidations,  type=2)
 
             self.actions_widget.refresh_counters()
             
@@ -160,7 +160,7 @@ class DietModule(ttk.Frame):
         dialog = DietMemberDialog(self, self.diet_service, self.request_user_service, self.current_diet)
         if dialog.result:
             self.refresh_diets()
-
+    
     def get_counters_info(self):
         """Obtiene información de contadores para el widget de acciones"""
         try:

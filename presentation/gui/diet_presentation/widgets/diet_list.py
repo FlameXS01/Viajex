@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 from typing import List, Optional, Callable
 from application.dtos.diet_dtos import DietResponseDTO, DietLiquidationResponseDTO
 from application.services import user_service
@@ -19,7 +20,7 @@ class DietList(ttk.Frame):
         self.diet_service = diet_service
         self.sort_column = None
         self.sort_reverse = False
-        self.current_data = []  # Inicializar current_data
+        self.current_data = []  
         self.create_widgets()
     
     def calculate_total(self, diet: DietResponseDTO) -> float:
@@ -125,49 +126,49 @@ class DietList(ttk.Frame):
             return "👥 Grupal" if diet.is_group else "👤 Individual"
         return "Individual"
     
-    def update_data(self, data: list):
-        """Actualiza los datos en la lista - CORREGIDO"""
+    def update_data(self, data: list, type):
+        """Actualiza los datos en la lista"""
         
         # Limpiar lista actual
         for item in self.tree.get_children():
             self.tree.delete(item)
         
-        self.current_data = data or []  # Asegurar que no sea None
-
-        # Verificar si data es None o vacía
+        self.current_data = data or []  
         if not data:
             return
         
-        # Agregar nuevos datos CON LA NUEVA COLUMNA DE TIPO
-        for i, item in enumerate(data):
-            
-            if self.list_type == "advances":
-                if hasattr(item, 'advance_number'):  # Verificar si es DietResponseDTO
-                    user = self.request_user_service.get_user_by_id(item.request_user_id)                    
-                    # Calcular el total usando nuestra función
-                    total_amount = self.calculate_total(item)
+        if type == 1:
+            for i, item in enumerate(data):
+                
+                if self.list_type == "advances":
+                    if hasattr(item, 'advance_number'):  
+                        user = self.request_user_service.get_user_by_id(item.request_user_id)                    
+                        total_amount = self.calculate_total(item)
+                        self.tree.insert("", "end", values=(
+                            item.advance_number,
+                            self._get_diet_type(item),  
+                            item.description,
+                            f"{user.fullname}" if user and hasattr(user, 'fullname') else "N/A",  
+                            item.start_date.strftime("%d/%m/%Y") if item.start_date else "N/A",
+                            item.end_date.strftime("%d/%m/%Y") if item.end_date else "N/A",
+                            f"${total_amount:.2f}" if total_amount is not None else "$0.00"
+                        ))
+        elif type == 2:  
+            for item in data:
+                if hasattr(item, 'liquidation_number'):
                     
-                    # Insertar en treeview CON LA COLUMNA DE TIPO
-                    self.tree.insert("", "end", values=(
-                        item.advance_number,
-                        self._get_diet_type(item),  # NUEVA COLUMNA: Tipo Grupal/Individual
-                        item.description,
-                        f"{user.fullname}" if user and hasattr(user, 'fullname') else "N/A",  
-                        item.start_date.strftime("%d/%m/%Y") if item.start_date else "N/A",
-                        item.end_date.strftime("%d/%m/%Y") if item.end_date else "N/A",
-                        f"${total_amount:.2f}" if total_amount is not None else "$0.00"
-                    ))
-                else:
-                    print(f"Item no válido para advances: {type(item)}")
-
-            elif self.list_type == "liquidations":
-                if hasattr(item, 'liquidation_number'):  # Verificar si es DietLiquidationResponseDTO
+                    diet = self.diet_service.get_diet(item.diet_id) if self.diet_service else None
+                    user = self.request_user_service.get_user_by_id(diet.request_user_id) if diet else None
+                    
                     self.tree.insert("", "end", values=(
                         item.liquidation_number,
                         item.diet_id,
-                        item.liquidation_date.strftime("%d/%m/%Y %H:%M") if item.liquidation_date else "N/A",
-                        f"${item.liquidated_amount:.2f}" if item.liquidated_amount else "$0.00"
+                        item.liquidation_date.strftime("%d/%m/%Y") if item.liquidation_date else "N/A",
+                        f"${item.liquidated_amount:.2f}" if item.liquidated_amount is not None else "$0.00"
                     ))
+                    
+
+
     
     def bind_selection(self, callback: Callable):
         """Establece el callback para cuando se selecciona un item"""

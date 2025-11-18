@@ -61,18 +61,16 @@ class DietActions(ttk.Frame):
         """
         
         if selected_diet is None:
-            # No hay dieta seleccionada
             self.edit_btn.config(state=tk.DISABLED)
             self.delete_btn.config(state=tk.DISABLED)
             self.liquidate_btn.config(state=tk.DISABLED)
             self.members_btn.config(state=tk.DISABLED)
         else:
-            # Hay dieta seleccionada - CORREGIDO: Usar valores del enum en mayúsculas
             self.edit_btn.config(state=tk.NORMAL)
             self.delete_btn.config(state=tk.NORMAL)
             
             # Solo se puede liquidar si está en estado REQUESTED
-            if selected_diet.status == "REQUESTED":  # CORREGIDO: Mayúsculas
+            if selected_diet.status == "requested": 
                 self.liquidate_btn.config(state=tk.NORMAL)
             else:
                 self.liquidate_btn.config(state=tk.DISABLED)

@@ -16,5 +16,5 @@ class PaymentMethod(Enum):
     Enum que define los métodos de pago para alojamiento
     
     """
-    CASH = "cash"
-    CARD = "card"
+    CASH = "CASH"
+    CARD = "CARD"

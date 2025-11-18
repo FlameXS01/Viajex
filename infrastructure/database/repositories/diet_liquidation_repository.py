@@ -24,7 +24,7 @@ class DietLiquidationRepositoryImpl(DietLiquidationRepository):
             lunch_count_liquidated=diet_liquidation.lunch_count_liquidated,
             dinner_count_liquidated=diet_liquidation.dinner_count_liquidated,
             accommodation_count_liquidated=diet_liquidation.accommodation_count_liquidated,
-            accommodation_payment_method=diet_liquidation.accommodation_payment_method.value,
+            accommodation_payment_method=diet_liquidation.accommodation_payment_method,
             diet_service_id=diet_liquidation.diet_service_id,
             accommodation_card_id=diet_liquidation.accommodation_card_id
         )
@@ -65,7 +65,7 @@ class DietLiquidationRepositoryImpl(DietLiquidationRepository):
             model.lunch_count_liquidated = diet_liquidation.lunch_count_liquidated
             model.dinner_count_liquidated = diet_liquidation.dinner_count_liquidated
             model.accommodation_count_liquidated = diet_liquidation.accommodation_count_liquidated
-            model.accommodation_payment_method = diet_liquidation.accommodation_payment_method.value
+            model.accommodation_payment_method = diet_liquidation.accommodation_payment_method
             model.diet_service_id = diet_liquidation.diet_service_id
             model.accommodation_card_id = diet_liquidation.accommodation_card_id
             self.session.commit()
@@ -105,7 +105,7 @@ class DietLiquidationRepositoryImpl(DietLiquidationRepository):
             lunch_count_liquidated=model.lunch_count_liquidated,
             dinner_count_liquidated=model.dinner_count_liquidated,
             accommodation_count_liquidated=model.accommodation_count_liquidated,
-            accommodation_payment_method=PaymentMethod(model.accommodation_payment_method),
+            accommodation_payment_method=model.accommodation_payment_method.value,
             diet_service_id=model.diet_service_id,
             accommodation_card_id=model.accommodation_card_id
         )

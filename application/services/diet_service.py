@@ -148,7 +148,7 @@ class DietAppService:
         diet = use_case.execute(diet_id)
         return self._to_diet_response_dto(diet) if diet else None
     
-    def list_diets(self, status: DietStatus = None, request_user_id: Optional[int] = None) -> List[DietResponseDTO]:
+    def list_diets(self, status: str = None, request_user_id: Optional[int] = None) -> List[DietResponseDTO]:
         """Lista dietas con filtros opcionales"""
         use_case = ListDietsUseCase(self.diet_repository)
         try:
@@ -266,6 +266,21 @@ class DietAppService:
         """Reinicia los números de liquidación"""
         use_case = ResetLiquidationNumbersUseCase(self.diet_liquidation_repository)
         return use_case.execute()
+
+    def list_all_liquidations(self) -> List[DietLiquidationResponseDTO]:
+        """Lista todas las liquidaciones"""
+        use_case = ListDietsByStatusUseCase(self.diet_repository)
+        diet_status = DietStatus(DietStatus.LIQUIDATED)
+        diets = use_case.execute(diet_status)
+        return [self._to_diet_response_dto(diet) for diet in diets]
+    
+
+
+## hay q hacer la singa use case que devuelva una liquidacion aqui 
+
+
+
+
 
     # ===== MIEMBROS DE DIETA GRUPAL =====
     
@@ -426,7 +441,7 @@ class DietAppService:
             lunch_count_liquidated=liquidation.lunch_count_liquidated,
             dinner_count_liquidated=liquidation.dinner_count_liquidated,
             accommodation_count_liquidated=liquidation.accommodation_count_liquidated,
-            accommodation_payment_method=liquidation.accommodation_payment_method.value,
+            accommodation_payment_method=liquidation.accommodation_payment_method,
             diet_service_id=liquidation.diet_service_id,
             accommodation_card_id=liquidation.accommodation_card_id,
             liquidated_amount=liquidated_amount

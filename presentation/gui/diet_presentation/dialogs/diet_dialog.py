@@ -32,8 +32,6 @@ class DietDialog(tk.Toplevel):
         
         # Asegurar que todos los elementos se muestren correctamente
         self.update_idletasks()
-    
-
         
     def create_widgets(self):
         # Frame principal con scrollbar
@@ -92,7 +90,6 @@ class DietDialog(tk.Toplevel):
         
         self.setup_calculation_events()
     
-    # Los demás métodos permanecen igual...
     def setup_calculation_events(self):
         for var in self.form.service_vars.values():
             var.trace_add("write", self.calculate_total)

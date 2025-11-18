@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from core.entities.diet import DietStatus
 from core.entities.diet_liquidation import DietLiquidation
 from core.repositories.diet_repository import DietRepository
@@ -25,13 +25,14 @@ class CreateDietLiquidationUseCase:
             raise ValueError("La dieta no existe")
         
         # Validar que no esté ya liquidada
-        if diet.status != DietStatus.REQUESTED:
+        if diet.status != 'requested':
+            print(diet.status)
             raise ValueError("La dieta ya ha sido liquidada")
         
         # Validar regla de 72 horas (3 días)
         liquidation_date = liquidation_data['liquidation_date']
         max_liquidation_date = diet.end_date + timedelta(days=3)
-        if liquidation_date > max_liquidation_date:
+        if liquidation_date.date() > max_liquidation_date:
             raise ValueError("No se puede liquidar después de 72 horas de la fecha fin")
         
         # Validar que las cantidades liquidadas no excedan las solicitadas
@@ -54,7 +55,7 @@ class CreateDietLiquidationUseCase:
             lunch_count_liquidated=liquidation_data['lunch_count_liquidated'],
             dinner_count_liquidated=liquidation_data['dinner_count_liquidated'],
             accommodation_count_liquidated=liquidation_data['accommodation_count_liquidated'],
-            accommodation_payment_method=liquidation_data['accommodation_payment_method'],
+            accommodation_payment_method=liquidation_data['accommodation_payment_method'].upper(),
             diet_service_id=diet.diet_service_id,
             accommodation_card_id=liquidation_data.get('accommodation_card_id')
         )
@@ -63,7 +64,7 @@ class CreateDietLiquidationUseCase:
         liquidation = self.diet_liquidation_repository.create(diet_liquidation)
         
         # Actualizar estado de la dieta
-        diet.status = DietStatus.LIQUIDATED
+        diet.status = DietStatus.LIQUIDATED.value # type: ignore
         self.diet_repository.update(diet)
         
         return liquidation
