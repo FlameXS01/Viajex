@@ -82,6 +82,15 @@ class DietRepository(ABC):
         
         """
         pass
+
+    @abstractmethod
+    def update_status(self,id: int, status: str) -> Optional[Diet]:
+        """
+        
+        Actualiza una dieta existente con otro status
+        
+        """
+        pass
     
     @abstractmethod
     def delete(self, diet_id: int) -> bool:

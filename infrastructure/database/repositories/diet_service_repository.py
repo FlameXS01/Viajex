@@ -32,9 +32,9 @@ class DietServiceRepositoryImpl(DietServiceRepository):
         model = self.session.query(DietServiceModel).filter(DietServiceModel.id == diet_service_id).first()
         return self._to_entity(model) if model else None
     
-    def get_by_local(self, is_local: bool) -> DietService:
+    def get_by_local(self, is_local: bool) -> Optional[DietService]:
         model = self.session.query(DietServiceModel).filter(DietServiceModel.is_local == is_local).first()
-        return self._to_entity(model) if model else self.session.query(DietServiceModel).filter(DietServiceModel.is_local).all()[1]
+        return self._to_entity(model) if model else None
     
     def list_all(self) -> List[DietService]:
         models = self.session.query(DietServiceModel).all()

@@ -90,6 +90,14 @@ class DietRepositoryImpl(DietRepository):
             self.session.refresh(model)
         return self._to_entity(model)
     
+    def update_status(self, id: int, status: DietStatus) -> Optional[Diet]:
+        model = self.session.query(DietModel).filter(DietModel.id == diet.id).first()
+        if model:  
+            model.status = status
+            self.session.commit()
+            self.session.refresh(model)
+        return self._to_entity(model) if model else None
+    
     def delete(self, diet_id: int) -> bool:
         model = self.session.query(DietModel).filter(DietModel.id == diet_id).first()
         if model:
@@ -103,15 +111,7 @@ class DietRepositoryImpl(DietRepository):
         return result if result else 0
     
     def reset_advance_numbers(self) -> bool:
-        try:
-            # En SQLite necesitamos una estrategia diferente para reiniciar
-            # Podemos usar una tabla temporal o simplemente resetear manualmente
-            self.session.execute("DELETE FROM sqlite_sequence WHERE name='diets'")
-            self.session.commit()
-            return True
-        except Exception:
-            self.session.rollback()
-            return False
+        pass
     
     def _to_entity(self, model: DietModel) -> Diet:        
         return Diet(

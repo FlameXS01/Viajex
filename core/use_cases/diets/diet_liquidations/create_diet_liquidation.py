@@ -64,7 +64,10 @@ class CreateDietLiquidationUseCase:
         liquidation = self.diet_liquidation_repository.create(diet_liquidation)
         
         # Actualizar estado de la dieta
-        diet.status = DietStatus.LIQUIDATED.value # type: ignore
-        self.diet_repository.update(diet)
+        # diet.status = DietStatus.LIQUIDATED.value # type: ignore
+        # self.diet_repository.update(diet)
+
+        # Actualizar solo el Status solamente ya que se necesita tener control de lo q se liquido y de lo q se solicito
+        self.diet_repository.update_status(diet.id,  DietStatus.LIQUIDATED.value)  # type: ignore
         
         return liquidation

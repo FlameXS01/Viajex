@@ -243,10 +243,10 @@ def initializate_diet_service (diet_service: DietAppService):
             if not succes:
                 print('error creando servicio de dieta local')
 
-        service = diet_service.get_diet_service_by_local(False)
+        service = diet_service.get_diet_service_by_local(is_local = False)
         if not service:
             diet_service_foreign = DietServiceCreateDTO(
-                is_local = True,
+                is_local = False,
                 breakfast_price = 300,
                 lunch_price = 300,
                 dinner_price = 300,
@@ -260,6 +260,8 @@ def initializate_diet_service (diet_service: DietAppService):
         print('Servicios de dietas inicializados')
     except Exception as e:
         print(f"Error creando servcios de dietas: {e}")
+        import traceback
+        traceback.print_exc()
 
     
 
