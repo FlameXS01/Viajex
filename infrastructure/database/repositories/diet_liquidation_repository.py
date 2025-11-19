@@ -56,6 +56,7 @@ class DietLiquidationRepositoryImpl(DietLiquidationRepository):
         models = self.session.query(DietLiquidationModel).all()
         return [self._to_entity(model) for model in models]
     
+    
     def update(self, diet_liquidation: DietLiquidation) -> DietLiquidation:
         model = self.session.query(DietLiquidationModel).filter(DietLiquidationModel.id == diet_liquidation.id).first()
         if model:

@@ -67,7 +67,7 @@ class DietModule(ttk.Frame):
         # Lista de liquidaciones
         self.liquidations_list = DietList(self.liquidations_frame, "liquidations", self.request_user_service, self.diet_service)
         self.liquidations_list.pack(fill=tk.BOTH, expand=True)
-        #self.liquidations_list.bind_selection(self.on_liquidation_selected)
+        self.liquidations_list.bind_selection(self.on_liquidation_selected)
     
     def refresh_diets(self):
         """Actualiza las listas de dietas y liquidaciones"""

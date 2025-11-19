@@ -91,7 +91,7 @@ class DietRepositoryImpl(DietRepository):
         return self._to_entity(model)
     
     def update_status(self, id: int, status: DietStatus) -> Optional[Diet]:
-        model = self.session.query(DietModel).filter(DietModel.id == diet.id).first()
+        model = self.session.query(DietModel).filter(DietModel.id == id).first()
         if model:  
             model.status = status
             self.session.commit()

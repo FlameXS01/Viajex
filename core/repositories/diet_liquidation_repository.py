@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 from datetime import date
 from core.entities.diet_liquidation import DietLiquidation
+from core.entities.enums import DietStatus
 
 class DietLiquidationRepository(ABC):
     """
@@ -64,6 +65,8 @@ class DietLiquidationRepository(ABC):
         
         """
         pass
+
+
     
     @abstractmethod
     def update(self, diet_liquidation: DietLiquidation) -> DietLiquidation:

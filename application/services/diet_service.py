@@ -13,6 +13,7 @@ from core.repositories.diet_liquidation_repository import DietLiquidationReposit
 from core.repositories.diet_member_repository import DietMemberRepository
 from core.repositories.request_user_repository import RequestUserRepository
 
+from core.use_cases.diets.diet_liquidations.list_all_liquidations import ListAllLiquidationsUseCase
 from core.use_cases.diets.diet_services.get_diet_service_by_local import GetDietServiceByLocalUseCase
 from core.use_cases.diets.diet_services.list_all_diet_services import ListAllDietServicesUseCase
 from core.use_cases.diets.diets.create_diet import CreateDietUseCase
@@ -269,10 +270,9 @@ class DietAppService:
 
     def list_all_liquidations(self) -> List[DietLiquidationResponseDTO]:
         """Lista todas las liquidaciones"""
-        use_case = ListDietsByStatusUseCase(self.diet_repository)
-        diet_status = DietStatus(DietStatus.LIQUIDATED)
-        diets = use_case.execute(diet_status)
-        return [self._to_diet_response_dto(diet) for diet in diets]
+        use_case = ListAllLiquidationsUseCase(self.diet_liquidation_repository)
+        diets = use_case.execute()
+        return [self._to_diet_liquidation_response_dto(diet) for diet in diets]
     
 
 

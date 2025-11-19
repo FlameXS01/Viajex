@@ -61,17 +61,19 @@ class DietList(ttk.Frame):
         main_frame = ttk.Frame(self)
         main_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Treeview con COLUMNA DE TIPO GRUPAL/INDIVIDUAL
+        
         if self.list_type == "advances":
             columns = ["advance_number", "type", "description", "solicitante", 
                       "fecha_inicio", "fecha_fin", "monto"]
             column_names = ["N° Anticipo", "Tipo", "Descripción", "Solicitante", 
                           "Fecha Inicio", "Fecha Fin", "Monto"]
         else:
-            columns = ["liquidation_number", "diet_id", "fecha_liquidacion", 
-                      "monto_liquidado"]
-            column_names = ["N° Liquidación", "ID Dieta", "Fecha Liquidación", 
-                          "Monto Liquidado"]
+            columns = ["liquidation_number", "advance_number", "solicitante", 
+                    "fecha_liquidacion", "desayunos", "almuerzos", "cenas", 
+                    "alojamientos", "monto_liquidado"]
+            column_names = ["N° Liquidación", "N° Anticipo", "Solicitante", 
+                      "Fecha Liquidación", "Desayunos", "Almuerzos", "Cenas", 
+                      "Alojamientos", "Monto Liquidado"]
         
         self.tree = ttk.Treeview(main_frame, columns=columns, show="headings", height=15)
         
@@ -80,7 +82,9 @@ class DietList(ttk.Frame):
             self.tree.heading(col, text=name)
             if col == "monto" or col == "monto_liquidado":
                 self.tree.column(col, width=100, anchor="e")  
-            elif col == "type":  # Columna para tipo grupal/individual
+            elif col == "type":  
+                self.tree.column(col, width=80, anchor="center")
+            elif col in ["desayunos", "almuerzos", "cenas", "alojamientos"]:
                 self.tree.column(col, width=80, anchor="center")
             else:
                 self.tree.column(col, width=100)
@@ -153,20 +157,31 @@ class DietList(ttk.Frame):
                             item.end_date.strftime("%d/%m/%Y") if item.end_date else "N/A",
                             f"${total_amount:.2f}" if total_amount is not None else "$0.00"
                         ))
-        elif type == 2:  
+        elif type == 2:  # Liquidaciones - VERSIÓN MEJORADA
             for item in data:
                 if hasattr(item, 'liquidation_number'):
                     
+                    # Obtener información completa
                     diet = self.diet_service.get_diet(item.diet_id) if self.diet_service else None
                     user = self.request_user_service.get_user_by_id(diet.request_user_id) if diet else None
                     
-                    self.tree.insert("", "end", values=(
-                        item.liquidation_number,
-                        item.diet_id,
-                        item.liquidation_date.strftime("%d/%m/%Y") if item.liquidation_date else "N/A",
-                        f"${item.liquidated_amount:.2f}" if item.liquidated_amount is not None else "$0.00"
-                    ))
+                    # Formatear datos para mostrar
+                    solicitante = f"{user.fullname}" if user and hasattr(user, 'fullname') else "N/A"
+                    fecha_liquidacion = item.liquidation_date.strftime("%d/%m/%Y") if item.liquidation_date else "N/A"
+                    monto = f"${item.liquidated_amount:.2f}" if item.liquidated_amount is not None else "$0.00"
+                    advance_number = diet.advance_number if diet else "N/A"
                     
+                    self.tree.insert("", "end", values=(
+                        item.liquidation_number,      
+                        advance_number,               
+                        solicitante,                 
+                        fecha_liquidacion,            
+                        item.breakfast_count_liquidated,  
+                        item.lunch_count_liquidated,      
+                        item.dinner_count_liquidated,     
+                        item.accommodation_count_liquidated, 
+                        monto                         
+                    ))
 
 
     
