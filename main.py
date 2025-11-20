@@ -1,5 +1,6 @@
 import tkinter as tk
 import pandas as pd
+from application.dtos.cards_dtos import CreateCardRequest
 from application.dtos.diet_dtos import DietServiceCreateDTO
 from application.dtos.request_user_dtos import RequestUserCreateDTO
 from application.services.card_service import CardService
@@ -263,6 +264,44 @@ def initializate_diet_service (diet_service: DietAppService):
         import traceback
         traceback.print_exc()
 
+def initializate_card(card_service: CardService):
+    """
+    
+    Crea las tarjetas por defecto si no existen
+    
+    """
+    try:
+        df = pd.read_excel("Files/TARJETAS DE HOSPEDAJExlsx.xls", skiprows=0)
+        dirty_data = df['Listado de tarjetas de Hospedaje ']
+        
+        for index, number in dirty_data.items():
+            number = str(number).strip()
+            
+            if not number or number == 'nan' or number == 'None':
+                continue
+            #print(number)
+            card = card_service.get_card_by_card_number(number)
+            if not card:
+                card_number = number
+                card_pin = '0000'
+                amount = 0.00
+                
+                success = card_service.create_card(card_number, card_pin, amount)
+                if not success:
+                    print(f'Error creando tarjeta con número: {number}')
+           
+
+        print('Tarjetas de hospedajes inicializadas correctamente')
+        
+    except FileNotFoundError:
+        print("Error: Archivo no encontrado. Verifica la ruta y nombre del archivo.")
+    except KeyError as e:
+        print(f"Error: Columna no encontrada en el archivo: {e}")
+    except Exception as e:
+        print(f"Error creando tarjetas: {e}")
+        import traceback
+        traceback.print_exc()
+
     
 
 def main():
@@ -410,6 +449,9 @@ def main():
 
         # Crear servicios de dietas
         initializate_diet_service(diet_service)
+
+        # Crear tarjetas 
+        initializate_card(card_service)
 
         # Inicializar casos de uso de autenticación
         login_use_case = LoginUseCase(user_repository, password_hasher)

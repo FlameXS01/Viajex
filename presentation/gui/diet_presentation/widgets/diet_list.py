@@ -201,3 +201,25 @@ class DietList(ttk.Frame):
     def clear_selection(self):
         """Limpia la selección actual"""
         self.tree.selection_remove(self.tree.selection())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        #  hacer una lista de todas las dietas, agregar opciones de detalles a las liquidaciones, 
+        # hacer filtros para buscar en liquidaciones y en dietas luego a reportes... 
