@@ -206,84 +206,74 @@ class DietDialog(tk.Toplevel):
                 messagebox.showerror("Error", "No se encontró servicio de dieta para la localidad seleccionada")
                 return
             
-            # Usar el primer usuario como request_user_id
-            request_user_id = user_ids[0]
-            
-            create_dto = DietCreateDTO(
-                is_local=form_data["is_local"],
-                start_date=datetime.strptime(form_data["start_date"], "%d/%m/%Y").date(),
-                end_date=datetime.strptime(form_data["end_date"], "%d/%m/%Y").date(),
-                description=form_data["description"],
-                is_group=form_data["is_group"],
-                request_user_id=request_user_id,
-                diet_service_id=diet_service_obj.id,
-                breakfast_count=form_data["breakfast_count"],
-                lunch_count=form_data["lunch_count"],
-                dinner_count=form_data["dinner_count"],
-                accommodation_count=form_data["accommodation_count"],
-                accommodation_payment_method=form_data["accommodation_payment_method"],
-                accommodation_card_id=form_data["accommodation_card_id"]
-            )
-            
-            # CREAR LA DIETA PRIMERO
-            diet_id = self.diet_service.create_diet(create_dto).id
-            
-            if diet_id:
-                if form_data["is_group"]:
-                    for user_id in user_ids:
-                        member_dto = DietMemberCreateDTO(
-                            diet_id=diet_id,
-                            request_user_id=user_id
-                        )
-                        self.diet_service.add_diet_member(member_dto)
+            # Para cada usuario, crear una dieta individual
+            diet_ids = []
+            for user_id in user_ids:
+                create_dto = DietCreateDTO(
+                    is_local=form_data["is_local"],
+                    start_date=datetime.strptime(form_data["start_date"], "%d/%m/%Y").date(),
+                    end_date=datetime.strptime(form_data["end_date"], "%d/%m/%Y").date(),
+                    description=form_data["description"],
+                    is_group=False, 
+                    request_user_id=user_id,
+                    diet_service_id=diet_service_obj.id,
+                    breakfast_count=form_data["breakfast_count"],
+                    lunch_count=form_data["lunch_count"],
+                    dinner_count=form_data["dinner_count"],
+                    accommodation_count=form_data["accommodation_count"],
+                    accommodation_payment_method=form_data["accommodation_payment_method"],
+                    accommodation_card_id=form_data["accommodation_card_id"]
+                )
+                
+                diet = self.diet_service.create_diet(create_dto)
+                if diet:
+                    diet_ids.append(diet.id)
                 else:
-                    member_dto = DietMemberCreateDTO(
-                        diet_id=diet_id,
-                        request_user_id=request_user_id
-                    )
-                    self.diet_service.add_diet_member(member_dto)
-                
-                self.result = True
-                messagebox.showinfo("Éxito", "Dieta creada correctamente")
-                self.destroy()
-            else:
-                messagebox.showerror("Error", "No se pudo crear la dieta")
-                
+                    messagebox.showerror("Error", f"No se pudo crear la dieta para el usuario {user_id}")
+                    return
+            
+            # Si todo fue bien, mostramos éxito
+            self.result = True
+            messagebox.showinfo("Éxito", f"Se crearon {len(diet_ids)} dietas correctamente")
+            self.destroy()
+            
         except Exception as e:
-            messagebox.showerror("Error", f"Error al crear dieta: {str(e)}")
-
-    def on_save(self):
-        if not self.validate_form():
-            return
-        
-        try:
-            form_data = self.form.get_form_data()
-            
-            # Validar usuarios
-            user_ids = form_data.get("user_ids", [])
-            if not user_ids:
-                messagebox.showwarning("Validación", "Debe seleccionar al menos un usuario")
-                return
-            
-            update_dto = DietUpdateDTO(
-                start_date=datetime.strptime(form_data["start_date"], "%d/%m/%Y").date(),
-                end_date=datetime.strptime(form_data["end_date"], "%d/%m/%Y").date(),
-                description=form_data["description"],
-                breakfast_count=form_data["breakfast_count"],
-                lunch_count=form_data["lunch_count"],
-                dinner_count=form_data["dinner_count"],
-                accommodation_count=form_data["accommodation_count"],
-                accommodation_payment_method=form_data["accommodation_payment_method"],
-                accommodation_card_id=form_data["accommodation_card_id"]
-            )
-            
-            # ACTUALIZAR LA DIETA
-            result = self.diet_service.update_diet(self.diet.id, update_dto)    # type: ignore
-            if result:
-                messagebox.showinfo("Editado", f"Se editó la dieta satisfactoriamente")
-                self.destroy()
-                
-        except Exception as e:
-            messagebox.showerror("Error", f"Error al actualizar dieta: {str(e)}")
+            messagebox.showerror("Error", f"Error al crear dietas: {str(e)}")
             import traceback
             traceback.print_exc()
+
+        def on_save(self):
+            if not self.validate_form():
+                return
+            
+            try:
+                form_data = self.form.get_form_data()
+                
+                # Validar usuarios
+                user_ids = form_data.get("user_ids", [])
+                if not user_ids:
+                    messagebox.showwarning("Validación", "Debe seleccionar al menos un usuario")
+                    return
+                
+                update_dto = DietUpdateDTO(
+                    start_date=datetime.strptime(form_data["start_date"], "%d/%m/%Y").date(),
+                    end_date=datetime.strptime(form_data["end_date"], "%d/%m/%Y").date(),
+                    description=form_data["description"],
+                    breakfast_count=form_data["breakfast_count"],
+                    lunch_count=form_data["lunch_count"],
+                    dinner_count=form_data["dinner_count"],
+                    accommodation_count=form_data["accommodation_count"],
+                    accommodation_payment_method=form_data["accommodation_payment_method"],
+                    accommodation_card_id=form_data["accommodation_card_id"]
+                )
+                
+                # ACTUALIZAR LA DIETA
+                result = self.diet_service.update_diet(self.diet.id, update_dto)    # type: ignore
+                if result:
+                    messagebox.showinfo("Editado", f"Se editó la dieta satisfactoriamente")
+                    self.destroy()
+                    
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al actualizar dieta: {str(e)}")
+                import traceback
+                traceback.print_exc()

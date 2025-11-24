@@ -60,14 +60,4 @@ class CreateDietUseCase:
         )
         
         created_diet = self.diet_repository.create(diet)
-        
-        # Si es grupal y hay miembros adicionales, crearlos
-        if diet_data['is_group'] and 'additional_members' in diet_data:
-            for member_id in diet_data['additional_members']:
-                diet_member = DietMember(
-                    diet_id=created_diet.id,
-                    request_user_id=member_id
-                )
-                self.diet_member_repository.create(diet_member)
-        
         return created_diet
