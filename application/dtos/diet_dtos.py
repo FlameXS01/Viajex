@@ -85,6 +85,7 @@ class DietResponseDTO:
     accommodation_card_id: Optional[int]
     total_amount: Optional[Decimal] = None
 
+
 @dataclass
 class DietLiquidationCreateDTO:
     """DTO para crear una liquidación"""
@@ -123,21 +124,6 @@ class DietLiquidationResponseDTO:
     diet_service_id: int
     accommodation_card_id: Optional[int]
     liquidated_amount: Optional[Decimal] = None
-
-@dataclass
-class DietMemberCreateDTO:
-    """DTO para agregar miembro a dieta grupal"""
-    diet_id: int
-    request_user_id: int
-
-@dataclass
-class DietMemberResponseDTO:
-    """DTO para respuesta de miembro de dieta"""
-    id: int
-    diet_id: int
-    request_user_id: int
-    request_user_name: str
-    request_user_ci: str
 
 @dataclass
 class DietCalculationDTO:

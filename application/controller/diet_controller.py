@@ -14,8 +14,6 @@ from application.dtos.diet_dtos import (
     DietLiquidationCreateDTO,
     DietLiquidationUpdateDTO,
     DietLiquidationResponseDTO,
-    DietMemberCreateDTO,
-    DietMemberResponseDTO,
     DietCalculationDTO,
     DietWithLiquidationDTO,
     DietCounterDTO
@@ -207,31 +205,6 @@ class DietController:
         """
         return self.diet_service.reset_liquidation_numbers()
 
-    # ===== MIEMBROS DE DIETA GRUPAL =====
-    
-    def add_diet_member(self, create_dto: DietMemberCreateDTO) -> DietMemberResponseDTO:
-        """
-        
-        Agrega un miembro a una dieta grupal
-
-        """
-        return self.diet_service.add_diet_member(create_dto)
-    
-    def remove_diet_member(self, member_id: int) -> bool:
-        """
-
-        Elimina un miembro de una dieta grupal
-
-        """
-        return self.diet_service.remove_diet_member(member_id)
-    
-    def list_diet_members(self, diet_id: int) -> List[DietMemberResponseDTO]:
-        """
-
-        Lista miembros de una dieta grupal
-
-        """
-        return self.diet_service.list_diet_members(diet_id)
 
     # ===== OPERACIONES ESPECIALES =====
     

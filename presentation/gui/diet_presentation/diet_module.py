@@ -9,7 +9,7 @@ from .widgets.diet_list import DietList
 from .widgets.diet_actions import DietActions
 from .dialogs.diet_dialog import DietDialog
 from .dialogs.diet_liquidation_dialog import DietLiquidationDialog
-from .dialogs.diet_member_dialog import DietMemberDialog
+
 
 class DietModule(ttk.Frame):
     """
@@ -145,21 +145,12 @@ class DietModule(ttk.Frame):
             return
         
         dialog = DietLiquidationDialog(self, self.diet_service, self.current_diet)
+        self.wait_window(dialog)
         if dialog.result:
             self.refresh_diets()
             self.current_diet = None
             self.actions_widget.update_buttons_state(None)
             self.advances_list.clear_selection()
-    
-    def manage_members(self):
-        """Abre diálogo para gestionar miembros de dieta grupal"""
-        if not self.current_diet or not self.current_diet.is_group:
-            messagebox.showwarning("Advertencia", "Seleccione una dieta grupal")
-            return
-        
-        dialog = DietMemberDialog(self, self.diet_service, self.request_user_service, self.current_diet)
-        if dialog.result:
-            self.refresh_diets()
     
     def get_counters_info(self):
         """Obtiene información de contadores para el widget de acciones"""

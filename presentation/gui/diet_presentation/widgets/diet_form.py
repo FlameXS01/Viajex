@@ -571,8 +571,8 @@ class DietForm(ttk.Frame):
                 self.selected_card_var.set(f"{card.card_number} - {card.card_pin}")
 
         # Cargar usuarios 
-        diet_members = self.diet_member_service.list_diet_members(self.diet.id)
-        user_ids = [member.request_user_id for member in diet_members] if diet_members else []
+        # diet_members = self.diet_member_service.list_diet_members(self.diet.id)
+        user_ids = [self.diet.request_user_id]
         
         if self.is_edit_mode:
             # MODO EDICIÓN: Cargar en el Treeview de solo lectura
@@ -625,9 +625,8 @@ class DietForm(ttk.Frame):
         selected_user_ids = []
         
         if self.is_edit_mode:
-            # EN MODO EDICIÓN: Usar los usuarios existentes de la dieta
-            diet_members = self.diet_member_service.list_diet_members(self.diet.id)
-            selected_user_ids = [member.request_user_id for member in diet_members] if diet_members else []
+            # EN MODO EDICIÓN: Usar el request_user_id de la dieta (ahora siempre individual)
+            selected_user_ids = [self.diet.request_user_id]
         else:
             # EN MODO CREACIÓN: Usar la selección normal
             if self.diet_type_var.get() == "INDIVIDUAL":

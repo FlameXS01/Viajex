@@ -6,11 +6,9 @@ from tkinter import ttk, messagebox
 from core.entities.diet import Diet, DietStatus
 from core.entities.diet_service import DietService
 from core.entities.diet_liquidation import DietLiquidation
-from core.entities.diet_member import DietMember
 from core.repositories.diet_repository import DietRepository
 from core.repositories.diet_service_repository import DietServiceRepository
 from core.repositories.diet_liquidation_repository import DietLiquidationRepository
-from core.repositories.diet_member_repository import DietMemberRepository
 from core.repositories.request_user_repository import RequestUserRepository
 
 from core.use_cases.diets.diet_liquidations.list_all_liquidations import ListAllLiquidationsUseCase
@@ -32,9 +30,6 @@ from core.use_cases.diets.diet_liquidations.update_diet_liquidation import Updat
 from core.use_cases.diets.diet_liquidations.delete_diet_liquidation import DeleteDietLiquidationUseCase
 from core.use_cases.diets.diet_liquidations.get_last_liquidation_number import GetLastLiquidationNumberUseCase
 from core.use_cases.diets.diet_liquidations.reset_liquidation_numbers import ResetLiquidationNumbersUseCase
-from core.use_cases.diets.diet_members.add_diet_member import AddDietMemberUseCase
-from core.use_cases.diets.diet_members.remove_diet_member import RemoveDietMemberUseCase
-from core.use_cases.diets.diet_members.list_diet_members import ListDietMembersUseCase
 from core.use_cases.diets.calculate_diet_amount import CalculateDietAmountUseCase
 from core.use_cases.diets.list_diets import ListDietsUseCase
 from core.use_cases.diets.reset_counters import ResetCountersUseCase
@@ -49,8 +44,6 @@ from application.dtos.diet_dtos import (
     DietLiquidationCreateDTO,
     DietLiquidationUpdateDTO,
     DietLiquidationResponseDTO,
-    DietMemberCreateDTO,
-    DietMemberResponseDTO,
     DietCalculationDTO,
     DietWithLiquidationDTO,
     DietCounterDTO
@@ -62,12 +55,10 @@ class DietAppService:
                  diet_repository: DietRepository,
                  diet_service_repository: DietServiceRepository,
                  diet_liquidation_repository: DietLiquidationRepository,
-                 diet_member_repository: DietMemberRepository,
                  request_user_repository: RequestUserRepository):
         self.diet_repository = diet_repository
         self.diet_service_repository = diet_service_repository
         self.diet_liquidation_repository = diet_liquidation_repository
-        self.diet_member_repository = diet_member_repository
         self.request_user_repository = request_user_repository
 
     # ===== SERVICIOS DE DIETA (PRECIOS) =====
@@ -120,7 +111,6 @@ class DietAppService:
             self.diet_repository,
             self.diet_service_repository,
             self.request_user_repository,
-            self.diet_member_repository
         )
         
         diet_data = {
@@ -186,7 +176,6 @@ class DietAppService:
         """Elimina una dieta"""
         use_case = DeleteDietUseCase(
             self.diet_repository,
-            self.diet_member_repository,
             self.diet_liquidation_repository
         )
         return use_case.execute(diet_id)
@@ -274,38 +263,6 @@ class DietAppService:
         diets = use_case.execute()
         return [self._to_diet_liquidation_response_dto(diet) for diet in diets]
     
-
-
-## hay q hacer la singa use case que devuelva una liquidacion aqui 
-
-
-
-
-
-    # ===== MIEMBROS DE DIETA GRUPAL =====
-    
-    def add_diet_member(self, create_dto: DietMemberCreateDTO) -> DietMemberResponseDTO:
-        """Agrega un miembro a una dieta grupal"""
-        use_case = AddDietMemberUseCase(
-            self.diet_repository,
-            self.diet_member_repository,
-            self.request_user_repository
-        )
-        
-        diet_member = use_case.execute(create_dto.diet_id, create_dto.request_user_id)
-        return self._to_diet_member_response_dto(diet_member)
-    
-    def remove_diet_member(self, member_id: int) -> bool:
-        """Elimina un miembro de una dieta grupal"""
-        use_case = RemoveDietMemberUseCase(self.diet_member_repository)
-        return use_case.execute(member_id)
-    
-    def list_diet_members(self, diet_id: int) -> List[DietMemberResponseDTO]:
-        """Lista miembros de una dieta grupal"""
-        use_case = ListDietMembersUseCase(self.diet_member_repository)
-        members = use_case.execute(diet_id)
-        return [self._to_diet_member_response_dto(member) for member in members]
-
     # ===== OPERACIONES ESPECIALES =====
     
     def calculate_diet_amount(self, calculation_data: Dict[str, Any]) -> DietCalculationDTO:
@@ -360,7 +317,6 @@ class DietAppService:
     
     # ===== SERVICIOS DE DIETAS =====
 
-    #add y el edit
 
     # ===== MÉTODOS DE CONVERSIÓN =====
     
@@ -445,18 +401,4 @@ class DietAppService:
             diet_service_id=liquidation.diet_service_id,
             accommodation_card_id=liquidation.accommodation_card_id,
             liquidated_amount=liquidated_amount
-        )
-    
-    def _to_diet_member_response_dto(self, diet_member: DietMember) -> DietMemberResponseDTO:
-        # Obtener información del solicitante
-        request_user = self.request_user_repository.get_by_id(diet_member.request_user_id)
-        request_user_name = request_user.fullname if request_user else "Desconocido"
-        request_user_ci = request_user.ci if request_user else "N/A"
-        
-        return DietMemberResponseDTO(
-            id=diet_member.id,                                                                                          # type: ignore
-            diet_id=diet_member.diet_id,
-            request_user_id=diet_member.request_user_id,
-            request_user_name=request_user_name,
-            request_user_ci=request_user_ci
         )

@@ -1,11 +1,13 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
+from traceback import print_exc
 from typing import List, Optional, Callable
 from application.dtos.diet_dtos import DietResponseDTO, DietLiquidationResponseDTO
 from application.services import user_service
 from application.services.request_service import UserRequestService
 from application.services.diet_service import DietAppService, DietService
+
 
 class DietList(ttk.Frame):
     """
@@ -23,7 +25,7 @@ class DietList(ttk.Frame):
         self.current_data = []  
         self.create_widgets()
     
-    def calculate_total(self, diet: DietResponseDTO) -> float:
+    def calculate_total(self, diet, is_local = None) -> float:
         """Calcula el total de una dieta basado en los precios del servicio"""
         try:            
             if not diet:
@@ -32,28 +34,66 @@ class DietList(ttk.Frame):
             if not self.diet_service:
                 return 0.0
             
-            # Obtener el servicio de dieta según si es local o no
-            service = self.diet_service.get_diet_service_by_local(diet.is_local)
+            local = None
+
+            if is_local is not None:
+                local = is_local
+            elif hasattr(diet, 'is_local'):
+                local = diet.is_local
+            else:
+                local = True
+
+            service = self.diet_service.get_diet_service_by_local(local) 
             
             if not service:
                 return 0.0
             
+            breakfast_count = 0
+            lunch_count = 0
+            dinner_count = 0
+            accommodation_count = 0
+            accommodation_payment_method = "CASH"
+
+            if hasattr(diet, 'breakfast_count'):
+                # Es un DietResponseDTO (anticipo)
+                breakfast_count = diet.breakfast_count
+                lunch_count = diet.lunch_count
+                dinner_count = diet.dinner_count
+                accommodation_count = diet.accommodation_count
+                accommodation_payment_method = diet.accommodation_payment_method
+            elif hasattr(diet, 'breakfast_count_liquidated'):
+                # Es un DietLiquidationResponseDTO (liquidación)
+                breakfast_count = diet.breakfast_count_liquidated
+                lunch_count = diet.lunch_count_liquidated
+                dinner_count = diet.dinner_count_liquidated
+                accommodation_count = diet.accommodation_count_liquidated
+                accommodation_payment_method = diet.accommodation_payment_method
+            
             # Calcular total
-            breakfast_total = diet.breakfast_count * service.breakfast_price
-            lunch_total = diet.lunch_count * service.lunch_price
-            dinner_total = diet.dinner_count * service.dinner_price
+            breakfast_total = breakfast_count * service.breakfast_price
+            lunch_total = lunch_count * service.lunch_price
+            dinner_total = dinner_count * service.dinner_price
+            
             
             # Usar precio correcto según método de pago
             if diet.accommodation_payment_method == "CARD":
-                accommodation_total = diet.accommodation_count * service.accommodation_card_price
+                if hasattr(diet, 'accommodation_count'):
+                    accommodation_total = diet.accommodation_count * service.accommodation_card_price
+                else: 
+                    accommodation_total = diet.accommodation_count_liquidated * service.accommodation_card_price
             else:
-                accommodation_total = diet.accommodation_count * service.accommodation_cash_price
+                if hasattr(diet, 'accommodation_count'):
+                    accommodation_total = diet.accommodation_count * service.accommodation_card_price
+                else: 
+                    accommodation_total = diet.accommodation_count_liquidated * service.accommodation_card_price
             
             total = breakfast_total + lunch_total + dinner_total + accommodation_total            
             return total
             
         except Exception as e:
             print(f"ERROR calculando total: {e}")
+            import traceback
+            traceback.print_exc()
             return 0.0
     
     def create_widgets(self):
@@ -143,6 +183,7 @@ class DietList(ttk.Frame):
         
         if type == 1:
             for i, item in enumerate(data):
+
                 
                 if self.list_type == "advances":
                     if hasattr(item, 'advance_number'):  
@@ -157,9 +198,10 @@ class DietList(ttk.Frame):
                             item.end_date.strftime("%d/%m/%Y") if item.end_date else "N/A",
                             f"${total_amount:.2f}" if total_amount is not None else "$0.00"
                         ))
-        elif type == 2:  # Liquidaciones - VERSIÓN MEJORADA
+        elif type == 2:  
             for item in data:
                 if hasattr(item, 'liquidation_number'):
+
                     
                     # Obtener información completa
                     diet = self.diet_service.get_diet(item.diet_id) if self.diet_service else None
@@ -168,7 +210,7 @@ class DietList(ttk.Frame):
                     # Formatear datos para mostrar
                     solicitante = f"{user.fullname}" if user and hasattr(user, 'fullname') else "N/A"
                     fecha_liquidacion = item.liquidation_date.strftime("%d/%m/%Y") if item.liquidation_date else "N/A"
-                    monto = f"${item.liquidated_amount:.2f}" if item.liquidated_amount is not None else "$0.00"
+                    monto = self.calculate_total(item, diet.is_local)
                     advance_number = diet.advance_number if diet else "N/A"
                     
                     self.tree.insert("", "end", values=(

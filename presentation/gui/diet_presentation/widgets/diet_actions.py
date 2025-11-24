@@ -35,10 +35,6 @@ class DietActions(ttk.Frame):
                                       command=self.module.liquidate_diet)
         self.liquidate_btn.pack(side=tk.LEFT, padx=(0, 5))
         
-        self.members_btn = ttk.Button(main_buttons_frame, text="Gestionar Miembros", 
-                                    command=self.module.manage_members)
-        self.members_btn.pack(side=tk.LEFT, padx=(0, 5))
-        
         # Frame para botones secundarios
         secondary_buttons_frame = ttk.Frame(self)
         secondary_buttons_frame.pack(fill=tk.X)
@@ -64,7 +60,6 @@ class DietActions(ttk.Frame):
             self.edit_btn.config(state=tk.DISABLED)
             self.delete_btn.config(state=tk.DISABLED)
             self.liquidate_btn.config(state=tk.DISABLED)
-            self.members_btn.config(state=tk.DISABLED)
         else:
             self.edit_btn.config(state=tk.NORMAL)
             self.delete_btn.config(state=tk.NORMAL)
@@ -75,11 +70,6 @@ class DietActions(ttk.Frame):
             else:
                 self.liquidate_btn.config(state=tk.DISABLED)
             
-            # Solo se pueden gestionar miembros si es grupal
-            if hasattr(selected_diet, 'is_group') and selected_diet.is_group:
-                self.members_btn.config(state=tk.NORMAL)
-            else:
-                self.members_btn.config(state=tk.DISABLED)
     
     def refresh_counters(self):
         """Actualiza los contadores en la interfaz"""

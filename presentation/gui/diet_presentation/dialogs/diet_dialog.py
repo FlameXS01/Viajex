@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
-from application.dtos.diet_dtos import DietCreateDTO, DietMemberCreateDTO, DietUpdateDTO
+from application.dtos.diet_dtos import DietCreateDTO, DietUpdateDTO
 from application.services.diet_service import DietAppService
 from ..widgets.diet_form import DietForm
 
@@ -242,7 +242,7 @@ class DietDialog(tk.Toplevel):
             import traceback
             traceback.print_exc()
 
-        def on_save(self):
+    def on_save(self):
             if not self.validate_form():
                 return
             
@@ -270,6 +270,7 @@ class DietDialog(tk.Toplevel):
                 # ACTUALIZAR LA DIETA
                 result = self.diet_service.update_diet(self.diet.id, update_dto)    # type: ignore
                 if result:
+                    self.result = result
                     messagebox.showinfo("Editado", f"Se editó la dieta satisfactoriamente")
                     self.destroy()
                     

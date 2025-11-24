@@ -1,7 +1,5 @@
 from typing import Optional
 from core.entities.diet import Diet, DietStatus
-from core.entities.diet_member import DietMember
-from core.repositories.diet_member_repository import DietMemberRepository
 from core.repositories.diet_repository import DietRepository
 from core.repositories.diet_service_repository import DietServiceRepository
 from core.repositories.request_user_repository import RequestUserRepository
@@ -17,12 +15,10 @@ class CreateDietUseCase:
         diet_repository: DietRepository,
         diet_service_repository: DietServiceRepository,
         request_user_repository: RequestUserRepository,
-        diet_member_repository: DietMemberRepository
     ):
         self.diet_repository = diet_repository
         self.diet_service_repository = diet_service_repository
         self.request_user_repository = request_user_repository
-        self.diet_member_repository = diet_member_repository
 
 
     def execute(self, diet_data: dict) -> Diet:

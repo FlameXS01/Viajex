@@ -13,7 +13,6 @@ from core.use_cases.request_user.list_users_request import ListRequestUsersUseCa
 from infrastructure.database.repositories import card_repository
 from infrastructure.database.repositories.department_repository import DepartmentRepositoryImpl
 from infrastructure.database.repositories.diet_liquidation_repository import DietLiquidationRepositoryImpl
-from infrastructure.database.repositories.diet_member_repository import DietMemberRepositoryImpl
 from infrastructure.database.repositories.diet_repository import DietRepositoryImpl
 from infrastructure.database.repositories.diet_service_repository import DietServiceRepositoryImpl
 from infrastructure.database.repositories.request_user_repository import RequestUserRepositoryImpl
@@ -320,7 +319,6 @@ def main():
         card_repository= CardRepositoryImpl(db_session)
 
         diet_liquidation_repository = DietLiquidationRepositoryImpl(db_session)
-        diet_member_repository = DietMemberRepositoryImpl(db_session)
         diet_repository = DietRepositoryImpl(db_session)
         diet_service_repository = DietServiceRepositoryImpl(db_session)
         
@@ -421,7 +419,6 @@ def main():
             diet_liquidation_repository=diet_liquidation_repository,
             diet_service_repository = diet_service_repository,
             diet_repository = diet_repository,
-            diet_member_repository = diet_member_repository,
             request_user_repository = request_user_repository,
         )
 
