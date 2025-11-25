@@ -101,8 +101,13 @@ class DietList(ttk.Frame):
         main_frame = ttk.Frame(self)
         main_frame.pack(fill=tk.BOTH, expand=True)
         
-        
-        if self.list_type == "advances":
+
+        if self.list_type == "all":
+            columns = ["advance_number", "type", "description", "solicitante", 
+                  "fecha_inicio", "fecha_fin", "monto", "estado"]  
+            column_names = ["N° Anticipo", "Tipo", "Descripción", "Solicitante", 
+                      "Fecha Inicio", "Fecha Fin", "Monto", "Estado"]
+        elif self.list_type == "advances":
             columns = ["advance_number", "type", "description", "solicitante", 
                       "fecha_inicio", "fecha_fin", "monto"]
             column_names = ["N° Anticipo", "Tipo", "Descripción", "Solicitante", 
@@ -181,17 +186,36 @@ class DietList(ttk.Frame):
         if not data:
             return
         
-        if type == 1:
+        if type == 1 or type == 0:
             for i, item in enumerate(data):
-
-                
-                if self.list_type == "advances":
-                    if hasattr(item, 'advance_number'):  
-                        user = self.request_user_service.get_user_by_id(item.request_user_id)                    
-                        total_amount = self.calculate_total(item)
+            # Para pestaña "all" o "advances"
+                if hasattr(item, 'advance_number'):  
+                    user = self.request_user_service.get_user_by_id(item.request_user_id)                    
+                    total_amount = self.calculate_total(item)
+                    diet_type = self._get_diet_type(item)
+                    
+                    # Para pestaña "all"
+                    if self.list_type == "all":
+                        
+                        status_display = "Pendiente"  
+                        if hasattr(item, 'status'):
+                            status_display = item.status
+                        
                         self.tree.insert("", "end", values=(
                             item.advance_number,
-                            self._get_diet_type(item),  
+                            diet_type,
+                            item.description,
+                            f"{user.fullname}" if user and hasattr(user, 'fullname') else "N/A",  
+                            item.start_date.strftime("%d/%m/%Y") if item.start_date else "N/A",
+                            item.end_date.strftime("%d/%m/%Y") if item.end_date else "N/A",
+                            f"${total_amount:.2f}" if total_amount is not None else "$0.00",
+                            status_display  
+                        ))
+                    # Para pestaña "advances"   
+                    elif self.list_type == "advances":
+                        self.tree.insert("", "end", values=(
+                            item.advance_number,
+                            diet_type,
                             item.description,
                             f"{user.fullname}" if user and hasattr(user, 'fullname') else "N/A",  
                             item.start_date.strftime("%d/%m/%Y") if item.start_date else "N/A",
@@ -210,7 +234,7 @@ class DietList(ttk.Frame):
                     # Formatear datos para mostrar
                     solicitante = f"{user.fullname}" if user and hasattr(user, 'fullname') else "N/A"
                     fecha_liquidacion = item.liquidation_date.strftime("%d/%m/%Y") if item.liquidation_date else "N/A"
-                    monto = self.calculate_total(item, diet.is_local)
+                    monto = self.calculate_total(item, diet.is_local)   # type: ignore
                     advance_number = diet.advance_number if diet else "N/A"
                     
                     self.tree.insert("", "end", values=(
@@ -224,7 +248,6 @@ class DietList(ttk.Frame):
                         item.accommodation_count_liquidated, 
                         monto                         
                     ))
-
 
     
     def bind_selection(self, callback: Callable):

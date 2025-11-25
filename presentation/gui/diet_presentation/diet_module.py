@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import Optional
 from application.dtos.diet_dtos import DietResponseDTO, DietLiquidationResponseDTO
-from application.services import user_service
 from application.services.diet_service import DietAppService
 from core.entities.enums import DietStatus
 from .widgets.diet_list import DietList
@@ -51,6 +50,10 @@ class DietModule(ttk.Frame):
         self.notebook = ttk.Notebook(content_frame)
         self.notebook.pack(fill=tk.BOTH, expand=True)
         
+        # Pestaña de all
+        self.all_diets_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.all_diets_frame, text="Todas")
+
         # Pestaña de anticipos
         self.advances_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.advances_frame, text="Anticipos")
@@ -68,10 +71,24 @@ class DietModule(ttk.Frame):
         self.liquidations_list = DietList(self.liquidations_frame, "liquidations", self.request_user_service, self.diet_service)
         self.liquidations_list.pack(fill=tk.BOTH, expand=True)
         self.liquidations_list.bind_selection(self.on_liquidation_selected)
+       
+        try:
+            # Lista de liquidaciones
+            self.all_list = DietList(self.all_diets_frame, "all", self.request_user_service, self.diet_service)
+            self.all_list.pack(fill=tk.BOTH, expand=True)
+            #self.liquidations_list.bind_selection(self.on_liquidation_selected)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+
     
     def refresh_diets(self):
         """Actualiza las listas de dietas y liquidaciones"""
         try:
+            # Obtener todas
+            diets = self.diet_service.get_all()                                                        # type: ignore
+            self.all_list.update_data(diets, type=0)
+            
             # Obtener anticipos
             diets = self.diet_service.list_diets(status=DietStatus.REQUESTED)                          # type: ignore
             self.advances_list.update_data(diets, type=1)

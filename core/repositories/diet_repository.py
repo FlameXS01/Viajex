@@ -30,6 +30,16 @@ class DietRepository(ABC):
         pass
     
     @abstractmethod
+    def get_all(self) -> list[Diet]:
+        """
+        
+        Obtiene una lista de todas las dietas
+        
+        """
+        pass
+
+
+    @abstractmethod
     def get_by_advance_number(self, advance_number: int) -> Optional[Diet]:
         """
         

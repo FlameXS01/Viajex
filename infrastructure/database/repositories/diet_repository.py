@@ -52,6 +52,10 @@ class DietRepositoryImpl(DietRepository):
         models = self.session.query(DietModel).filter(DietModel.status == status.value).all()
         return [self._to_entity(model) for model in models]
     
+    def get_all(self) -> List[Diet]:
+        models = self.session.query(DietModel).all()
+        return [self._to_entity(model) for model in models]
+    
     def list_by_request_user(self, request_user_id: int) -> List[Diet]:
         models = self.session.query(DietModel).filter(DietModel.request_user_id == request_user_id).all()
         return [self._to_entity(model) for model in models]

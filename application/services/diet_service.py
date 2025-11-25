@@ -15,6 +15,7 @@ from core.use_cases.diets.diet_liquidations.list_all_liquidations import ListAll
 from core.use_cases.diets.diet_services.get_diet_service_by_local import GetDietServiceByLocalUseCase
 from core.use_cases.diets.diet_services.list_all_diet_services import ListAllDietServicesUseCase
 from core.use_cases.diets.diets.create_diet import CreateDietUseCase
+from core.use_cases.diets.diets.get_all import GetAllUseCase
 from core.use_cases.diets.diets.get_diet import GetDietUseCase
 from core.use_cases.diets.diets.list_diets_by_status import ListDietsByStatusUseCase
 from core.use_cases.diets.diets.list_diets_pending_liquidation import ListDietsPendingLiquidationUseCase
@@ -190,6 +191,11 @@ class DietAppService:
         use_case = ResetAdvanceNumbersUseCase(self.diet_repository)
         return use_case.execute()
 
+    def get_all(self) -> list[DietResponseDTO]:
+        use_case = GetAllUseCase(self.diet_repository)
+        diets = use_case.execute()
+        return [self._to_diet_response_dto(diet) for diet in diets]
+        
     # ===== LIQUIDACIONES =====
     
     def create_diet_liquidation(self, create_dto: DietLiquidationCreateDTO) -> DietLiquidationResponseDTO:
