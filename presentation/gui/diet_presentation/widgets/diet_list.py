@@ -177,6 +177,7 @@ class DietList(ttk.Frame):
     
     def update_data(self, data: list, type):
         """Actualiza los datos en la lista"""
+        self.current_display_type = type  
         
         # Limpiar lista actual
         for item in self.tree.get_children():
@@ -267,24 +268,182 @@ class DietList(ttk.Frame):
         """Limpia la selección actual"""
         self.tree.selection_remove(self.tree.selection())
 
+    def filter_data(self, search_text: str):
+        """Filtra los datos basado en el texto de búsqueda"""
+        if not search_text:
+            # Si no hay texto, mostrar todos los datos
+            self._refresh_display(self.current_data)
+            return
+        
+        search_lower = search_text.lower()
+        filtered_data = []
+        
+        for item in self.current_data:
+            # Buscar en todos los valores de las columnas
+            if self._item_matches_search(item, search_lower):
+                filtered_data.append(item)
+        
+        self._refresh_display(filtered_data)
 
+    def _item_matches_search(self, item, search_lower: str) -> bool:
+        """Verifica si el item coincide con el texto de búsqueda - CORREGIDO PARA LIQUIDACIONES"""
+        try:
+            # BÚSQUEDA ESPECÍFICA PARA LIQUIDACIONES
+            if self.list_type == "liquidations" and hasattr(item, 'liquidation_number'):
+                # Buscar en campos directos de la liquidación
+                if (self._value_matches_search(item.liquidation_number, search_lower) or
+                    self._value_matches_search(item.breakfast_count_liquidated, search_lower) or
+                    self._value_matches_search(item.lunch_count_liquidated, search_lower) or
+                    self._value_matches_search(item.dinner_count_liquidated, search_lower) or
+                    self._value_matches_search(item.accommodation_count_liquidated, search_lower)):
+                    return True
+                
+                # Buscar en la dieta asociada
+                diet = self.diet_service.get_diet(item.diet_id) if self.diet_service else None
+                if diet:
+                    # Buscar en número de anticipo
+                    if self._value_matches_search(diet.advance_number, search_lower):
+                        return True
+                    
+                    # Buscar en nombre del solicitante
+                    user = self.request_user_service.get_user_by_id(diet.request_user_id)
+                    if user and hasattr(user, 'fullname'):
+                        if self._value_matches_search(user.fullname, search_lower):
+                            return True
+                    
+                    # Buscar en descripción de la dieta
+                    if self._value_matches_search(diet.description, search_lower):
+                        return True
+                
+                # Buscar en fecha de liquidación
+                if (item.liquidation_date and 
+                    self._value_matches_search(item.liquidation_date.strftime("%d/%m/%Y"), search_lower)):
+                    return True
+                    
+                return False
 
+            # LÓGICA ORIGINAL PARA ANTICIPOS Y TODAS LAS DIETAS
+            if hasattr(item, '__dict__'):
+                # Para objetos, revisar todos sus atributos
+                for attr_name, attr_value in item.__dict__.items():
+                    if self._value_matches_search(attr_value, search_lower):
+                        return True
+            else:
+                # Para otros tipos de datos
+                if self._value_matches_search(str(item), search_lower):
+                    return True
+                    
+            # Búsqueda específica para campos comunes de dietas
+            common_fields = ['advance_number', 'liquidation_number', 'description', 'status']
+            for field in common_fields:
+                if hasattr(item, field):
+                    value = getattr(item, field)
+                    if self._value_matches_search(value, search_lower):
+                        return True
+            
+            # Buscar en el nombre del solicitante
+            if hasattr(item, 'request_user_id'):
+                user = self.request_user_service.get_user_by_id(item.request_user_id)
+                if user and hasattr(user, 'fullname'):
+                    if self._value_matches_search(user.fullname, search_lower):
+                        return True
+            
+            # Buscar en montos
+            if hasattr(item, 'total_amount') or hasattr(item, 'amount'):
+                amount = getattr(item, 'total_amount', getattr(item, 'amount', None))
+                if self._value_matches_search(amount, search_lower):
+                    return True
+                    
+        except Exception as e:
+            print(f"Error en búsqueda de item: {e}")
+        
+        return False
 
+    def _value_matches_search(self, value, search_lower: str) -> bool:
+        """Verifica si un valor individual coincide con la búsqueda"""
+        if value is None:
+            return False
+        
+        try:
+            if isinstance(value, (int, float)):
+                # Para números, buscar en su representación string
+                return search_lower in str(value)
+            elif isinstance(value, str):
+                return search_lower in value.lower()
+            elif hasattr(value, 'strftime'):  # Para objetos datetime
+                return search_lower in value.strftime("%d/%m/%Y").lower()
+            else:
+                return search_lower in str(value).lower()
+        except:
+            return False
 
+    def _refresh_display(self, data: list):
+        """Actualiza la visualización con los datos proporcionados - OPTIMIZADO"""
+        # Limpiar lista actual
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        
+        # Mostrar nuevos datos
+        if not data:
+            return
+            
+        if self.list_type == "all":
+            # Lógica para pestaña "Todas"
+            for item in data:
+                user = self.request_user_service.get_user_by_id(item.request_user_id)                    
+                total_amount = self.calculate_total(item)
+                diet_type = self._get_diet_type(item)
+                
+                status_display = "Pendiente"  
+                if hasattr(item, 'status'):
+                    status_display = "Liquidada" if item.status == "liquidated" else "Solicitada"
+                
+                self.tree.insert("", "end", values=(
+                    item.advance_number,
+                    diet_type,
+                    item.description,
+                    f"{user.fullname}" if user and hasattr(user, 'fullname') else "N/A",  
+                    item.start_date.strftime("%d/%m/%Y") if item.start_date else "N/A",
+                    item.end_date.strftime("%d/%m/%Y") if item.end_date else "N/A",
+                    f"${total_amount:.2f}" if total_amount is not None else "$0.00",
+                    status_display  
+                ))
+        elif self.list_type == "advances":
+            # Lógica para pestaña "Anticipos"
+            for item in data:
+                user = self.request_user_service.get_user_by_id(item.request_user_id)                    
+                total_amount = self.calculate_total(item)
+                diet_type = self._get_diet_type(item)
+                
+                self.tree.insert("", "end", values=(
+                    item.advance_number,
+                    diet_type,
+                    item.description,
+                    f"{user.fullname}" if user and hasattr(user, 'fullname') else "N/A",  
+                    item.start_date.strftime("%d/%m/%Y") if item.start_date else "N/A",
+                    item.end_date.strftime("%d/%m/%Y") if item.end_date else "N/A",
+                    f"${total_amount:.2f}" if total_amount is not None else "$0.00"
+                ))
+        elif self.list_type == "liquidations":
+            # Lógica MEJORADA para pestaña "Liquidaciones"
+            for item in data:
+                diet = self.diet_service.get_diet(item.diet_id) if self.diet_service else None
+                user = self.request_user_service.get_user_by_id(diet.request_user_id) if diet else None
+                
+                solicitante = f"{user.fullname}" if user and hasattr(user, 'fullname') else "N/A"
+                fecha_liquidacion = item.liquidation_date.strftime("%d/%m/%Y") if item.liquidation_date else "N/A"
+                monto = self.calculate_total(item, diet.is_local if diet else True)
+                advance_number = diet.advance_number if diet else "N/A"
+                
+                self.tree.insert("", "end", values=(
+                    item.liquidation_number,      
+                    advance_number,               
+                    solicitante,                 
+                    fecha_liquidacion,            
+                    item.breakfast_count_liquidated,  
+                    item.lunch_count_liquidated,      
+                    item.dinner_count_liquidated,     
+                    item.accommodation_count_liquidated, 
+                    f"${monto:.2f}" if monto is not None else "$0.00"
+                ))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        #  hacer una lista de todas las dietas, agregar opciones de detalles a las liquidaciones, 
-        # hacer filtros para buscar en liquidaciones y en dietas luego a reportes... 
