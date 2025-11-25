@@ -71,16 +71,29 @@ class DietModule(ttk.Frame):
         self.liquidations_list = DietList(self.liquidations_frame, "liquidations", self.request_user_service, self.diet_service)
         self.liquidations_list.pack(fill=tk.BOTH, expand=True)
         self.liquidations_list.bind_selection(self.on_liquidation_selected)
+
+        self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
        
         try:
             # Lista de liquidaciones
             self.all_list = DietList(self.all_diets_frame, "all", self.request_user_service, self.diet_service)
             self.all_list.pack(fill=tk.BOTH, expand=True)
             #self.liquidations_list.bind_selection(self.on_liquidation_selected)
+
         except Exception as e:
             import traceback
             traceback.print_exc()
 
+    def on_tab_changed(self, event=None):
+        """Se ejecuta cuando el usuario cambia de pestaña """
+        self.current_diet = None
+        self.actions_widget.update_buttons_state(None)
+        
+        # Limpiar selecciones visuales en todas las listas
+        self.advances_list.clear_selection()
+        self.liquidations_list.clear_selection()
+        if hasattr(self, 'all_list'):
+            self.all_list.clear_selection()
     
     def refresh_diets(self):
         """Actualiza las listas de dietas y liquidaciones"""
