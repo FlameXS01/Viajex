@@ -7,13 +7,13 @@ from decimal import Decimal
 @dataclass
 class DietServiceResponseDTO:
     """DTO para respuesta de servicios de dieta"""
-    id: int
     is_local: bool
     breakfast_price: float
     lunch_price: float
     dinner_price: float
     accommodation_cash_price: float
     accommodation_card_price: float
+    id: Optional[int] = None
 
 @dataclass
 class DietServiceCreateDTO:

@@ -246,7 +246,7 @@ def initializate_diet_service (diet_service: DietAppService):
         service = diet_service.get_diet_service_by_local(False)
         if not service:
             diet_service_foreign = DietServiceCreateDTO(
-                is_local = True,
+                is_local = False,
                 breakfast_price = 300,
                 lunch_price = 300,
                 dinner_price = 300,
@@ -408,7 +408,7 @@ def main():
 
         # Crear servicios de dietas
         initializate_diet_service(diet_service)
-
+        
         # Inicializar casos de uso de autenticación
         login_use_case = LoginUseCase(user_repository, password_hasher)
 

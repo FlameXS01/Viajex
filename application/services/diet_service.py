@@ -36,6 +36,7 @@ from core.use_cases.diets.diet_members.remove_diet_member import RemoveDietMembe
 from core.use_cases.diets.diet_members.list_diet_members import ListDietMembersUseCase
 from core.use_cases.diets.calculate_diet_amount import CalculateDietAmountUseCase
 from core.use_cases.diets.list_diets import ListDietsUseCase
+from core.use_cases.diets.diet_services.edit_service import EditDietServiceUseCase
 from core.use_cases.diets.reset_counters import ResetCountersUseCase
 
 from application.dtos.diet_dtos import (
@@ -58,11 +59,11 @@ from application.dtos.diet_dtos import (
 
 class DietAppService:
     def __init__(self,
-                 diet_repository: DietRepository,
-                 diet_service_repository: DietServiceRepository,
-                 diet_liquidation_repository: DietLiquidationRepository,
-                 diet_member_repository: DietMemberRepository,
-                 request_user_repository: RequestUserRepository):
+                diet_repository: DietRepository,
+                diet_service_repository: DietServiceRepository,
+                diet_liquidation_repository: DietLiquidationRepository,
+                diet_member_repository: DietMemberRepository,
+                request_user_repository: RequestUserRepository):
         self.diet_repository = diet_repository
         self.diet_service_repository = diet_service_repository
         self.diet_liquidation_repository = diet_liquidation_repository
@@ -344,14 +345,100 @@ class DietAppService:
         )
     
     # ===== SERVICIOS DE DIETAS =====
+    
+    def add_diet_service(self, is_local: bool, breakfast_price: float, lunch_price: float, 
+                        dinner_price: float, accommodation_cash_price: float, 
+                        accommodation_card_price: float) -> Optional[DietServiceResponseDTO]:
+        """Agrega un nuevo servicio de dieta usando el caso de uso"""
+        try:
+            from core.use_cases.diets.diet_services.add_service import AddDietServiceUseCase
+            
+            use_case = AddDietServiceUseCase(self.diet_service_repository)
+            diet_service = use_case.execute(
+                is_local=is_local,
+                breakfast_price=breakfast_price,
+                lunch_price=lunch_price,
+                dinner_price=dinner_price,
+                accommodation_cash_price=accommodation_cash_price,
+                accommodation_card_price=accommodation_card_price
+            )
+            return self._to_diet_service_response_dto(diet_service) if diet_service else None
+            
+        except ValueError as e:
+            # Manejar errores de validación
+            messagebox.showerror("Error de validación", str(e))
+            return None
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo crear el servicio de dieta: {str(e)}") 
+            import traceback
+            traceback.print_exc()
+            
+            return None
 
-    #add y el edit
+    def edit_diet_service(self, service_id: int, is_local: bool, breakfast_price: float, 
+                        lunch_price: float, dinner_price: float, accommodation_cash_price: float, 
+                        accommodation_card_price: float) -> Optional[DietServiceResponseDTO]:
+        """Edita un servicio de dieta existente usando el caso de uso"""
+        try:
+            
+            use_case = EditDietServiceUseCase(self.diet_service_repository)
+            diet_service = use_case.execute(
+                service_id=service_id,
+                is_local=is_local,
+                breakfast_price=breakfast_price,
+                lunch_price=lunch_price,
+                dinner_price=dinner_price,
+                accommodation_cash_price=accommodation_cash_price,
+                accommodation_card_price=accommodation_card_price
+            )
+            
+            if diet_service:
+                print(self._to_diet_service_response_dto(diet_service), 'dto <<<<<<<<<<<<<<<<<<<<<<<<<<')
+                return self._to_diet_service_response_dto(diet_service)
+            else:
+                messagebox.showerror("Error", "Servicio de dieta no encontrado")
+                return None
+                
+        except ValueError as e:
+            # Manejar errores de validación
+            messagebox.showerror("Error de validación", str(e))
+            return None
+        except Exception as e:
+            # Manejar otros errores
+            messagebox.showerror("Error", f"No se pudo editar el servicio de dieta: {str(e)}")
+            return None
+
+    def delete_diet_service(self, service_id: int) -> bool:
+        """Elimina un servicio de dieta"""
+        try:
+            diet_service = self.diet_service_repository.get_by_id(service_id)
+            if not diet_service:
+                messagebox.showerror("Error", "Servicio de dieta no encontrado")
+                return False
+            
+            # Verificar si hay dietas usando este servicio
+            diets_using_service = self.diet_repository.get_by_service_id(service_id)
+            if diets_using_service:
+                messagebox.showerror("Error", 
+                    "No se puede eliminar el servicio de dieta porque está siendo usado por dietas existentes")
+                return False
+            
+            success = self.diet_service_repository.delete(service_id)
+            if success:
+                messagebox.showinfo("Éxito", "Servicio de dieta eliminado correctamente")
+            else:
+                messagebox.showerror("Error", "No se pudo eliminar el servicio de dieta")
+            
+            return success
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo eliminar el servicio de dieta: {str(e)}")
+            return False
 
     # ===== MÉTODOS DE CONVERSIÓN =====
     
     def _to_diet_service_response_dto(self, diet_service: DietService) -> DietServiceResponseDTO:
-        return DietServiceResponseDTO(
-            id=diet_service.id,                                                                                         # type: ignore
+        return DietServiceResponseDTO(                                                                                       # type: ignore
             is_local=diet_service.is_local,
             breakfast_price=diet_service.breakfast_price,
             lunch_price=diet_service.lunch_price,

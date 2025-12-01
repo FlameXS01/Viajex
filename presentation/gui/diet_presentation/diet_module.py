@@ -32,7 +32,7 @@ class DietModule(ttk.Frame):
         
         # Título
         title_label = ttk.Label(main_frame, text="Gestión de Dietas", 
-                               font=("Arial", 16, "bold"))
+                                font=("Arial", 16, "bold"))
         title_label.pack(pady=(0, 20))
         
         # Frame de controles
@@ -42,6 +42,11 @@ class DietModule(ttk.Frame):
         # Botones principales
         self.actions_widget = DietActions(controls_frame, self)
         self.actions_widget.pack(fill=tk.X)
+        """
+        # AGREGAR BOTÓN GESTIONAR SERVICIOS aquí
+        services_button = ttk.Button(controls_frame, text="⚙️ Gestionar Servicios", command=self._manage_services, width=18)
+        services_button.pack(side=tk.RIGHT, padx=(10, 0))
+        """
         
         # Frame de contenido
         content_frame = ttk.Frame(main_frame)
@@ -69,6 +74,7 @@ class DietModule(ttk.Frame):
         self.liquidations_list.pack(fill=tk.BOTH, expand=True)
         self.liquidations_list.bind_selection(self.on_liquidation_selected)
     
+        
     def refresh_diets(self):
         """Actualiza las listas de dietas y liquidaciones"""
         try:
@@ -157,9 +163,33 @@ class DietModule(ttk.Frame):
             messagebox.showwarning("Advertencia", "Seleccione una dieta grupal")
             return
         
-        dialog = DietMemberDialog(self, self.diet_service, self.request_user_service, self.current_diet)
-        if dialog.result:
-            self.refresh_diets()
+        try:
+            from .dialogs.diet_member_dialog import DietMemberDialog
+            dialog = DietMemberDialog(self, self.diet_service, self.request_user_service, self.current_diet)
+            self.wait_window(dialog)
+            if dialog.result:
+                self.refresh_diets()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo abrir la gestión de miembros: {str(e)}")
+    
+    def _manage_services(self):
+        """Abre la gestión de servicios de dieta"""
+        try:
+            from presentation.gui.diet_presentation.dialogs.diet_services_dialog import DietServicesDialog
+            
+            dialog = DietServicesDialog(self.winfo_toplevel(), self.diet_service)
+            self.wait_window(dialog)
+            
+            # Recargar datos si se hicieron cambios
+            if hasattr(dialog, 'result') and dialog.result:
+                self.refresh_diets()
+                
+        except ImportError as e:
+            messagebox.showerror("Error", f"No se encontró el módulo de servicios: {str(e)}")
+            # Fallback al mensaje temporal
+            messagebox.showinfo("Información", "Funcionalidad de Gestión de Servicios en desarrollo")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo abrir la gestión de servicios: {str(e)}")
 
     def get_counters_info(self):
         """Obtiene información de contadores para el widget de acciones"""
