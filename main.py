@@ -447,9 +447,6 @@ def main():
         # Crear servicios de dietas
         initializate_diet_service(diet_service)
 
-        # Crear tarjetas 
-        initializate_card(card_service)
-
         # Inicializar casos de uso de autenticación
         login_use_case = LoginUseCase(user_repository, password_hasher)
 

@@ -31,7 +31,7 @@ class DietModule(ttk.Frame):
         
         # Título
         title_label = ttk.Label(main_frame, text="Gestión de Dietas", 
-                               font=("Arial", 16, "bold"))
+                                font=("Arial", 16, "bold"))
         title_label.pack(pady=(0, 20))
         
         # Frame de controles
@@ -41,6 +41,11 @@ class DietModule(ttk.Frame):
         # Botones principales
         self.actions_widget = DietActions(controls_frame, self)
         self.actions_widget.pack(fill=tk.X)
+        """
+        # AGREGAR BOTÓN GESTIONAR SERVICIOS aquí
+        services_button = ttk.Button(controls_frame, text="⚙️ Gestionar Servicios", command=self._manage_services, width=18)
+        services_button.pack(side=tk.RIGHT, padx=(10, 0))
+        """
         
         # Frame de contenido
         content_frame = ttk.Frame(main_frame)
@@ -135,6 +140,7 @@ class DietModule(ttk.Frame):
         
         self.wait_window(dialog)
     
+        
     def refresh_diets(self):
         """Actualiza las listas de dietas y liquidaciones"""
         try:

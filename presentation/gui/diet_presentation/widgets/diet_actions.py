@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
 class DietActions(ttk.Frame):
     """
@@ -15,25 +15,25 @@ class DietActions(ttk.Frame):
         self.update_buttons_state(None)
     
     def create_widgets(self):
-        # Frame para botones principales
+        # Frame principal para los botones de acciones
         main_buttons_frame = ttk.Frame(self)
         main_buttons_frame.pack(fill=tk.X, pady=(0, 10))
         
-        # Botones principales
-        self.create_btn = ttk.Button(main_buttons_frame, text="Crear Dieta", 
-                                   command=self.module.create_diet)
+        # Botones principales de acciones de dieta
+        self.create_btn = ttk.Button(main_buttons_frame, text="➕ Crear Dieta", 
+                                    command=self.module.create_diet)
         self.create_btn.pack(side=tk.LEFT, padx=(0, 5))
         
         self.edit_btn = ttk.Button(main_buttons_frame, text="Editar Dieta", 
-                                 command=self.module.edit_diet)
+                                    command=self.module.edit_diet)
         self.edit_btn.pack(side=tk.LEFT, padx=(0, 5))
         
         self.delete_btn = ttk.Button(main_buttons_frame, text="Eliminar Dieta", 
-                                   command=self.module.delete_diet)
+                                    command=self.module.delete_diet)
         self.delete_btn.pack(side=tk.LEFT, padx=(0, 5))
         
         self.liquidate_btn = ttk.Button(main_buttons_frame, text="Liquidar Dieta", 
-                                      command=self.module.liquidate_diet)
+                                    command=self.module.liquidate_diet)
         self.liquidate_btn.pack(side=tk.LEFT, padx=(0, 5))
         
         self.info_btn = ttk.Button(main_buttons_frame, text="Ver Información", 
@@ -71,6 +71,16 @@ class DietActions(ttk.Frame):
             state=tk.DISABLED
         )
         self.clear_search_btn.pack(side=tk.LEFT)
+        
+        # Botón Gestionar Servicios (NUEVO)
+        
+        self.services_btn = ttk.Button(
+            main_buttons_frame,
+            text="⚙️ Gestionar Servicios",
+            command=self.module._manage_services,  # Debe apuntar al método en DietModule
+            width=18
+                                    )
+        self.services_btn.pack(side=tk.LEFT, padx=(10, 0))
         
         # Frame para botones secundarios
         secondary_buttons_frame = ttk.Frame(self)
