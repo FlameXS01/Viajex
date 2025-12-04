@@ -128,7 +128,7 @@ class LiquidationInfoDialog(tk.Toplevel):
             total_frame = ttk.Frame(parent)
             total_frame.pack(fill=tk.X)
             
-            ttk.Label(total_frame, text="TOTAL LIQUIDADO:", font=("Arial", 10, "bold"), width=12, anchor=tk.W).pack(side=tk.LEFT)
+            ttk.Label(total_frame, text="TOTAL:", font=("Arial", 10, "bold"), width=12, anchor=tk.W).pack(side=tk.LEFT)
             ttk.Label(total_frame, text="", width=10, anchor=tk.CENTER).pack(side=tk.LEFT)
             ttk.Label(total_frame, text="", width=12, anchor=tk.CENTER).pack(side=tk.LEFT)
             ttk.Label(total_frame, text=f"${total_general:.2f}", font=("Arial", 10, "bold"), width=12, anchor=tk.CENTER).pack(side=tk.LEFT)

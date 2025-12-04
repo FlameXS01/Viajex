@@ -36,6 +36,10 @@ class DietActions(ttk.Frame):
                                       command=self.module.liquidate_diet)
         self.liquidate_btn.pack(side=tk.LEFT, padx=(0, 5))
         
+        self.info_btn = ttk.Button(main_buttons_frame, text="Ver Información", 
+                                command=self.module.show_selected_details)
+        self.info_btn.pack(side=tk.LEFT, padx=(0, 5))
+
         # Frame para el buscador
         search_frame = ttk.Frame(self)
         search_frame.pack(fill=tk.X, pady=(0, 10))
@@ -139,18 +143,18 @@ class DietActions(ttk.Frame):
         self._on_search()
     
     def update_buttons_state(self, selected_diet):
-        """
-        Actualiza el estado de los botones según la dieta seleccionada
-        """
+        """Actualiza el estado de los botones según la dieta seleccionada"""
         if selected_diet is None:
             self.edit_btn.config(state=tk.DISABLED)
             self.delete_btn.config(state=tk.DISABLED)
             self.liquidate_btn.config(state=tk.DISABLED)
+            self.info_btn.config(state=tk.DISABLED)  
         else:
             self.edit_btn.config(state=tk.NORMAL)
             self.delete_btn.config(state=tk.NORMAL)
+            self.info_btn.config(state=tk.NORMAL)  
             
-            # Solo se puede liquidar si está en estado REQUESTED
+            
             if selected_diet.status == "requested": 
                 self.liquidate_btn.config(state=tk.NORMAL)
             else:

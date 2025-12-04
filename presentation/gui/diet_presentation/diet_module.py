@@ -73,6 +73,10 @@ class DietModule(ttk.Frame):
         self.liquidations_list.bind_selection(self.on_liquidation_selected)
 
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
+        self.advances_list.tree.bind("<Double-1>", lambda e: self.on_double_click())
+        self.liquidations_list.tree.bind("<Double-1>", lambda e: self.on_double_click())
+        if hasattr(self, 'all_list'):
+            self.all_list.tree.bind("<Double-1>", lambda e: self.on_double_click())
        
         try:
             # Lista de liquidaciones
@@ -84,6 +88,10 @@ class DietModule(ttk.Frame):
             import traceback
             traceback.print_exc()
 
+    def on_double_click(self):
+        """Maneja el doble clic en cualquier lista"""
+        self.show_selected_details()
+
     def on_tab_changed(self, event=None):
         """Se ejecuta cuando el usuario cambia de pestaña """
         self.current_diet = None
@@ -94,6 +102,38 @@ class DietModule(ttk.Frame):
         self.liquidations_list.clear_selection()
         if hasattr(self, 'all_list'):
             self.all_list.clear_selection()
+
+    def show_selected_details(self):
+        """Muestra los detalles del elemento seleccionado en la pestaña activa"""
+        current_tab = self.notebook.index(self.notebook.select())
+        
+        if current_tab == 0:  # Pestaña "Todas"
+            selected_item = self.all_list.get_selected_item()
+        elif current_tab == 1:  # Pestaña "Anticipos"  
+            selected_item = self.advances_list.get_selected_item()
+        elif current_tab == 2:  # Pestaña "Liquidaciones"
+            selected_item = self.liquidations_list.get_selected_item()
+        else:
+            selected_item = None
+        
+        if selected_item:
+            self.show_item_details(selected_item)
+        else:
+            messagebox.showinfo("Información", "Seleccione un elemento para ver los detalles")
+
+    def show_item_details(self, item):
+        """Muestra los detalles de un item (dieta o liquidación)"""
+        # Detectar si es dieta o liquidación
+        if hasattr(item, 'liquidation_number'):
+            # Es una liquidación
+            from .dialogs.liquidation_info_dialog import LiquidationInfoDialog
+            dialog = LiquidationInfoDialog(self, self.diet_service, self.request_user_service, self.card_service, item)
+        else:
+            # Es una dieta
+            from .dialogs.diet_info_dialog import DietInfoDialog
+            dialog = DietInfoDialog(self, self.diet_service, self.request_user_service, self.card_service, item)
+        
+        self.wait_window(dialog)
     
     def refresh_diets(self):
         """Actualiza las listas de dietas y liquidaciones"""
@@ -125,7 +165,7 @@ class DietModule(ttk.Frame):
     def on_liquidation_selected(self, liquidation: DietLiquidationResponseDTO):
         """Maneja la selección de una liquidación"""
         self.current_diet = None
-        self.actions_widget.update_buttons_state(None)
+        self.actions_widget.update_buttons_state(liquidation)
     
     def create_diet(self):
         """Abre diálogo para crear nueva dieta"""

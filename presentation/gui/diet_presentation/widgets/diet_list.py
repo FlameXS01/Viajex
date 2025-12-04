@@ -447,3 +447,4 @@ class DietList(ttk.Frame):
                     f"${monto:.2f}" if monto is not None else "$0.00"
                 ))
 
+   
