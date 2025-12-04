@@ -61,11 +61,11 @@ class DietServicesDialog(tk.Toplevel):
         list_frame.pack(fill=tk.BOTH, expand=True)
         
         # Treeview para mostrar servicios
-        columns = ("id", "tipo", "desayuno", "almuerzo", "comida", "aloj_efectivo", "aloj_tarjeta")
+        columns = ("tipo", "desayuno", "almuerzo", "comida", "aloj_efectivo", "aloj_tarjeta")
         self.treeview = ttk.Treeview(list_frame, columns=columns, show="headings", height=12)
         
         # Configurar columnas
-        self.treeview.heading("id", text="ID")
+        #self.treeview.heading("id", text="ID")
         self.treeview.heading("tipo", text="Tipo")
         self.treeview.heading("desayuno", text="Desayuno ($)")
         self.treeview.heading("almuerzo", text="Almuerzo ($)")
@@ -73,7 +73,7 @@ class DietServicesDialog(tk.Toplevel):
         self.treeview.heading("aloj_efectivo", text="Aloj. Efectivo ($)")
         self.treeview.heading("aloj_tarjeta", text="Aloj. Tarjeta ($)")
         
-        self.treeview.column("id", width=50)
+        #self.treeview.column("id", width=50)
         self.treeview.column("tipo", width=100)
         self.treeview.column("desayuno", width=100)
         self.treeview.column("almuerzo", width=100)
@@ -113,7 +113,6 @@ class DietServicesDialog(tk.Toplevel):
         for service in services:
             tipo = "Local" if service.is_local else "Fuera de provincia"
             self.treeview.insert("", "end", values=(
-                service.id,
                 tipo,
                 f"${service.breakfast_price:.2f}",
                 f"${service.lunch_price:.2f}",
@@ -122,17 +121,24 @@ class DietServicesDialog(tk.Toplevel):
                 f"${service.accommodation_card_price:.2f}"
             ))
     
+    def _get_local(self, place: str):
+        if place == 'Fuera de provincia':
+            return True
+        return False
+
     def _on_service_select(self, event):
         """Maneja la selección de un servicio"""
         selection = self.treeview.selection()
         if selection:
             item = self.treeview.item(selection[0])
-            service_id = item['values'][0]
+            print('>>>>>>>>>>>>>>>>>>>>>>>>>>', item['values'][1])
+            is_local = self._get_local(item['values'][1])
+            
             
             # Buscar el servicio completo
             services = self.diet_service.list_all_diet_services()
             self.selected_service = next(
-                (s for s in services if s.id == service_id), 
+                (s for s in services if s.is_local == is_local), 
                 None
             )
         else:

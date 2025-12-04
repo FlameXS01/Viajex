@@ -379,9 +379,11 @@ class DietAppService:
                         lunch_price: float, dinner_price: float, accommodation_cash_price: float, 
                         accommodation_card_price: float) -> Optional[DietServiceResponseDTO]:
         """Edita un servicio de dieta existente usando el caso de uso"""
+        
         try:
             
             use_case = EditDietServiceUseCase(self.diet_service_repository)
+
             diet_service = use_case.execute(
                 service_id=service_id,
                 is_local=is_local,
@@ -393,7 +395,6 @@ class DietAppService:
             )
             
             if diet_service:
-                print(self._to_diet_service_response_dto(diet_service), 'dto <<<<<<<<<<<<<<<<<<<<<<<<<<')
                 return self._to_diet_service_response_dto(diet_service)
             else:
                 messagebox.showerror("Error", "Servicio de dieta no encontrado")
@@ -406,6 +407,8 @@ class DietAppService:
         except Exception as e:
             # Manejar otros errores
             messagebox.showerror("Error", f"No se pudo editar el servicio de dieta: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return None
 
     def delete_diet_service(self, service_id: int) -> bool:
