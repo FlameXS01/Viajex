@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date
 from typing import Optional
 from core.entities.enums import DietStatus, PaymentMethod
 
@@ -18,14 +18,13 @@ class Diet:
     advance_number: int
     is_group: bool
     status: DietStatus
-    request_user_id: int
+    request_user_id: list[int]
     diet_service_id: int
     breakfast_count: int
     lunch_count: int
     dinner_count: int
     accommodation_count: int
     accommodation_payment_method: PaymentMethod
-    created_at: datetime
     id: Optional[int] = None
     accommodation_card_id: Optional[int] = None
 

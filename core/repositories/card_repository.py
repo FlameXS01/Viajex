@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 from core.entities.cards import Card
 
+
 class CardRepository(ABC):
     """
     Interfaz abstracta para el repositorio de Tarjetas.
@@ -34,7 +35,7 @@ class CardRepository(ABC):
         pass
     
     @abstractmethod
-    def delete(self, card_id: int) -> bool:  # ✅ Parámetro consistente
+    def delete(self, card_id: int) -> bool:  
         """Elimina una Tarjeta por su ID"""
         pass
     

@@ -6,9 +6,9 @@ class DietStatus(Enum):
     Enum que define los estados de una dieta
     
     """
-    REQUESTED = "requested"
-    LIQUIDATED = "liquidated"
-    PARTIALLY_LIQUIDATED = "partially_liquidated"
+    REQUESTED = "REQUESTED"
+    LIQUIDATED = "LIQUIDATED"
+    PARTIALLY_LIQUIDATED = "PARTIALLY_LIQUIDATED"
 
 class PaymentMethod(Enum):
     """
@@ -16,5 +16,5 @@ class PaymentMethod(Enum):
     Enum que define los métodos de pago para alojamiento
     
     """
-    CASH = "cash"
-    CARD = "card"
+    CASH = "CASH"
+    CARD = "CARD"

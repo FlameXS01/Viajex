@@ -14,9 +14,9 @@ class MainDashboard:
         self.auth_service = auth_service
         self.department_service = department_service
         self.card_service = card_service
-        self.current_module_instance = None  
         self.request_user_service = request_user_service
         self.diet_service = diet_service
+        self.current_module_instance = None  
         
         self.root = tk.Tk()
         self.root.title(f"Sistema de Gestión de Dietas - {user.username}")
@@ -292,7 +292,9 @@ class MainDashboard:
                 from presentation.gui.diet_presentation.diet_module import DietModule
                 self.current_module_instance = DietModule(
                     self.module_container,
-                    self.diet_service
+                    self.diet_service, 
+                    self.request_user_service,
+                    self.card_service
                 )
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
                 
@@ -316,7 +318,7 @@ class MainDashboard:
             self._show_welcome_screen()
 
     def _update_nav_buttons(self, active_module):
-        """Actualiza el estilo de los botones de navegación - VERSIÓN MEJORADA"""
+        """Actualiza el estilo de los botones de navegación"""
         for module_name, button in self.nav_buttons.items():
             if module_name == active_module:
                 button.configure(style='Sidebar.Active.TButton')
@@ -329,7 +331,6 @@ class MainDashboard:
             try:
                 widget.destroy()
             except tk.TclError:
-                # Ignorar errores de widgets ya destruidos
                 pass
 
     def _logout(self):

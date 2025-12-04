@@ -7,13 +7,13 @@ from decimal import Decimal
 @dataclass
 class DietServiceResponseDTO:
     """DTO para respuesta de servicios de dieta"""
-    id: int
     is_local: bool
     breakfast_price: float
     lunch_price: float
     dinner_price: float
     accommodation_cash_price: float
     accommodation_card_price: float
+    id: Optional[int] = None
 
 @dataclass
 class DietServiceCreateDTO:
@@ -83,8 +83,8 @@ class DietResponseDTO:
     accommodation_count: int
     accommodation_payment_method: str
     accommodation_card_id: Optional[int]
-    created_at: datetime
     total_amount: Optional[Decimal] = None
+
 
 @dataclass
 class DietLiquidationCreateDTO:
@@ -124,21 +124,6 @@ class DietLiquidationResponseDTO:
     diet_service_id: int
     accommodation_card_id: Optional[int]
     liquidated_amount: Optional[Decimal] = None
-
-@dataclass
-class DietMemberCreateDTO:
-    """DTO para agregar miembro a dieta grupal"""
-    diet_id: int
-    request_user_id: int
-
-@dataclass
-class DietMemberResponseDTO:
-    """DTO para respuesta de miembro de dieta"""
-    id: int
-    diet_id: int
-    request_user_id: int
-    request_user_name: str
-    request_user_ci: str
 
 @dataclass
 class DietCalculationDTO:

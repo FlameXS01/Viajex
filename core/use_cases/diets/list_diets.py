@@ -10,14 +10,16 @@ class ListDietsUseCase:
     
     def execute(
         self, 
-        status: DietStatus = None, 
+        status: str = None, 
         request_user_id: int = None
     ) -> List[Diet]:
+        
         if status:
-            return self.diet_repository.list_by_status(status)
-        elif request_user_id:
+            list = self.diet_repository.list_by_status(status)
+            return list
+        elif request_user_id is not None:
             return self.diet_repository.list_by_request_user(request_user_id)
         else:
-            # En una implementación real, podrías tener un método list_all
+            # Por defecto mostrar ambas
             return self.diet_repository.list_by_status(DietStatus.REQUESTED) + \
-                   self.diet_repository.list_by_status(DietStatus.LIQUIDATED)
+                self.diet_repository.list_by_status(DietStatus.LIQUIDATED)

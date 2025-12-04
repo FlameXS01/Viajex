@@ -15,18 +15,21 @@ class DietServiceRepositoryImpl(DietServiceRepository):
         self.session = session
     
     def create(self, diet_service: DietService) -> DietService:
-        model = DietServiceModel(
-            is_local=diet_service.is_local,
-            breakfast_price=diet_service.breakfast_price,
-            lunch_price=diet_service.lunch_price,
-            dinner_price=diet_service.dinner_price,
-            accommodation_cash_price=diet_service.accommodation_cash_price,
-            accommodation_card_price=diet_service.accommodation_card_price
-        )
-        self.session.add(model)
-        self.session.commit()
-        self.session.refresh(model)
-        return self._to_entity(model)
+        service = self.get_by_local(diet_service.is_local)
+        if not service:
+            model = DietServiceModel(
+                is_local=diet_service.is_local,
+                breakfast_price=diet_service.breakfast_price,
+                lunch_price=diet_service.lunch_price,
+                dinner_price=diet_service.dinner_price,
+                accommodation_cash_price=diet_service.accommodation_cash_price,
+                accommodation_card_price=diet_service.accommodation_card_price
+            )
+            self.session.add(model)
+            self.session.commit()
+            self.session.refresh(model)
+            return self._to_entity(model)
+            
     
     def get_by_id(self, diet_service_id: int) -> Optional[DietService]:
         model = self.session.query(DietServiceModel).filter(DietServiceModel.id == diet_service_id).first()

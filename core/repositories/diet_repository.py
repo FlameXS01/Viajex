@@ -30,6 +30,16 @@ class DietRepository(ABC):
         pass
     
     @abstractmethod
+    def get_all(self) -> list[Diet]:
+        """
+        
+        Obtiene una lista de todas las dietas
+        
+        """
+        pass
+
+
+    @abstractmethod
     def get_by_advance_number(self, advance_number: int) -> Optional[Diet]:
         """
         
@@ -39,7 +49,7 @@ class DietRepository(ABC):
         pass
     
     @abstractmethod
-    def list_by_status(self, status: DietStatus) -> List[Diet]:
+    def list_by_status(self, status: str) -> List[Diet]:
         """
         
         Lista dietas por estado
@@ -79,6 +89,15 @@ class DietRepository(ABC):
         """
         
         Actualiza una dieta existente
+        
+        """
+        pass
+
+    @abstractmethod
+    def update_status(self,id: int, status: str) -> Optional[Diet]:
+        """
+        
+        Actualiza una dieta existente con otro status
         
         """
         pass

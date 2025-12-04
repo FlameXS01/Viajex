@@ -15,13 +15,66 @@ class DietLiquidationDialog(tk.Toplevel):
         self.result = False
         
         self.title(f"Liquidar Dieta #{diet.advance_number}")
-        self.geometry("500x500")
+        self.geometry("500x450")
         self.resizable(False, False)
         self.transient(parent)
         self.grab_set()
         
         self.create_widgets()
         self.center_on_parent(parent)
+    
+    def calculate_total(self, breakfast_count, lunch_count, dinner_count, accommodation_count):
+        """Calcula el total basado en los precios del servicio"""
+        try:
+            if not self.diet_controller:
+                return 0.0
+            
+            # Obtener el servicio de dieta según si es local o no
+            service = self.diet_controller.get_diet_service_by_local(self.diet.is_local)
+            
+            if not service:
+                return 0.0
+            
+            # Calcular total
+            breakfast_total = breakfast_count * service.breakfast_price
+            lunch_total = lunch_count * service.lunch_price
+            dinner_total = dinner_count * service.dinner_price
+            
+            # Usar precio correcto según método de pago
+            if self.diet.accommodation_payment_method == "CARD":
+                accommodation_total = accommodation_count * service.accommodation_card_price
+            else:
+                accommodation_total = accommodation_count * service.accommodation_cash_price
+            
+            total = breakfast_total + lunch_total + dinner_total + accommodation_total            
+            return total
+            
+        except Exception as e:
+            print(f"ERROR calculando total: {e}")
+            return 0.0
+    
+    def update_total(self, *args):
+        """Actualiza el monto total cuando cambian las cantidades"""
+        try:
+            # Obtener valores actuales de los Spinbox
+            breakfast_count = self.liquidation_vars["desayunos"].get()
+            lunch_count = self.liquidation_vars["almuerzos"].get()
+            dinner_count = self.liquidation_vars["comidas"].get()
+            accommodation_count = self.liquidation_vars["alojamientos"].get()
+            
+            # Calcular nuevo total
+            new_total = self.calculate_total(
+                breakfast_count,
+                lunch_count,
+                dinner_count,
+                accommodation_count
+            )
+            
+            # Actualizar el label
+            self.total_var.set(f"Monto total a liquidar: ${new_total:.2f}")
+            
+        except Exception as e:
+            print(f"Error actualizando total: {e}")
     
     def create_widgets(self):
         main_frame = ttk.Frame(self, padding=10)
@@ -33,69 +86,77 @@ class DietLiquidationDialog(tk.Toplevel):
         
         ttk.Label(info_frame, text=f"Descripción: {self.diet.description}").pack(anchor=tk.W)
         ttk.Label(info_frame, text=f"Fechas: {self.diet.start_date} a {self.diet.end_date}").pack(anchor=tk.W)
-        ttk.Label(info_frame, text=f"Monto anticipado: ${self.diet.total_amount:.2f}").pack(anchor=tk.W)
+        ttk.Label(info_frame, text=f"Método pago alojamiento: {self.diet.accommodation_payment_method}").pack(anchor=tk.W)
+        
+        # Calcular monto total inicial
+        initial_total = self.calculate_total(
+            self.diet.breakfast_count,
+            self.diet.lunch_count,
+            self.diet.dinner_count,
+            self.diet.accommodation_count
+        )
+        
+        # Variable para el monto total (se actualizará dinámicamente)
+        self.total_var = tk.StringVar(value=f"Monto total a liquidar: ${initial_total:.2f}")
+        total_label = ttk.Label(info_frame, textvariable=self.total_var, font=('Arial', 10, 'bold'))
+        total_label.pack(anchor=tk.W, pady=(5, 0))
         
         # Servicios a liquidar
         services_frame = ttk.LabelFrame(main_frame, text="Servicios a Liquidar", padding=10)
         services_frame.pack(fill=tk.X, pady=(0, 10))
         
-        # Crear tabla comparativa
-        columns = ["Servicio", "Solicitado", "Liquidar"]
-        tree = ttk.Treeview(services_frame, columns=columns, show="headings", height=4)
+        # Variables para los Spinbox
+        self.liquidation_vars = {
+            "desayunos": tk.IntVar(value=self.diet.breakfast_count),
+            "almuerzos": tk.IntVar(value=self.diet.lunch_count),
+            "comidas": tk.IntVar(value=self.diet.dinner_count),
+            "alojamientos": tk.IntVar(value=self.diet.accommodation_count)
+        }
         
-        for col in columns:
-            tree.heading(col, text=col)
-            tree.column(col, width=100)
-        
-        # Datos de servicios
-        services_data = [
-            ("Desayunos", self.diet.breakfast_count),
-            ("Almuerzos", self.diet.lunch_count),
-            ("Comidas", self.diet.dinner_count),
-            ("Alojamientos", self.diet.accommodation_count)
-        ]
-        
-        self.liquidation_vars = {}
-        for i, (service, requested) in enumerate(services_data):
-            var = tk.IntVar(value=requested)
-            tree.insert("", "end", values=(service, requested, requested))
-            self.liquidation_vars[service.lower()] = var
-        
-        tree.pack(fill=tk.X)
+        # Configurar el trace para cada variable (para actualizar el total automáticamente)
+        for var in self.liquidation_vars.values():
+            var.trace_add("write", self.update_total)
         
         # Frame para editar cantidades
         edit_frame = ttk.Frame(services_frame)
         edit_frame.pack(fill=tk.X, pady=(10, 0))
         
-        ttk.Label(edit_frame, text="Desayunos:").grid(row=0, column=0, padx=(0, 5))
+        # Desayunos
+        ttk.Label(edit_frame, text="Desayunos:").grid(row=0, column=0, padx=(0, 5), pady=5, sticky=tk.W)
         breakfast_spin = ttk.Spinbox(edit_frame, from_=0, to=self.diet.breakfast_count, 
-                                   textvariable=self.liquidation_vars["desayunos"], width=10)
-        breakfast_spin.grid(row=0, column=1, padx=(0, 15))
+                                   textvariable=self.liquidation_vars["desayunos"], width=10,
+                                   command=self.update_total)
+        breakfast_spin.grid(row=0, column=1, padx=(0, 15), pady=5)
         
-        ttk.Label(edit_frame, text="Almuerzos:").grid(row=0, column=2, padx=(0, 5))
+        # Almuerzos
+        ttk.Label(edit_frame, text="Almuerzos:").grid(row=0, column=2, padx=(0, 5), pady=5, sticky=tk.W)
         lunch_spin = ttk.Spinbox(edit_frame, from_=0, to=self.diet.lunch_count,
-                               textvariable=self.liquidation_vars["almuerzos"], width=10)
-        lunch_spin.grid(row=0, column=3, padx=(0, 15))
+                               textvariable=self.liquidation_vars["almuerzos"], width=10,
+                               command=self.update_total)
+        lunch_spin.grid(row=0, column=3, padx=(0, 15), pady=5)
         
-        ttk.Label(edit_frame, text="Comidas:").grid(row=1, column=0, padx=(0, 5))
+        # Comidas
+        ttk.Label(edit_frame, text="Comidas:").grid(row=1, column=0, padx=(0, 5), pady=5, sticky=tk.W)
         dinner_spin = ttk.Spinbox(edit_frame, from_=0, to=self.diet.dinner_count,
-                                textvariable=self.liquidation_vars["comidas"], width=10)
-        dinner_spin.grid(row=1, column=1, padx=(0, 15))
+                                textvariable=self.liquidation_vars["comidas"], width=10,
+                                command=self.update_total)
+        dinner_spin.grid(row=1, column=1, padx=(0, 15), pady=5)
         
-        ttk.Label(edit_frame, text="Alojamientos:").grid(row=1, column=2, padx=(0, 5))
+        # Alojamientos
+        ttk.Label(edit_frame, text="Alojamientos:").grid(row=1, column=2, padx=(0, 5), pady=5, sticky=tk.W)
         accommodation_spin = ttk.Spinbox(edit_frame, from_=0, to=self.diet.accommodation_count,
-                                       textvariable=self.liquidation_vars["alojamientos"], width=10)
-        accommodation_spin.grid(row=1, column=3, padx=(0, 15))
+                                       textvariable=self.liquidation_vars["alojamientos"], width=10,
+                                       command=self.update_total)
+        accommodation_spin.grid(row=1, column=3, padx=(0, 15), pady=5)
         
-        # Método de pago
-        payment_frame = ttk.LabelFrame(main_frame, text="Método de Pago Alojamiento", padding=10)
-        payment_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        self.payment_method_var = tk.StringVar(value=self.diet.accommodation_payment_method)
-        ttk.Radiobutton(payment_frame, text="Efectivo", 
-                       variable=self.payment_method_var, value="CASH").pack(anchor=tk.W)
-        ttk.Radiobutton(payment_frame, text="Tarjeta", 
-                       variable=self.payment_method_var, value="CARD").pack(anchor=tk.W)
+        # Información de límites
+        limits_frame = ttk.Frame(services_frame)
+        limits_frame.pack(fill=tk.X, pady=(10, 0))
+        ttk.Label(limits_frame, text=f"Límites: Desayunos({self.diet.breakfast_count}), "
+                                   f"Almuerzos({self.diet.lunch_count}), "
+                                   f"Comidas({self.diet.dinner_count}), "
+                                   f"Alojamientos({self.diet.accommodation_count})",
+                font=('Arial', 8), foreground='gray').pack(anchor=tk.W)
         
         # Botones
         buttons_frame = ttk.Frame(main_frame)
@@ -136,7 +197,7 @@ class DietLiquidationDialog(tk.Toplevel):
                 lunch_count_liquidated=self.liquidation_vars["almuerzos"].get(),
                 dinner_count_liquidated=self.liquidation_vars["comidas"].get(),
                 accommodation_count_liquidated=self.liquidation_vars["alojamientos"].get(),
-                accommodation_payment_method=self.payment_method_var.get(),
+                accommodation_payment_method=self.diet.accommodation_payment_method,
                 diet_service_id=self.diet.diet_service_id,
                 accommodation_card_id=self.diet.accommodation_card_id
             )
@@ -151,3 +212,6 @@ class DietLiquidationDialog(tk.Toplevel):
                 
         except Exception as e:
             messagebox.showerror("Error", f"Error al liquidar: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            

@@ -1,5 +1,7 @@
 import tkinter as tk
 import pandas as pd
+from application.dtos.cards_dtos import CreateCardRequest
+from application.dtos.diet_dtos import DietServiceCreateDTO
 from application.dtos.request_user_dtos import RequestUserCreateDTO
 from application.services.card_service import CardService
 from application.services.department_service import DepartmentService
@@ -11,7 +13,6 @@ from core.use_cases.request_user.list_users_request import ListRequestUsersUseCa
 from infrastructure.database.repositories import card_repository
 from infrastructure.database.repositories.department_repository import DepartmentRepositoryImpl
 from infrastructure.database.repositories.diet_liquidation_repository import DietLiquidationRepositoryImpl
-from infrastructure.database.repositories.diet_member_repository import DietMemberRepositoryImpl
 from infrastructure.database.repositories.diet_repository import DietRepositoryImpl
 from infrastructure.database.repositories.diet_service_repository import DietServiceRepositoryImpl
 from infrastructure.database.repositories.request_user_repository import RequestUserRepositoryImpl
@@ -221,6 +222,87 @@ def initializate_departments (department_service: DepartmentService, unidades: l
                 print(f"Error creando departamento {unidad}: {e}")
     print('Departamentos inicializados')
 
+def initializate_diet_service (diet_service: DietAppService):
+    """
+    
+    Crea los departamentos por defecto si no existen
+    
+    """
+    try: 
+        service = diet_service.get_diet_service_by_local(True)
+        if not service:
+            diet_service_local = DietServiceCreateDTO(
+                is_local = True,
+                breakfast_price = 200,
+                lunch_price = 200,
+                dinner_price = 200,
+                accommodation_cash_price = 200,
+                accommodation_card_price = 200
+            )
+            succes = diet_service.create_diet_service(diet_service_local)
+            if not succes:
+                print('error creando servicio de dieta local')
+
+        service = diet_service.get_diet_service_by_local(is_local = False)
+        if not service:
+            diet_service_foreign = DietServiceCreateDTO(
+                is_local = False,
+                breakfast_price = 300,
+                lunch_price = 300,
+                dinner_price = 300,
+                accommodation_cash_price = 300,
+                accommodation_card_price = 300
+            )
+            succes = diet_service.create_diet_service(diet_service_foreign)
+            if not succes:
+                print('error creando servicio de dieta fuera de la provincia')  
+
+        print('Servicios de dietas inicializados')
+    except Exception as e:
+        print(f"Error creando servcios de dietas: {e}")
+        import traceback
+        traceback.print_exc()
+
+def initializate_card(card_service: CardService):
+    """
+    
+    Crea las tarjetas por defecto si no existen
+    
+    """
+    try:
+        df = pd.read_excel("Files/TARJETAS DE HOSPEDAJExlsx.xls", skiprows=0)
+        dirty_data = df['Listado de tarjetas de Hospedaje ']
+        
+        for index, number in dirty_data.items():
+            number = str(number).strip()
+            
+            if not number or number == 'nan' or number == 'None':
+                continue
+            #print(number)
+            card = card_service.get_card_by_card_number(number)
+            if not card:
+                card_number = number
+                card_pin = '0000'
+                amount = 0.00
+                
+                success = card_service.create_card(card_number, card_pin, amount)
+                if not success:
+                    print(f'Error creando tarjeta con número: {number}')
+           
+
+        print('Tarjetas de hospedajes inicializadas correctamente')
+        
+    except FileNotFoundError:
+        print("Error: Archivo no encontrado. Verifica la ruta y nombre del archivo.")
+    except KeyError as e:
+        print(f"Error: Columna no encontrada en el archivo: {e}")
+    except Exception as e:
+        print(f"Error creando tarjetas: {e}")
+        import traceback
+        traceback.print_exc()
+
+    
+
 def main():
     """Función principal que inicializa la aplicación completa"""
     # Configuración de la base de datos
@@ -237,7 +319,6 @@ def main():
         card_repository= CardRepositoryImpl(db_session)
 
         diet_liquidation_repository = DietLiquidationRepositoryImpl(db_session)
-        diet_member_repository = DietMemberRepositoryImpl(db_session)
         diet_repository = DietRepositoryImpl(db_session)
         diet_service_repository = DietServiceRepositoryImpl(db_session)
         
@@ -338,7 +419,6 @@ def main():
             diet_liquidation_repository=diet_liquidation_repository,
             diet_service_repository = diet_service_repository,
             diet_repository = diet_repository,
-            diet_member_repository = diet_member_repository,
             request_user_repository = request_user_repository,
         )
 
@@ -360,8 +440,12 @@ def main():
         unidades = _departaments_by_file()
         initializate_departments(department_service, unidades)
 
+        # Crear solicitantes
         personas = _request_users_by_file()
         initialize_request_users(request_user_service, personas, department_service)
+
+        # Crear servicios de dietas
+        initializate_diet_service(diet_service)
 
         # Inicializar casos de uso de autenticación
         login_use_case = LoginUseCase(user_repository, password_hasher)
@@ -391,7 +475,7 @@ def main():
             
             # Después de cerrar el dashboard, preguntar si quiere salir completamente
             if not auth_service.is_authenticated():
-                response = tk.messagebox.askyesno(
+                response = tk.messagebox.askyesno(                      # type: ignore
                     "Salir", 
                     "¿Desea salir completamente de la aplicación?"
                 )
@@ -400,7 +484,7 @@ def main():
 
     except Exception as e:
         print(f"Error crítico en la aplicación: {e}")
-        tk.messagebox.showerror("Error", f"Error crítico: {e}")
+        tk.messagebox.showerror("Error", f"Error crítico: {e}")         # type: ignore
     finally:
         db_session.close()
 

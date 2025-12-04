@@ -32,7 +32,7 @@ class DietRepositoryImpl(DietRepository):
             lunch_count=diet.lunch_count,
             dinner_count=diet.dinner_count,
             accommodation_count=diet.accommodation_count,
-            accommodation_payment_method=diet.accommodation_payment_method.value,
+            accommodation_payment_method=diet.accommodation_payment_method.upper(),
             accommodation_card_id=diet.accommodation_card_id
         )
         self.session.add(model)
@@ -52,6 +52,10 @@ class DietRepositoryImpl(DietRepository):
         models = self.session.query(DietModel).filter(DietModel.status == status.value).all()
         return [self._to_entity(model) for model in models]
     
+    def get_all(self) -> List[Diet]:
+        models = self.session.query(DietModel).all()
+        return [self._to_entity(model) for model in models]
+    
     def list_by_request_user(self, request_user_id: int) -> List[Diet]:
         models = self.session.query(DietModel).filter(DietModel.request_user_id == request_user_id).all()
         return [self._to_entity(model) for model in models]
@@ -69,6 +73,7 @@ class DietRepositoryImpl(DietRepository):
     
     def update(self, diet: Diet) -> Diet:
         model = self.session.query(DietModel).filter(DietModel.id == diet.id).first()
+        
         if model:
             model.is_local = diet.is_local
             model.start_date = diet.start_date
@@ -76,18 +81,26 @@ class DietRepositoryImpl(DietRepository):
             model.description = diet.description
             model.advance_number = diet.advance_number
             model.is_group = diet.is_group
-            model.status = diet.status.value
+            model.status = diet.status.upper()
             model.request_user_id = diet.request_user_id
             model.diet_service_id = diet.diet_service_id
             model.breakfast_count = diet.breakfast_count
             model.lunch_count = diet.lunch_count
             model.dinner_count = diet.dinner_count
             model.accommodation_count = diet.accommodation_count
-            model.accommodation_payment_method = diet.accommodation_payment_method.value
+            model.accommodation_payment_method = diet.accommodation_payment_method.upper()
             model.accommodation_card_id = diet.accommodation_card_id
             self.session.commit()
             self.session.refresh(model)
         return self._to_entity(model)
+    
+    def update_status(self, id: int, status: DietStatus) -> Optional[Diet]:
+        model = self.session.query(DietModel).filter(DietModel.id == id).first()
+        if model:  
+            model.status = status
+            self.session.commit()
+            self.session.refresh(model)
+        return self._to_entity(model) if model else None
     
     def delete(self, diet_id: int) -> bool:
         model = self.session.query(DietModel).filter(DietModel.id == diet_id).first()
@@ -102,19 +115,9 @@ class DietRepositoryImpl(DietRepository):
         return result if result else 0
     
     def reset_advance_numbers(self) -> bool:
-        try:
-            # En SQLite necesitamos una estrategia diferente para reiniciar
-            # Podemos usar una tabla temporal o simplemente resetear manualmente
-            self.session.execute("DELETE FROM sqlite_sequence WHERE name='diets'")
-            self.session.commit()
-            return True
-        except Exception:
-            self.session.rollback()
-            return False
+        pass
     
-    def _to_entity(self, model: DietModel) -> Diet:
-        from core.entities.diet import DietStatus, PaymentMethod
-        
+    def _to_entity(self, model: DietModel) -> Diet:        
         return Diet(
             id=model.id,
             is_local=model.is_local,
@@ -123,14 +126,13 @@ class DietRepositoryImpl(DietRepository):
             description=model.description,
             advance_number=model.advance_number,
             is_group=model.is_group,
-            status=DietStatus(model.status),
+            status=model.status.value,
             request_user_id=model.request_user_id,
             diet_service_id=model.diet_service_id,
             breakfast_count=model.breakfast_count,
             lunch_count=model.lunch_count,
             dinner_count=model.dinner_count,
             accommodation_count=model.accommodation_count,
-            accommodation_payment_method=PaymentMethod(model.accommodation_payment_method),
-            accommodation_card_id=model.accommodation_card_id,
-            created_at=model.created_at
+            accommodation_payment_method=model.accommodation_payment_method.value,
+            accommodation_card_id=model.accommodation_card_id
         )

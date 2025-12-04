@@ -73,3 +73,5 @@ class UserRequestService:
 
     def delete_user(self, user_id: int) -> bool:
         return self.delete_user_request.execute(user_id)
+    
+    

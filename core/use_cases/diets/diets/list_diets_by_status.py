@@ -9,4 +9,4 @@ class ListDietsByStatusUseCase:
         self.diet_repository = diet_repository
     
     def execute(self, status: DietStatus) -> List[Diet]:
-        return self.diet_repository.list_by_status(status)
+        return self.diet_repository.list_by_status(status) # type: ignore

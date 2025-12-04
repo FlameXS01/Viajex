@@ -114,11 +114,9 @@ class DietModel(Base):
     request_user = relationship("RequestUserModel", back_populates="diets")
     diet_service = relationship("DietServiceModel", back_populates="diets")
     accommodation_card = relationship("CardModel")
-    diet_members = relationship("DietMemberModel", back_populates="diet", cascade="all, delete-orphan")
     liquidations = relationship("DietLiquidationModel", back_populates="diet")
 
-    def __repr__(self):
-        return f"<DietModel(id={self.id}, request_user={self.request_user_id}, status='{self.status.value}')>"
+    
 
 class DietLiquidationModel(Base):
     """
@@ -164,27 +162,6 @@ class DietLiquidationModel(Base):
     diet_service = relationship("DietServiceModel", back_populates="diet_liquidations")
     accommodation_card = relationship("CardModel")
 
-class DietMemberModel(Base):
-    """
-    Modelo de SQLAlchemy para la tabla diet_members.
-    
-    Representa los miembros adicionales en dietas grupales. Solo se utiliza
-    cuando is_group = True en la dieta principal.
-    
-    Campos:
-        id: Identificador único
-        diet_id: FK a la dieta grupal
-        request_user_id: FK al solicitante que es miembro del grupo
-    """
-    __tablename__ = "diet_members"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    diet_id = Column(Integer, ForeignKey("diets.id"), nullable=False)
-    request_user_id = Column(Integer, ForeignKey("requests.id"), nullable=False)
-    
-    # Relaciones
-    diet = relationship("DietModel", back_populates="diet_members")
-    request_user = relationship("RequestUserModel", back_populates="diet_memberships")
 
 class RequestUserModel(Base):
     """
@@ -214,7 +191,6 @@ class RequestUserModel(Base):
     
     # NUEVAS relaciones para dietas
     diets = relationship("DietModel", back_populates="request_user")
-    diet_memberships = relationship("DietMemberModel", back_populates="request_user")
 
 class DepartmentModel(Base):
     """
