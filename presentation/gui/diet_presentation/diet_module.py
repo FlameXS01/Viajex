@@ -139,7 +139,6 @@ class DietModule(ttk.Frame):
             dialog = DietInfoDialog(self, self.diet_service, self.request_user_service, self.card_service, item)
         
         self.wait_window(dialog)
-    
         
     def refresh_diets(self):
         """Actualiza las listas de dietas y liquidaciones"""
@@ -194,6 +193,23 @@ class DietModule(ttk.Frame):
             self.actions_widget.update_buttons_state(None)
             self.advances_list.clear_selection()
     
+    def _manage_services(self):
+        """Abre la gestión de servicios de dieta"""
+        try:
+            from presentation.gui.diet_presentation.dialogs.diet_services_dialog import DietServicesDialog
+            
+            dialog = DietServicesDialog(self.winfo_toplevel(), self.diet_service)
+            self.wait_window(dialog)
+            
+            if hasattr(dialog, 'result') and dialog.result:
+                self.refresh_diets()
+                
+        except ImportError as e:
+            messagebox.showerror("Error", f"No se encontró el módulo de servicios: {str(e)}")
+            messagebox.showinfo("Información", "Funcionalidad de Gestión de Servicios en desarrollo")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo abrir la gestión de servicios: {str(e)}")
+
     def delete_diet(self):
         """Elimina la dieta seleccionada"""
         if not self.current_diet:

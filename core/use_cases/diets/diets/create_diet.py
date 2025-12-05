@@ -28,7 +28,7 @@ class CreateDietUseCase:
             raise ValueError("El solicitante no existe")
             
         # Validar que el servicio de dieta existe
-        diet_service = self.diet_service_repository.get_by_id(diet_data['diet_service_id'])
+        diet_service = self.diet_service_repository.get_by_local(diet_data['is_local'])
         if not diet_service:
             raise ValueError("El servicio de dieta no existe")
             
@@ -46,7 +46,7 @@ class CreateDietUseCase:
             is_group=diet_data['is_group'],
             status=DietStatus.REQUESTED,
             request_user_id=diet_data['request_user_id'],  
-            diet_service_id=diet_data['diet_service_id'],
+            diet_service_id=diet_service.id,
             breakfast_count=diet_data['breakfast_count'],
             lunch_count=diet_data['lunch_count'],
             dinner_count=diet_data['dinner_count'],
@@ -57,3 +57,4 @@ class CreateDietUseCase:
         
         created_diet = self.diet_repository.create(diet)
         return created_diet
+    
