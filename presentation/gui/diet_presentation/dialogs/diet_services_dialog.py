@@ -131,7 +131,6 @@ class DietServicesDialog(tk.Toplevel):
         selection = self.treeview.selection()
         if selection:
             item = self.treeview.item(selection[0])
-            print('>>>>>>>>>>>>>>>>>>>>>>>>>>', item['values'][1])
             is_local = self._get_local(item['values'][1])
             
             
