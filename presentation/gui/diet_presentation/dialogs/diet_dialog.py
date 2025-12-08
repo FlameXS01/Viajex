@@ -22,8 +22,6 @@ class DietDialog(tk.Toplevel):
         self.minsize(900, 875)   
         self.resizable(True, True)
         
-        
-
         self.transient(parent)
         self.grab_set()
         
@@ -177,6 +175,14 @@ class DietDialog(tk.Toplevel):
             if (data["breakfast_count"] == 0 and data["lunch_count"] == 0 and 
                 data["dinner_count"] == 0 and data["accommodation_count"] == 0):
                 messagebox.showwarning("Validación", "Debe solicitar al menos un servicio")
+                return False
+            
+            if data["accommodation_payment_method"] == "CARD" and data["accommodation_count"] == 0:
+                messagebox.showwarning(
+                    "Validación", 
+                    "La tarjeta solo puede usarse para pagar alojamientos.\n"
+                    "Agregue al menos un alojamiento o cambie el método de pago a efectivo."
+                )
                 return False
             
             if not data.get("user_ids"):

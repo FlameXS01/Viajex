@@ -1,7 +1,11 @@
 import tkinter as tk
 from tkinter import ttk
 from datetime import datetime, timedelta
+from tkinter import messagebox
 from typing import List, Optional, Dict, Any
+
+from application.services.diet_service import DietAppService
+from core.entities import diet_service
 
 
 class DietForm(ttk.Frame):
@@ -11,18 +15,21 @@ class DietForm(ttk.Frame):
 
     """
     
-    def __init__(self, parent, user_service, card_service, diet_member_service, diet=None, **kwargs):
+    def __init__(self, parent, user_service, card_service, diet_service: DietAppService, diet=None, **kwargs):
         super().__init__(parent, **kwargs)
         self.user_service = user_service
         self.card_service = card_service
-        self.diet_member_service = diet_member_service
+        self.diet_service = diet_service
         self.diet = diet
         self.is_edit_mode = diet is not None
         self.current_diet_id = diet.id if diet else None
+        self.acumulative_price = 0
+        self.main_frame = None
         
         # Datos
         self.users = user_service.get_all_users() if user_service else []
         self.cards = card_service.get_all_cards() if card_service else []
+        self.valid_cards = []
         
         # Variables de control
         self._setup_variables()
@@ -75,6 +82,8 @@ class DietForm(ttk.Frame):
         self._create_user_selection_section(main_frame)
         self._create_diet_details_section(main_frame)
         self._create_payment_section(main_frame)
+
+        self.main_frame = main_frame
 
     def _create_basic_info_section(self, parent):
         """Crea la sección de información básica"""
@@ -415,7 +424,7 @@ class DietForm(ttk.Frame):
         """Crea la sección de método de pago"""
         payment_frame = ttk.LabelFrame(
             parent, 
-            text="💳 Método de Pago", 
+            text=" Método de Pago", 
             padding=15
         )
         payment_frame.grid(row=4, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 15))
@@ -448,8 +457,10 @@ class DietForm(ttk.Frame):
         )
         card_radio.grid(row=0, column=2, sticky=tk.W)
 
-        # Combobox para tarjetas
-        card_values = [f"{card.card_number} - {card.card_pin}" for card in self.cards]
+        # Combobox para tarjetas.
+        
+        self.valid_cards = [card for card in self.cards if card.balance > self.acumulative_price]
+        card_values = [f"{card.card_number} - {card.card_pin}" for card in self.valid_cards]
         self.card_combo = ttk.Combobox(
             method_frame,
             values=card_values,
@@ -468,8 +479,37 @@ class DietForm(ttk.Frame):
         # Validación básica de fechas
         self.start_date_entry.bind('<FocusOut>', self._validate_dates)
         self.end_date_entry.bind('<FocusOut>', self._validate_dates)
+        self.service_vars["accommodation_count"].trace_add("write", self._on_accommodation_change)
+        self.is_local_var.trace_add("write", self._on_accommodation_change)
 
     # ===== MÉTODOS DE MANEJO DE EVENTOS =====
+    def _on_accommodation_change(self, *args):
+        """Actualiza las tarjetas válidas cuando cambia la cantidad de hospedaje"""
+        # Recalcular el precio acumulado
+        data = self.get_form_data()  # Esto ya calcula self.acumulative_price
+        
+        # Actualizar la lista de tarjetas válidas
+        if hasattr(self, 'card_combo') and self.payment_method_var.get() == "CARD":
+            # Filtrar tarjetas con balance suficiente
+            self.valid_cards = [card for card in self.cards if card.balance >= self.acumulative_price]
+            card_values = [f"{card.card_number} - {card.card_pin}" for card in self.valid_cards]
+            
+            # Actualizar el combobox
+            current_selection = self.selected_card_var.get()
+            self.card_combo['values'] = card_values
+            
+            if card_values:
+                # Mantener la selección anterior si sigue siendo válida
+                if current_selection in card_values:
+                    self.card_combo.set(current_selection)
+                else:
+                    self.card_combo.set(card_values[0])
+            else:
+                self.card_combo.set('')
+                messagebox.showwarning(
+                    "Tarjetas Insuficientes", 
+                    f"No hay tarjetas con saldo suficiente (${self.acumulative_price:.2f} requeridos)"
+                )
 
     def _on_diet_type_change(self):
         """Maneja el cambio entre modo individual y grupal"""
@@ -477,9 +517,11 @@ class DietForm(ttk.Frame):
             self.individual_frame.grid()
             self.group_frame.grid_remove()
             self.user_combo.config(state="readonly")
+            self._create_payment_section(self.main_frame)
         else:
             self.individual_frame.grid_remove()
             self.group_frame.grid()
+            self._create_payment_section(self.main_frame)
             
         # Actualizar título de la sección
         new_title = "👤 Selección de Usuario" if self.diet_type_var.get() == "INDIVIDUAL" else "👥 Selección de Usuarios"
@@ -488,9 +530,10 @@ class DietForm(ttk.Frame):
     def _on_payment_method_change(self):
         """Maneja el cambio de método de pago"""
         if self.payment_method_var.get() == "CARD":
-            self.card_combo.config(state="readonly")
+            self.card_combo.config(state='readonly')
+            self._on_accommodation_change()
         else:
-            self.card_combo.config(state="disabled")
+            self.card_combo.config(state='disabled')
 
     def _add_selected_user(self):
         """Agrega usuario seleccionado a la lista de seleccionados"""
@@ -499,6 +542,7 @@ class DietForm(ttk.Frame):
             user_text = self.available_listbox.get(selection[0])
             self.available_listbox.delete(selection[0])
             self.selected_listbox.insert(tk.END, user_text)
+            self._create_payment_section(self.main_frame)
 
     def _remove_selected_user(self):
         """Remueve usuario seleccionado de la lista de seleccionados"""
@@ -507,6 +551,7 @@ class DietForm(ttk.Frame):
             user_text = self.selected_listbox.get(selection[0])
             self.selected_listbox.delete(selection[0])
             self.available_listbox.insert(tk.END, user_text)
+            self._create_payment_section(self.main_frame)
 
     def _add_all_users(self):
         """Agrega todos los usuarios a la lista de seleccionados"""
@@ -534,7 +579,7 @@ class DietForm(ttk.Frame):
                 datetime.strptime(end_date, "%d/%m/%Y")
                 
         except ValueError:
-            # En una implementación real, mostrarías un mensaje de error
+            
             pass
 
     # ===== MÉTODOS DE CARGA Y OBTENCIÓN DE DATOS =====
@@ -623,9 +668,9 @@ class DietForm(ttk.Frame):
         Obtiene todos los datos del formulario en un diccionario
         """
         selected_user_ids = []
-        
+        total_request_user = 0
         if self.is_edit_mode:
-            # EN MODO EDICIÓN: Usar el request_user_id de la dieta (ahora siempre individual)
+            # EN MODO EDICIÓN: Usar el request_user_id de la dieta 
             selected_user_ids = [self.diet.request_user_id]
         else:
             # EN MODO CREACIÓN: Usar la selección normal
@@ -636,14 +681,17 @@ class DietForm(ttk.Frame):
                     user = next((u for u in self.users if f"{u.fullname} ({u.ci})" == selected_user), None)
                     if user:
                         selected_user_ids = [user.id]
+                total_request_user = 1
             else:
                 # Modo grupal
                 selected_count = self.selected_listbox.size()
+                total_request_user = selected_count
                 for i in range(selected_count):
                     user_text = self.selected_listbox.get(i)
                     user = next((u for u in self.users if f"{u.fullname} ({u.ci})" == user_text), None)
                     if user:
                         selected_user_ids.append(user.id)
+                
         
         # El resto del código se mantiene igual...
         selected_card = self.selected_card_var.get()
@@ -651,6 +699,12 @@ class DietForm(ttk.Frame):
         if selected_card and self.payment_method_var.get() == "CARD":
             card = next((c for c in self.cards if f"{c.card_number} - {c.card_pin}" == selected_card), None)
             card_id = card.id if card else None
+        
+        total_acomodation_service = total_request_user * self.service_vars["accommodation_count"].get()
+        if (self.is_local_var.get()):
+            self.acumulative_price = total_acomodation_service * self.diet_service.get_diet_service_by_local(True).accommodation_card_price
+        else:
+            self.acumulative_price = total_acomodation_service * self.diet_service.get_diet_service_by_local(False).accommodation_card_price
         
         return {
             "description": self.description_var.get(),

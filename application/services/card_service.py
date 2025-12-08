@@ -2,6 +2,7 @@ from typing import List, Optional
 from core.entities.cards import Card
 from core.use_cases.cards.create_card import CreateCardUseCase
 from core.use_cases.cards.delete_card import DeleteCardUseCase
+from core.use_cases.cards.discount_card import DiscountCardUseCase
 from core.use_cases.cards.update_card import UpdateCardUseCase
 from core.use_cases.cards.get_card_use_case import GetCardByIdUseCase
 from core.use_cases.cards.get_all_cards import GetAllCardsUseCase
@@ -18,8 +19,8 @@ class CardService:
                  get_all_cards_use_case: GetAllCardsUseCase,
                  toggle_card_active_use_case: ToggleCardActiveUseCase,
                  recharge_card_use_case: RechargeCardUseCase,
-                 get_card_by_number_use_case: GetCardByNumberUseCase
-                 ):  
+                 get_card_by_number_use_case: GetCardByNumberUseCase,
+                 discount_card_use_case: DiscountCardUseCase):  
         self.create_card_use_case = create_card_use_case
         self.delete_card_use_case = delete_card_use_case
         self.update_card_use_case = update_card_use_case
@@ -28,16 +29,20 @@ class CardService:
         self.toggle_card_active_use_case = toggle_card_active_use_case
         self.get_card_by_number_use_case = get_card_by_number_use_case  
         self.recharge_card_use_case = recharge_card_use_case
+        self.discount_card_use_case = discount_card_use_case
 
     def create_card(self, card_number: str, card_pin: str, amount: float) -> Optional[Card]:
         return self.create_card_use_case.execute(card_number, card_pin, amount)
-
+    
     def delete_card(self, card_id: int) -> bool:
         return self.delete_card_use_case.execute(card_id)
     
     def recharge_card(self, card_id: int, amount: float) -> bool:
         return self.recharge_card_use_case.execute(card_id, amount)
-
+    
+    def discount_card(self, card_id: int, amount: float) -> bool:
+        return self.discount_card_use_case.execute(card_id, amount)
+    
     def update_card(self, card_id: int, card_number: str, card_pin: str) -> Optional[Card]:
         return self.update_card_use_case.execute(card_id, card_number, card_pin)
 

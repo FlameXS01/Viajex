@@ -43,6 +43,11 @@ class CardRepository(ABC):
     def recharge(self, card_id: int, amount: float) -> bool:  
         """Recarga una Tarjeta"""
         pass
+
+    @abstractmethod
+    def discount(self, card_id: int, amount: float) -> bool:  
+        """Descarga una Tarjeta"""
+        pass
     
     @abstractmethod
     def get_active_cards(self) -> List[Card]:
