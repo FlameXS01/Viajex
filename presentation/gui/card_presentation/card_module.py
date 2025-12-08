@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 from application.services.card_service import CardService
 
 # Importar componentes modulares de cards
+from presentation.gui.card_presentation.dialogs.recharge_dialog import RechargeDialog
 from presentation.gui.card_presentation.widgets.card_list import CardList
 from presentation.gui.card_presentation.widgets.card_actions import CardActions
 from presentation.gui.card_presentation.dialogs.card_dialog import CardDialog
@@ -34,7 +35,7 @@ class CardModule(ttk.Frame):
                     font=('Arial', 18, 'bold'), style='Content.TLabel').grid(row=0, column=0, sticky='w')
         
         # Botón de crear tarjeta
-        create_btn = ttk.Button(header_frame, text="➕ Crear Tarjeta", 
+        create_btn = ttk.Button(header_frame, text="Crear Tarjeta", 
                                 command=self._create_card)
         create_btn.grid(row=0, column=1, sticky='e', padx=(0, 10))
         
@@ -58,6 +59,7 @@ class CardModule(ttk.Frame):
         actions_frame.grid(row=1, column=0, sticky='ew')
         
         self.card_actions = CardActions(actions_frame, {
+            'recharge': self._recharge,
             'edit': self._edit_card,
             'toggle_active': self._toggle_active,
             'delete': self._delete_card
@@ -68,7 +70,6 @@ class CardModule(ttk.Frame):
         """Maneja la selección de tarjetas en la lista - obtener ID desde tags"""
         selection = self.card_list.tree.selection()
         if selection:
-            # CAMBIAR: Obtener el ID desde los tags en lugar de desde la columna
             item = self.card_list.tree.item(selection[0])
             card_id = item['tags'][0] if item['tags'] else None  
             self.selected_card_id = card_id
@@ -76,6 +77,36 @@ class CardModule(ttk.Frame):
         else:
             self.selected_card_id = None
             self.card_actions.set_buttons_state(tk.DISABLED)
+
+    def _recharge(self):
+        """Abre diálogo para recargar una tarjeta"""
+        if not self.selected_card_id:
+            messagebox.showwarning("Advertencia", "Selecciona una tarjeta para recargar")
+            return
+            
+        try:
+            card = self.card_service.get_card_by_id(self.selected_card_id)
+            if not card:
+                messagebox.showerror("Error", "Tarjeta no encontrada")
+                return
+            
+            # Usar el diálogo de recarga
+            dialog = RechargeDialog(self.winfo_toplevel(), card)
+            amount = dialog.show()
+            
+            if amount:
+                try:
+                    success = self.card_service.recharge_card(self.selected_card_id, amount)
+                    if success:
+                        messagebox.showinfo("Éxito", f"Se recargaron ${amount:.2f} a la tarjeta")
+                        self._load_cards()
+                    else:
+                        messagebox.showerror("Error", "No se pudo recargar la tarjeta")
+                except Exception as e:
+                    messagebox.showerror("Error", f"No se pudo recargar la tarjeta: {str(e)}")
+                    
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al recargar tarjeta: {str(e)}")
 
     def _create_card(self):
         """Abre diálogo para crear nueva tarjeta"""
@@ -101,6 +132,8 @@ class CardModule(ttk.Frame):
                     self._load_cards()
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo editar la tarjeta: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     def _toggle_active(self):
         """Activa/desactiva la tarjeta seleccionada"""

@@ -38,8 +38,12 @@ class CardRepository(ABC):
     def delete(self, card_id: int) -> bool:  
         """Elimina una Tarjeta por su ID"""
         pass
+
+    @abstractmethod
+    def recharge(self, card_id: int, amount: float) -> bool:  
+        """Recarga una Tarjeta"""
+        pass
     
-    # ✅ Métodos adicionales útiles
     @abstractmethod
     def get_active_cards(self) -> List[Card]:
         """Obtiene todas las tarjetas activas"""

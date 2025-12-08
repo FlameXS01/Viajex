@@ -78,6 +78,15 @@ class CardRepositoryImpl(CardRepository):
             return True
         return False
     
+    def recharge(self, card_id: int, amount: float) -> bool:
+        """Recarga una tarjeta"""
+        db_card = self.db.query(CardModel).filter(CardModel.card_id == card_id).first()  
+        if db_card:
+            db_card.balance += amount
+            self.db.commit()
+            return True
+        return False
+    
     def exists_by_card_number(self, card_number: str) -> bool:
         """Verifica si existe una tarjeta por número de tarjeta"""
         return self.db.query(CardModel).filter(CardModel.card_number == card_number).first() is not None

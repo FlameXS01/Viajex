@@ -57,6 +57,7 @@ from core.use_cases.cards.get_card_by_number import GetCardByNumberUseCase
 from core.use_cases.cards.get_card_use_case import GetCardByIdUseCase
 from core.use_cases.cards.toggle_card_active import ToggleCardActiveUseCase
 from core.use_cases.cards.update_card import UpdateCardUseCase
+from core.use_cases.cards.recharged_card import RechargeCardUseCase
 
 # Use Case diets
 # from core.use_cases.diets.calculate_diet_amount import CalculateDietAmountUseCase
@@ -96,6 +97,7 @@ from application.services.request_service import UserRequestService
 from application.services.diet_service import DietAppService
 
 # GUI
+from presentation.gui.card_presentation.dialogs import recharge_dialog
 from presentation.gui.login_window import LoginWindow
 from presentation.gui.main_dashboard import MainDashboard
 
@@ -352,6 +354,7 @@ def main():
         get_all_cards_use_case = GetAllCardsUseCase(card_repository)
         toggle_card_active_use_case = ToggleCardActiveUseCase(card_repository)
         get_card_by_number_use_case = GetCardByNumberUseCase(card_repository)
+        recharge_card_use_case = RechargeCardUseCase(card_repository)
 
         # Inicializar casos de uso de dietas
         # calculate_diet_amount = CalculateDietAmountUseCase(diet_service_repository)
@@ -430,6 +433,7 @@ def main():
             get_card_by_id_use_case = get_card_by_id_use_case,
             get_all_cards_use_case = get_all_cards_use_case,
             toggle_card_active_use_case = toggle_card_active_use_case,
+            recharge_card_use_case = recharge_card_use_case,
             get_card_by_number_use_case = get_card_by_number_use_case
         )
 
