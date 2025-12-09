@@ -13,7 +13,9 @@ from core.repositories.request_user_repository import RequestUserRepository
 
 from core.use_cases.diets.diet_liquidations.list_all_liquidations import ListAllLiquidationsUseCase
 from core.use_cases.diets.diet_services.get_diet_service_by_local import GetDietServiceByLocalUseCase
+from core.use_cases.diets.diet_services.get_service_diet_by_id import GetDietServiceByIdUseCase
 from core.use_cases.diets.diet_services.list_all_diet_services import ListAllDietServicesUseCase
+from core.use_cases.diets.diets.card_on_the_road import CardOnTheRoadUseCase
 from core.use_cases.diets.diets.create_diet import CreateDietUseCase
 from core.use_cases.diets.diets.get_all import GetAllUseCase
 from core.use_cases.diets.diets.get_diet import GetDietUseCase
@@ -70,6 +72,17 @@ class DietAppService:
         use_case = GetDietServiceByLocalUseCase(self.diet_service_repository)
         diet_service = use_case.execute(is_local)
         return self._to_diet_service_response_dto(diet_service) if diet_service else None
+    
+    def get_diet_service_by_id(self, id: int) -> Optional[DietServiceResponseDTO]:
+        """Obtiene el servicio de dieta por id"""
+        use_case = GetDietServiceByIdUseCase(self.diet_service_repository)
+        diet_service = use_case.execute(id)
+        return self._to_diet_service_response_dto(diet_service) if diet_service else None
+    
+    def card_on_the_road(self, card_id) -> bool:
+        """Verifica si una tarjeta está siendo usada en dietas pendientes"""
+        use_case = CardOnTheRoadUseCase(self.diet_repository)
+        return use_case.execute(card_id)
     
     def list_all_diet_services(self) -> List[DietServiceResponseDTO]:
         """Lista todos los servicios de dieta"""

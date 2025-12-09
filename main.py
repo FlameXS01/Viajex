@@ -8,6 +8,8 @@ from application.services.department_service import DepartmentService
 from core.entities.department import Department
 from core.entities.diet_service import DietService
 from core.repositories.department_repository import DepartmentRepository
+from core.use_cases.cards.aviable_card import GetAviableCardsUseCase
+from core.use_cases.cards.discount_card import DiscountCardUseCase
 from core.use_cases.request_user import create_request_user, delete_request_user, get_request_user, update_user_request
 from core.use_cases.request_user.list_users_request import ListRequestUsersUseCase
 from infrastructure.database.repositories import card_repository
@@ -57,6 +59,7 @@ from core.use_cases.cards.get_card_by_number import GetCardByNumberUseCase
 from core.use_cases.cards.get_card_use_case import GetCardByIdUseCase
 from core.use_cases.cards.toggle_card_active import ToggleCardActiveUseCase
 from core.use_cases.cards.update_card import UpdateCardUseCase
+from core.use_cases.cards.recharged_card import RechargeCardUseCase
 
 # Use Case diets
 # from core.use_cases.diets.calculate_diet_amount import CalculateDietAmountUseCase
@@ -96,6 +99,7 @@ from application.services.request_service import UserRequestService
 from application.services.diet_service import DietAppService
 
 # GUI
+from presentation.gui.card_presentation.dialogs import recharge_dialog
 from presentation.gui.login_window import LoginWindow
 from presentation.gui.main_dashboard import MainDashboard
 
@@ -352,36 +356,9 @@ def main():
         get_all_cards_use_case = GetAllCardsUseCase(card_repository)
         toggle_card_active_use_case = ToggleCardActiveUseCase(card_repository)
         get_card_by_number_use_case = GetCardByNumberUseCase(card_repository)
-
-        # Inicializar casos de uso de dietas
-        # calculate_diet_amount = CalculateDietAmountUseCase(diet_service_repository)
-        # list_diets = ListDietsUseCase(diet_repository)
-        # reset_counters = ResetCountersUseCase(diet_repository, diet_liquidation_repository)
-
-        # create_diet_liquidation = CreateDietLiquidationUseCase(diet_repository, diet_liquidation_repository, diet_service_repository)
-        # delete_diet_liquidation = DeleteDietLiquidationUseCase(diet_liquidation_repository, diet_repository)
-        # get_diet_liquidation = GetDietLiquidationUseCase(diet_liquidation_repository)
-        # get_last_liquidation_number = GetLastLiquidationNumberUseCase( diet_liquidation_repository)
-        # get_liquidation_by_diet = GetLiquidationByDietUseCase(diet_liquidation_repository)
-        # list_liquidations_by_date_range = ListLiquidationsByDateRangeUseCase(diet_liquidation_repository)
-        # reset_liquidation_numbers = ResetLiquidationNumbersUseCase(diet_liquidation_repository)
-        # update_diet_liquidation = UpdateDietLiquidationUseCase( diet_liquidation_repository)
-
-        # add_diet_member = AddDietMemberUseCase(diet_repository,diet_member_repository, request_user_repository)
-        # list_diet_members = ListDietMembersUseCase(diet_member_repository)
-        # remove_diet_member = RemoveDietMemberUseCase(diet_member_repository)
-        
-        # get_diet_service_by_local = GetDietServiceByLocalUseCase(diet_service_repository)
-        # list_all_diet_services = ListAllDietServicesUseCase(diet_service_repository)
-
-        # create_diet = CreateDietUseCase(diet_repository, diet_service_repository, request_user_repository)
-        # delete_diet = DeleteDietUseCase(diet_repository, diet_member_repository, diet_liquidation_repository)
-        # get_diet = GetDietUseCase(diet_repository)
-        # get_last_advance_number = GetLastAdvanceNumberUseCase(diet_repository)
-        # list_diets_by_status = ListDietsByStatusUseCase(diet_repository)
-        # list_diets_pending_liquidation = ListDietsPendingLiquidationUseCase(diet_repository)
-        # reset_advance_numbers = ResetAdvanceNumbersUseCase(diet_repository)
-        # update_diet = UpdateDietUseCase(diet_repository)
+        recharge_card_use_case = RechargeCardUseCase(card_repository)
+        discount_card_use_case = DiscountCardUseCase(card_repository)
+        get_aviable_cards_use_case = GetAviableCardsUseCase(card_repository)
 
         # Inicializar servicio de usuarios
         user_service = UserService(
@@ -429,7 +406,10 @@ def main():
             update_card_use_case = update_card_use_case,
             get_card_by_id_use_case = get_card_by_id_use_case,
             get_all_cards_use_case = get_all_cards_use_case,
+            get_aviable_cards_use_case = get_aviable_cards_use_case,
             toggle_card_active_use_case = toggle_card_active_use_case,
+            recharge_card_use_case = recharge_card_use_case,
+            discount_card_use_case = discount_card_use_case,
             get_card_by_number_use_case = get_card_by_number_use_case
         )
 

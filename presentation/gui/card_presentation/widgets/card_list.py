@@ -25,17 +25,19 @@ class CardList(ttk.Frame):
         main_frame.pack(fill=tk.BOTH, expand=True)
         
         # Treeview para mostrar las tarjetas
-        columns = ('card_number', 'balance', 'status')
+        columns = ('card_number', 'pin', 'balance', 'status')
         self.tree = ttk.Treeview(main_frame, columns=columns, show='headings', style='Card.Treeview')
         
         # Configurar columnas
-        #self.tree.heading('id', text='ID')
+        
         self.tree.heading('card_number', text='Número de Tarjeta')
+        self.tree.heading('pin', text='PIN')
         self.tree.heading('balance', text='Balance')
         self.tree.heading('status', text='Estado')
         
         #self.tree.column('id', width=50, anchor='center')
         self.tree.column('card_number', width=180)
+        self.tree.column('pin', width=100, anchor='center')
         self.tree.column('balance', width=100, anchor='center')
         self.tree.column('status', width=100, anchor='center')
         
@@ -66,16 +68,17 @@ class CardList(ttk.Frame):
         self.on_select_callback(self.selected_card_id)
 
     def load_cards(self, cards):
-        """Carga las tarjetas en el treeview - SIN ID VISIBLE"""
+        """Carga las tarjetas en el treeview """
         self.tree.delete(*self.tree.get_children())
         for card in cards:
             # Usar los nombres de atributos correctos
             card_number = getattr(card, 'card_number', 'N/A')
+            pin = getattr(card, 'card_pin', 0000)
             balance = getattr(card, 'balance', 0)
             is_active = getattr(card, 'is_active', True)
             status = "Activa" if is_active else "Inactiva"
             
-            # INSERTAR SOLO 3 VALORES - ID VA EN TAGS
+            # INSERTAR SOLO 4 VALORES - ID VA EN TAGS
             self.tree.insert("", "end", 
-                            values=(card_number, f"${balance:.2f}", status), 
-                            tags=(card.id,))  # ID guardado en tags para referencia interna
+                            values=(card_number, pin, f"${balance:.2f}", status), 
+                            tags=(card.id,))  

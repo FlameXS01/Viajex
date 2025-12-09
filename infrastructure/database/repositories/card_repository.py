@@ -62,6 +62,11 @@ class CardRepositoryImpl(CardRepository):
         db_cards = self.db.query(CardModel).all()
         return [self._to_entity(card) for card in db_cards]
     
+    def get_aviable(self) -> List[Card]:  
+        """Obtiene todos las tarjetas de la base de datos"""
+        db_cards = self.db.query(CardModel).filter(CardModel.is_active).all()
+        return [self._to_entity(card) for card in db_cards]
+    
     def update(self, card: Card) -> Optional[Card]:  
         """Actualiza una tarjeta existente en la base de datos"""
         db_card = self.db.query(CardModel).filter(CardModel.card_id == card.id).first()  
@@ -74,6 +79,24 @@ class CardRepositoryImpl(CardRepository):
         db_card = self.db.query(CardModel).filter(CardModel.card_id == card_id).first()  
         if db_card:
             self.db.delete(db_card)
+            self.db.commit()
+            return True
+        return False
+    
+    def recharge(self, card_id: int, amount: float) -> bool:
+        """Recarga una tarjeta"""
+        db_card = self.db.query(CardModel).filter(CardModel.card_id == card_id).first()  
+        if db_card:
+            db_card.balance += amount
+            self.db.commit()
+            return True
+        return False
+    
+    def discount(self, card_id: int, amount: float) -> bool:
+        """Recarga una tarjeta"""
+        db_card = self.db.query(CardModel).filter(CardModel.card_id == card_id).first()  
+        if db_card:
+            db_card.balance -= amount
             self.db.commit()
             return True
         return False

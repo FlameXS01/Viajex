@@ -4,20 +4,21 @@ from application.services.card_service import CardService
 from presentation.gui.card_presentation.widgets.card_form import CardForm
 
 class CardDialog:
-    """Diálogo para crear/editar tarjetas - VERSIÓN CORREGIDA"""
+    """Diálogo para crear/editar tarjetas"""
     
     def __init__(self, parent, card_service: CardService, card=None):
         self.parent = parent
         self.card_service = card_service
         self.card = card
         self.result = None
+        self.edit_mode = True if self.card else False
         
         self._create_dialog()
 
     def _create_dialog(self):
         """Crea el diálogo"""
         self.dialog = tk.Toplevel(self.parent)
-        self.dialog.title("Editar Tarjeta" if self.card else "Crear Tarjeta")
+        self.dialog.title("Editar Tarjeta" if self.edit_mode else "Crear Tarjeta")
         self.dialog.geometry("450x350")  
         self.dialog.resizable(False, False)
         self.dialog.transient(self.parent)
@@ -36,7 +37,7 @@ class CardDialog:
         main_frame.pack(fill=tk.BOTH, expand=True)
         
         # Formulario
-        self.form = CardForm(main_frame, self.card_service, self.card)
+        self.form = CardForm(main_frame, self.card_service, self.edit_mode, self.card)
         self.form.pack(fill=tk.BOTH, expand=True)
         
         # Botones
@@ -57,9 +58,7 @@ class CardDialog:
                 updated_card = self.card_service.update_card(
                     card_id=self.card.id,
                     card_number=data['card_number'],
-                    card_pin=data['card_pin'],  
-                    amount=data['balance'],    
-                    is_active=data['is_active']
+                    card_pin=data['card_pin'] 
                 )
                 success = updated_card is not None
             else:

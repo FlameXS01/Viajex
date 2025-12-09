@@ -11,6 +11,10 @@ class CardActions(ttk.Frame):
 
     def _create_widgets(self):
         """Crea los botones de acciones"""
+        self.recharge_btn = ttk.Button(self, text="Recargar", 
+                                command=self.actions['recharge'])
+        self.recharge_btn.pack(side=tk.LEFT, padx=5)
+
         self.edit_btn = ttk.Button(self, text="Editar Tarjeta", 
                                 command=self.actions['edit'])
         self.edit_btn.pack(side=tk.LEFT, padx=5)
@@ -28,3 +32,4 @@ class CardActions(ttk.Frame):
         self.edit_btn.config(state=state)
         self.toggle_btn.config(state=state)
         self.delete_btn.config(state=state)
+        self.recharge_btn.config(state=state)

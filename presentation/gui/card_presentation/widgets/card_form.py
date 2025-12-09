@@ -4,10 +4,11 @@ from tkinter import ttk, messagebox
 class CardForm(ttk.Frame):
     """Formulario para crear/editar tarjetas - SIN DESCRIPTION"""
     
-    def __init__(self, parent, card_service, card=None):
+    def __init__(self, parent, card_service, edit_mode, card=None ):
         super().__init__(parent)
         self.card_service = card_service
         self.card = card
+        self.edit = edit_mode
         
         self._create_widgets()
         if self.card:
@@ -23,11 +24,11 @@ class CardForm(ttk.Frame):
         self.pin_entry = ttk.Entry(self, width=30)
         self.pin_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=5, padx=(5,0))
         
-        
+         
         ttk.Label(self, text="Balance:").grid(row=2, column=0, sticky=tk.W, pady=5)
         self.balance_entry = ttk.Entry(self, width=30)
         self.balance_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=5, padx=(5,0))
-        
+            
     
         self.status_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(self, text="Activa", variable=self.status_var).grid(row=3, column=1, sticky=tk.W, pady=5)
@@ -38,17 +39,43 @@ class CardForm(ttk.Frame):
         """Carga los datos de la tarjeta en el formulario (para edición)"""
         self.card_number_entry.insert(0, getattr(self.card, 'card_number', ''))
         self.pin_entry.insert(0, getattr(self.card, 'card_pin', ''))
-        self.balance_entry.insert(0, str(getattr(self.card, 'balance', 0)))
+        
+        balance = str(getattr(self.card, 'balance', 0))
+        self.balance_entry.insert(0, balance)
+        # En modo edición, el campo es de solo lectura
+        if self.edit:
+            self.balance_entry.config(state='readonly')
+        
         self.status_var.set(getattr(self.card, 'is_active', True))
 
     def get_data(self):
         """Obtiene los datos del formulario"""
         card_number = self.card_number_entry.get().strip()
         pin = self.pin_entry.get().strip()
-        balance_str = self.balance_entry.get().strip()
+        
+        # Si es modo edición, obtener el balance original
+        if self.edit:
+            balance = getattr(self.card, 'balance', 0)
+        else:
+            balance_str = self.balance_entry.get().strip()
+            
+            # Validaciones específicas para creación
+            if not balance_str:
+                messagebox.showerror("Error", "El balance es obligatorio")
+                return None
+                
+            try:
+                balance = float(balance_str)
+                if balance < 0:
+                    messagebox.showerror("Error", "El balance no puede ser negativo")
+                    return None
+            except ValueError:
+                messagebox.showerror("Error", "El balance debe ser un número válido")
+                return None
+        
         is_active = self.status_var.get()
         
-        # Validaciones
+        # Validaciones comunes (para creación y edición)
         if not card_number:
             messagebox.showerror("Error", "El número de tarjeta es obligatorio")
             return None
@@ -64,23 +91,12 @@ class CardForm(ttk.Frame):
         if len(pin) != 4 or not pin.isdigit():
             messagebox.showerror("Error", "El PIN debe tener exactamente 4 dígitos")
             return None
-            
-        if not balance_str:
-            messagebox.showerror("Error", "El balance es obligatorio")
-            return None
-            
-        try:
-            balance = float(balance_str)
-            if balance < 0:
-                messagebox.showerror("Error", "El balance no puede ser negativo")
-                return None
-        except ValueError:
-            messagebox.showerror("Error", "El balance debe ser un número válido")
-            return None
-            
+
         return {
             'card_number': card_number,
             'card_pin': pin,
             'balance': balance,
             'is_active': is_active
         }
+    
+    
