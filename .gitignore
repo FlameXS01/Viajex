@@ -211,4 +211,15 @@ __marimo__/
 # JPC
 temp.txt
 Files/
+
+
+# Archivos de SQLite
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
 dietas_app.db
+dietas_app.db-*
