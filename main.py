@@ -8,6 +8,7 @@ from application.services.department_service import DepartmentService
 from core.entities.department import Department
 from core.entities.diet_service import DietService
 from core.repositories.department_repository import DepartmentRepository
+from core.use_cases.cards.aviable_card import GetAviableCardsUseCase
 from core.use_cases.cards.discount_card import DiscountCardUseCase
 from core.use_cases.request_user import create_request_user, delete_request_user, get_request_user, update_user_request
 from core.use_cases.request_user.list_users_request import ListRequestUsersUseCase
@@ -357,6 +358,7 @@ def main():
         get_card_by_number_use_case = GetCardByNumberUseCase(card_repository)
         recharge_card_use_case = RechargeCardUseCase(card_repository)
         discount_card_use_case = DiscountCardUseCase(card_repository)
+        get_aviable_cards_use_case = GetAviableCardsUseCase(card_repository)
 
         # Inicializar servicio de usuarios
         user_service = UserService(
@@ -404,6 +406,7 @@ def main():
             update_card_use_case = update_card_use_case,
             get_card_by_id_use_case = get_card_by_id_use_case,
             get_all_cards_use_case = get_all_cards_use_case,
+            get_aviable_cards_use_case = get_aviable_cards_use_case,
             toggle_card_active_use_case = toggle_card_active_use_case,
             recharge_card_use_case = recharge_card_use_case,
             discount_card_use_case = discount_card_use_case,

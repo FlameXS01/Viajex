@@ -1,5 +1,6 @@
 from typing import List, Optional
 from core.entities.cards import Card
+from core.use_cases.cards.aviable_card import GetAviableCardsUseCase
 from core.use_cases.cards.create_card import CreateCardUseCase
 from core.use_cases.cards.delete_card import DeleteCardUseCase
 from core.use_cases.cards.discount_card import DiscountCardUseCase
@@ -17,6 +18,7 @@ class CardService:
                  update_card_use_case: UpdateCardUseCase,
                  get_card_by_id_use_case: GetCardByIdUseCase,
                  get_all_cards_use_case: GetAllCardsUseCase,
+                 get_aviable_cards_use_case: GetAviableCardsUseCase,
                  toggle_card_active_use_case: ToggleCardActiveUseCase,
                  recharge_card_use_case: RechargeCardUseCase,
                  get_card_by_number_use_case: GetCardByNumberUseCase,
@@ -30,6 +32,7 @@ class CardService:
         self.get_card_by_number_use_case = get_card_by_number_use_case  
         self.recharge_card_use_case = recharge_card_use_case
         self.discount_card_use_case = discount_card_use_case
+        self.get_aviable_cards_use_case = get_aviable_cards_use_case
 
     def create_card(self, card_number: str, card_pin: str, amount: float) -> Optional[Card]:
         return self.create_card_use_case.execute(card_number, card_pin, amount)
@@ -54,6 +57,10 @@ class CardService:
 
     def get_all_cards(self) -> List[Card]:
         return self.get_all_cards_use_case.execute()
+    
+    def get_aviable_cards(self) -> List[Card]:
+        return self.get_aviable_cards_use_case.execute()
 
     def toggle_card_active(self, card_id: int) -> Optional[Card]:
         return self.toggle_card_active_use_case.execute(card_id)
+    

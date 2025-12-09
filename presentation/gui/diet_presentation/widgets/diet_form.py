@@ -2,17 +2,14 @@ import tkinter as tk
 from tkinter import ttk
 from datetime import datetime, timedelta
 from tkinter import messagebox
-from typing import List, Optional, Dict, Any
+from typing import List, Dict, Any
 
 from application.services.diet_service import DietAppService
-from core.entities import diet_service
 
 
 class DietForm(ttk.Frame):
     """
-    
     Formulario para crear y editar dietas
-
     """
     
     def __init__(self, parent, user_service, card_service, diet_service: DietAppService, diet=None, **kwargs):
@@ -26,15 +23,11 @@ class DietForm(ttk.Frame):
         self.acumulative_price = 0
         self.main_frame = None
         
-        # Datos
         self.users = user_service.get_all_users() if user_service else []
-        self.cards = card_service.get_all_cards() if card_service else []
+        self.cards = card_service.get_aviable_cards() if card_service else []
         self.valid_cards = []
         
-        # Variables de control
         self._setup_variables()
-        
-        # Configuración de la grilla principal
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         
@@ -46,16 +39,13 @@ class DietForm(ttk.Frame):
 
     def _setup_variables(self):
         """Configura las variables de control del formulario"""
-        # Información básica
         self.description_var = tk.StringVar()
         self.is_local_var = tk.BooleanVar(value=True)
         self.diet_type_var = tk.StringVar(value="GROUP")
         
-        # Fechas
         self.start_date_var = tk.StringVar()
         self.end_date_var = tk.StringVar()
         
-        # Servicios
         self.service_vars = {
             "breakfast_count": tk.IntVar(value=0),
             "lunch_count": tk.IntVar(value=0),
@@ -63,7 +53,6 @@ class DietForm(ttk.Frame):
             "accommodation_count": tk.IntVar(value=0)
         }
         
-        # Pago
         self.payment_method_var = tk.StringVar(value="CASH")
         self.selected_card_var = tk.StringVar()
 
@@ -73,7 +62,6 @@ class DietForm(ttk.Frame):
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         main_frame.columnconfigure(1, weight=1)
         
-        # Configurar filas para expansión
         for i in range(6):
             main_frame.rowconfigure(i, weight=0)
         main_frame.rowconfigure(5, weight=1)
@@ -86,8 +74,6 @@ class DietForm(ttk.Frame):
         self.main_frame = main_frame
 
     def _create_basic_info_section(self, parent):
-        """Crea la sección de información básica"""
-        # Frame principal
         basic_info_frame = ttk.LabelFrame(
             parent, 
             text="📋 Información Básica", 
@@ -96,7 +82,6 @@ class DietForm(ttk.Frame):
         basic_info_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 15))
         basic_info_frame.columnconfigure(1, weight=1)
 
-        # Descripción
         ttk.Label(basic_info_frame, text="Descripción:", font=('Arial', 10, 'bold')).grid(
             row=0, column=0, sticky=tk.W, pady=(0, 10)
         )
@@ -109,7 +94,6 @@ class DietForm(ttk.Frame):
         )
         self.description_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=(0, 10))
         
-        # Tipo de dieta
         type_frame = ttk.Frame(basic_info_frame)
         type_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E))
         
@@ -117,7 +101,6 @@ class DietForm(ttk.Frame):
             row=0, column=0, sticky=tk.W, padx=(0, 20)
         )
 
-        # Checkbutton para Local - BLOQUEADO EN MODO EDICIÓN
         self.local_check = ttk.Checkbutton(
             type_frame, 
             text="🏠 Local", 
@@ -125,7 +108,6 @@ class DietForm(ttk.Frame):
         )
         self.local_check.grid(row=0, column=1, sticky=tk.W, padx=(0, 30))
 
-        # Radio buttons para Individual/Grupal - BLOQUEADOS EN MODO EDICIÓN
         self.individual_radio = ttk.Radiobutton(
             type_frame, 
             text="👤 Individual", 
@@ -144,14 +126,12 @@ class DietForm(ttk.Frame):
         )
         self.group_radio.grid(row=0, column=3, sticky=tk.W)
 
-        # BLOQUEAR CONTROLES EN MODO EDICIÓN
         if self.is_edit_mode:
             self.local_check.config(state='disabled')
             self.individual_radio.config(state='disabled')
             self.group_radio.config(state='disabled')
 
     def _create_user_selection_section(self, parent):
-        """Crea la sección de selección de usuarios"""
         self.users_frame = ttk.LabelFrame(
             parent, 
             text="👥 Selección de Usuarios", 
@@ -160,12 +140,10 @@ class DietForm(ttk.Frame):
         self.users_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 15))
         self.users_frame.columnconfigure(0, weight=1)
 
-        # CONTENEDOR PARA VISUALIZACIÓN EN MODO EDICIÓN
         self.view_only_container = ttk.Frame(self.users_frame)
         self.view_only_container.grid(row=0, column=0, sticky=(tk.W, tk.E))
         self.view_only_container.columnconfigure(0, weight=1)
         
-        # Treeview para mostrar usuarios en modo edición (solo lectura)
         ttk.Label(self.view_only_container, text="Usuarios de la dieta:", 
                 font=('Arial', 10, 'bold')).grid(row=0, column=0, sticky=tk.W, pady=(0, 8))
         
@@ -175,7 +153,7 @@ class DietForm(ttk.Frame):
             columns=columns, 
             show="headings", 
             height=6,
-            selectmode="none"  # Deshabilitar selección
+            selectmode="none"
         )
         
         self.users_treeview.heading("nombre", text="Nombre Completo")
@@ -185,7 +163,6 @@ class DietForm(ttk.Frame):
         
         self.users_treeview.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        # Scrollbar para el treeview
         tree_scrollbar = ttk.Scrollbar(
             self.view_only_container, 
             orient=tk.VERTICAL, 
@@ -194,29 +171,24 @@ class DietForm(ttk.Frame):
         tree_scrollbar.grid(row=1, column=1, sticky=(tk.N, tk.S))
         self.users_treeview.configure(yscrollcommand=tree_scrollbar.set)
 
-        # Contenedor para los dos modos de selección (SOLO PARA CREACIÓN)
         self.selection_container = ttk.Frame(self.users_frame)
         self.selection_container.grid(row=0, column=0, sticky=(tk.W, tk.E))
         self.selection_container.columnconfigure(0, weight=1)
 
-        # Modo Individual
         self.individual_frame = self._create_individual_selection()
         self.individual_frame.grid(row=0, column=0, sticky=(tk.W, tk.E))
         
-        # Modo Grupal
         self.group_frame = self._create_group_selection()
         self.group_frame.grid(row=0, column=0, sticky=(tk.W, tk.E))
         
-        # MOSTRAR U OCULTAR SEGÚN MODO
         if self.is_edit_mode:
-            self.selection_container.grid_remove()  # Ocultar selectores
-            self.view_only_container.grid()         # Mostrar vista de solo lectura
+            self.selection_container.grid_remove()
+            self.view_only_container.grid()
         else:
-            self.view_only_container.grid_remove()  # Ocultar vista de solo lectura
-            self.selection_container.grid() 
+            self.view_only_container.grid_remove()
+            self.selection_container.grid()
             
     def _create_individual_selection(self):
-        """Crea la interfaz para selección individual"""
         frame = ttk.Frame(self.selection_container)
         frame.columnconfigure(0, weight=1)
         
@@ -241,18 +213,15 @@ class DietForm(ttk.Frame):
         return frame
 
     def _create_group_selection(self):
-        """Crea la interfaz para selección grupal"""
         frame = ttk.Frame(self.selection_container)
         frame.columnconfigure(0, weight=1)
         
-        # Frame para las listas y botones
         lists_frame = ttk.Frame(frame)
         lists_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        lists_frame.columnconfigure(0, weight=1)  # Lista disponibles
-        lists_frame.columnconfigure(1, weight=0)  # Botones
-        lists_frame.columnconfigure(2, weight=1)  # Lista seleccionados
+        lists_frame.columnconfigure(0, weight=1)
+        lists_frame.columnconfigure(1, weight=0)
+        lists_frame.columnconfigure(2, weight=1)
 
-        # Lista de usuarios disponibles
         ttk.Label(lists_frame, text="Usuarios Disponibles:", font=('Arial', 9, 'bold')).grid(
             row=0, column=0, sticky=tk.W, pady=(0, 5)
         )
@@ -278,7 +247,6 @@ class DietForm(ttk.Frame):
         available_scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
         self.available_listbox.configure(yscrollcommand=available_scrollbar.set)
 
-        # Botones de transferencia
         buttons_frame = ttk.Frame(lists_frame)
         buttons_frame.grid(row=1, column=1, sticky=(tk.N, tk.S), padx=10)
         
@@ -296,7 +264,6 @@ class DietForm(ttk.Frame):
             width=4
         ).pack(pady=5)
         
-        # Botones para selección masiva
         ttk.Button(
             buttons_frame, 
             text="⏩ Todos", 
@@ -311,7 +278,6 @@ class DietForm(ttk.Frame):
             width=8
         ).pack(pady=5)
 
-        # Lista de usuarios seleccionados
         ttk.Label(lists_frame, text="Usuarios Seleccionados:", font=('Arial', 9, 'bold')).grid(
             row=0, column=2, sticky=tk.W, pady=(0, 5)
         )
@@ -337,14 +303,12 @@ class DietForm(ttk.Frame):
         selected_scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
         self.selected_listbox.configure(yscrollcommand=selected_scrollbar.set)
 
-        # Poblar lista de disponibles
         for user in self.users:
             self.available_listbox.insert(tk.END, f"{user.fullname} ({user.ci})")
             
         return frame
 
     def _create_diet_details_section(self, parent):
-        """Crea la sección de detalles de la dieta"""
         details_frame = ttk.LabelFrame(
             parent, 
             text="📅 Detalles de la Dieta", 
@@ -353,7 +317,6 @@ class DietForm(ttk.Frame):
         details_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 15))
         details_frame.columnconfigure(1, weight=1)
 
-        # Fechas
         dates_frame = ttk.Frame(details_frame)
         dates_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 15))
         dates_frame.columnconfigure(1, weight=1)
@@ -371,7 +334,6 @@ class DietForm(ttk.Frame):
         )
         self.start_date_entry.grid(row=0, column=1, sticky=tk.W, padx=(0, 30))
         
-        # Establecer fecha por defecto
         default_start = datetime.now().strftime("%d/%m/%Y")
         self.start_date_var.set(default_start)
 
@@ -387,11 +349,9 @@ class DietForm(ttk.Frame):
         )
         self.end_date_entry.grid(row=0, column=3, sticky=tk.W)
         
-        # Establecer fecha por defecto (mañana)
         default_end = (datetime.now() + timedelta(days=1)).strftime("%d/%m/%Y")
         self.end_date_var.set(default_end)
 
-        # Servicios
         services_frame = ttk.Frame(details_frame)
         services_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E))
         
@@ -421,7 +381,6 @@ class DietForm(ttk.Frame):
             spinbox.grid(row=row, column=col + 1, sticky=tk.W, pady=8, padx=(0, 30))
 
     def _create_payment_section(self, parent):
-        """Crea la sección de método de pago"""
         payment_frame = ttk.LabelFrame(
             parent, 
             text=" Método de Pago", 
@@ -438,7 +397,6 @@ class DietForm(ttk.Frame):
             row=0, column=0, sticky=tk.W, padx=(0, 15)
         )
 
-        # Radio buttons para método de pago
         cash_radio = ttk.Radiobutton(
             method_frame, 
             text="💵 Efectivo", 
@@ -457,9 +415,7 @@ class DietForm(ttk.Frame):
         )
         card_radio.grid(row=0, column=2, sticky=tk.W)
 
-        # Combobox para tarjetas.
-        
-        self.valid_cards = [card for card in self.cards if card.balance > self.acumulative_price]
+        self._update_valid_cards()
         card_values = [f"{card.card_number} - {card.card_pin}" for card in self.valid_cards]
         self.card_combo = ttk.Combobox(
             method_frame,
@@ -475,101 +431,112 @@ class DietForm(ttk.Frame):
             self.card_combo.set(card_values[0])
 
     def _setup_bindings(self):
-        """Configura los enlaces de eventos"""
-        # Validación básica de fechas
         self.start_date_entry.bind('<FocusOut>', self._validate_dates)
         self.end_date_entry.bind('<FocusOut>', self._validate_dates)
-        self.service_vars["accommodation_count"].trace_add("write", self._on_accommodation_change)
-        self.is_local_var.trace_add("write", self._on_accommodation_change)
+        self.service_vars["accommodation_count"].trace_add("write", self._on_price_change)
+        self.is_local_var.trace_add("write", self._on_price_change)
 
-    # ===== MÉTODOS DE MANEJO DE EVENTOS =====
-    def _on_accommodation_change(self, *args):
-        """Actualiza las tarjetas válidas cuando cambia la cantidad de hospedaje"""
-        # Recalcular el precio acumulado
-        data = self.get_form_data()  # Esto ya calcula self.acumulative_price
+    def _on_price_change(self, *args):
+        """Actualiza las tarjetas válidas cuando cambia cualquier factor de precio"""
+        self._update_valid_cards()
         
-        # Actualizar la lista de tarjetas válidas
         if hasattr(self, 'card_combo') and self.payment_method_var.get() == "CARD":
-            # Filtrar tarjetas con balance suficiente
-            self.valid_cards = [card for card in self.cards if card.balance >= self.acumulative_price]
             card_values = [f"{card.card_number} - {card.card_pin}" for card in self.valid_cards]
-            
-            # Actualizar el combobox
             current_selection = self.selected_card_var.get()
             self.card_combo['values'] = card_values
             
             if card_values:
-                # Mantener la selección anterior si sigue siendo válida
                 if current_selection in card_values:
                     self.card_combo.set(current_selection)
                 else:
                     self.card_combo.set(card_values[0])
             else:
                 self.card_combo.set('')
-                messagebox.showwarning(
-                    "Tarjetas Insuficientes", 
-                    f"No hay tarjetas con saldo suficiente (${self.acumulative_price:.2f} requeridos)"
-                )
+                if not self.is_edit_mode and self.acumulative_price > 0:
+                    messagebox.showwarning(
+                        "Tarjetas Insuficientes", 
+                        f"No hay tarjetas con saldo suficiente (${self.acumulative_price:.2f} requeridos)"
+                    )
+
+    def _update_valid_cards(self):
+        """Actualiza la lista de tarjetas válidas basadas en el precio acumulado"""
+        self._calculate_acumulative_price()
+        self.valid_cards = [card for card in self.cards if card.balance >= self.acumulative_price]
+
+    def _calculate_acumulative_price(self):
+        """Calcula el precio acumulado para los alojamientos"""
+        if self.is_edit_mode:
+            total_request_user = 1
+        else:
+            if self.diet_type_var.get() == "INDIVIDUAL":
+                total_request_user = 1
+            else:
+                total_request_user = self.selected_listbox.size()
+        
+        total_acomodation_service = total_request_user * self.service_vars["accommodation_count"].get()
+        
+        try:
+            if self.is_local_var.get():
+                price = self.diet_service.get_diet_service_by_local(True).accommodation_card_price
+            else:
+                price = self.diet_service.get_diet_service_by_local(False).accommodation_card_price
+        except:
+            price = 0
+        
+        self.acumulative_price = total_acomodation_service * price
 
     def _on_diet_type_change(self):
-        """Maneja el cambio entre modo individual y grupal"""
         if self.diet_type_var.get() == "INDIVIDUAL":
             self.individual_frame.grid()
             self.group_frame.grid_remove()
             self.user_combo.config(state="readonly")
-            self._create_payment_section(self.main_frame)
         else:
             self.individual_frame.grid_remove()
             self.group_frame.grid()
-            self._create_payment_section(self.main_frame)
-            
-        # Actualizar título de la sección
+        
+        self._on_price_change()
+        
         new_title = "👤 Selección de Usuario" if self.diet_type_var.get() == "INDIVIDUAL" else "👥 Selección de Usuarios"
         self.users_frame.configure(text=new_title)
 
     def _on_payment_method_change(self):
-        """Maneja el cambio de método de pago"""
         if self.payment_method_var.get() == "CARD":
             self.card_combo.config(state='readonly')
-            self._on_accommodation_change()
+            self._on_price_change()
         else:
             self.card_combo.config(state='disabled')
 
     def _add_selected_user(self):
-        """Agrega usuario seleccionado a la lista de seleccionados"""
         selection = self.available_listbox.curselection()
         if selection:
             user_text = self.available_listbox.get(selection[0])
             self.available_listbox.delete(selection[0])
             self.selected_listbox.insert(tk.END, user_text)
-            self._create_payment_section(self.main_frame)
+            self._on_price_change()
 
     def _remove_selected_user(self):
-        """Remueve usuario seleccionado de la lista de seleccionados"""
         selection = self.selected_listbox.curselection()
         if selection:
             user_text = self.selected_listbox.get(selection[0])
             self.selected_listbox.delete(selection[0])
             self.available_listbox.insert(tk.END, user_text)
-            self._create_payment_section(self.main_frame)
+            self._on_price_change()
 
     def _add_all_users(self):
-        """Agrega todos los usuarios a la lista de seleccionados"""
         available_users = list(self.available_listbox.get(0, tk.END))
         for user in available_users:
             self.selected_listbox.insert(tk.END, user)
         self.available_listbox.delete(0, tk.END)
+        self._on_price_change()
 
     def _remove_all_users(self):
-        """Remueve todos los usuarios de la lista de seleccionados"""
         selected_users = list(self.selected_listbox.get(0, tk.END))
         for user in selected_users:
             self.available_listbox.insert(tk.END, user)
         self.selected_listbox.delete(0, tk.END)
+        self._on_price_change()
 
     def _validate_dates(self, event=None):
-        """Valida que las fechas tengan formato correcto"""
-        # Implementación básica - puedes expandir esto
         try:
             start_date = self.start_date_var.get()
             end_date = self.end_date_var.get()
@@ -577,36 +544,27 @@ class DietForm(ttk.Frame):
             if start_date and end_date:
                 datetime.strptime(start_date, "%d/%m/%Y")
                 datetime.strptime(end_date, "%d/%m/%Y")
-                
         except ValueError:
-            
             pass
 
-    # ===== MÉTODOS DE CARGA Y OBTENCIÓN DE DATOS =====
-
     def _load_diet_data(self):
-        """Carga los datos de la dieta existente en el formulario"""
         if not self.diet:
             return
             
-        # Información básica
         self.description_var.set(self.diet.description)
         self.is_local_var.set(self.diet.is_local)
         self.diet_type_var.set("GROUP" if self.diet.is_group else "INDIVIDUAL")
         
-        # Fechas
         if self.diet.start_date:
             self.start_date_var.set(self.diet.start_date.strftime("%d/%m/%Y"))
         if self.diet.end_date:
             self.end_date_var.set(self.diet.end_date.strftime("%d/%m/%Y"))
 
-        # Servicios
         self.service_vars["breakfast_count"].set(self.diet.breakfast_count)
         self.service_vars["lunch_count"].set(self.diet.lunch_count)
         self.service_vars["dinner_count"].set(self.diet.dinner_count)
         self.service_vars["accommodation_count"].set(self.diet.accommodation_count)
         
-        # Pago
         self.payment_method_var.set(self.diet.accommodation_payment_method)
         self._on_payment_method_change()
         
@@ -615,39 +573,31 @@ class DietForm(ttk.Frame):
             if card:
                 self.selected_card_var.set(f"{card.card_number} - {card.card_pin}")
 
-        # Cargar usuarios 
-        # diet_members = self.diet_member_service.list_diet_members(self.diet.id)
         user_ids = [self.diet.request_user_id]
         
         if self.is_edit_mode:
-            # MODO EDICIÓN: Cargar en el Treeview de solo lectura
             for user_id in user_ids:
                 user = next((u for u in self.users if u.id == user_id), None)
                 if user:
                     self.users_treeview.insert("", "end", values=(user.fullname, user.ci))
             
-            # Actualizar título según cantidad de usuarios
             user_count = len(user_ids)
             title_suffix = "Usuario" if user_count == 1 else "Usuarios"
             self.users_frame.configure(text=f"👥 {user_count} {title_suffix} de la Dieta")
             
         else:
-            # MODO CREACIÓN: Cargar en los controles de selección normales
             if user_ids:
                 if self.diet.is_group:
-                    # Modo grupal
                     for user_id in user_ids:
                         user = next((u for u in self.users if u.id == user_id), None)
                         if user:
                             user_text = f"{user.fullname} ({user.ci})"
-                            # Mover de disponibles a seleccionados
                             available_items = list(self.available_listbox.get(0, tk.END))
                             if user_text in available_items:
                                 index = available_items.index(user_text)
                                 self.available_listbox.delete(index)
                                 self.selected_listbox.insert(tk.END, user_text)
                 else:
-                    # Modo individual
                     user = next((u for u in self.users if u.id == user_ids[0]), None)
                     if user:
                         user_display = f"{user.fullname} ({user.ci})"
@@ -659,52 +609,35 @@ class DietForm(ttk.Frame):
                             self.user_combo['values'] = new_values
                             self.user_combo.set(user_display)
 
-        # Actualizar la vista según el tipo de dieta (solo en modo creación)
         if not self.is_edit_mode:
             self._on_diet_type_change()
 
     def get_form_data(self):
-        """
-        Obtiene todos los datos del formulario en un diccionario
-        """
+        """Obtiene todos los datos del formulario en un diccionario"""
         selected_user_ids = []
-        total_request_user = 0
+        
         if self.is_edit_mode:
-            # EN MODO EDICIÓN: Usar el request_user_id de la dieta 
             selected_user_ids = [self.diet.request_user_id]
         else:
-            # EN MODO CREACIÓN: Usar la selección normal
             if self.diet_type_var.get() == "INDIVIDUAL":
-                # Modo individual
                 selected_user = self.user_combo.get()
                 if selected_user:
                     user = next((u for u in self.users if f"{u.fullname} ({u.ci})" == selected_user), None)
                     if user:
                         selected_user_ids = [user.id]
-                total_request_user = 1
             else:
-                # Modo grupal
                 selected_count = self.selected_listbox.size()
-                total_request_user = selected_count
                 for i in range(selected_count):
                     user_text = self.selected_listbox.get(i)
                     user = next((u for u in self.users if f"{u.fullname} ({u.ci})" == user_text), None)
                     if user:
                         selected_user_ids.append(user.id)
-                
         
-        # El resto del código se mantiene igual...
         selected_card = self.selected_card_var.get()
         card_id = None
         if selected_card and self.payment_method_var.get() == "CARD":
             card = next((c for c in self.cards if f"{c.card_number} - {c.card_pin}" == selected_card), None)
             card_id = card.id if card else None
-        
-        total_acomodation_service = total_request_user * self.service_vars["accommodation_count"].get()
-        if (self.is_local_var.get()):
-            self.acumulative_price = total_acomodation_service * self.diet_service.get_diet_service_by_local(True).accommodation_card_price
-        else:
-            self.acumulative_price = total_acomodation_service * self.diet_service.get_diet_service_by_local(False).accommodation_card_price
         
         return {
             "description": self.description_var.get(),
@@ -731,26 +664,21 @@ class DietForm(ttk.Frame):
         errors = []
         data = self.get_form_data()
         
-        # Validar descripción
         if not data["description"].strip():
             errors.append("La descripción es obligatoria")
             
-        # Validar fechas
         try:
             start_date = datetime.strptime(data["start_date"], "%d/%m/%Y")
             end_date = datetime.strptime(data["end_date"], "%d/%m/%Y")
             
             if end_date < start_date:
                 errors.append("La fecha de fin no puede ser anterior a la fecha de inicio")
-                
         except ValueError:
             errors.append("Formato de fecha inválido. Use DD/MM/YYYY")
             
-        # Validar usuarios seleccionados
         if not data["user_ids"]:
             errors.append("Debe seleccionar al menos un usuario")
             
-        # Validar método de pago con tarjeta
         if data["accommodation_payment_method"] == "CARD" and not data["accommodation_card_id"]:
             errors.append("Debe seleccionar una tarjeta cuando el método de pago es tarjeta")
             

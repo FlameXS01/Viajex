@@ -2,18 +2,23 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 from application.dtos.diet_dtos import DietLiquidationCreateDTO
+from application.services.card_service import CardService
+from application.services.diet_service import DietAppService
+from core.entities import diet_service
 
 class DietLiquidationDialog(tk.Toplevel):
     """
     Diálogo para liquidar una dieta
     """
     
-    def __init__(self, parent, diet_controller, diet):
+    def __init__(self, parent, diet_controller, diet, card_service: CardService, diet_service: DietAppService):
         super().__init__(parent)
         self.diet_controller = diet_controller
         self.diet = diet
         self.result = False
-        
+        self.card_service = card_service
+        self.diet_service = diet_service
+
         self.title(f"Liquidar Dieta #{diet.advance_number}")
         self.geometry("500x450")
         self.resizable(False, False)
@@ -201,6 +206,7 @@ class DietLiquidationDialog(tk.Toplevel):
                 diet_service_id=self.diet.diet_service_id,
                 accommodation_card_id=self.diet.accommodation_card_id
             )
+           
             
             result = self.diet_controller.create_diet_liquidation(create_dto)
             if result:
@@ -209,9 +215,18 @@ class DietLiquidationDialog(tk.Toplevel):
                 self.destroy()
             else:
                 messagebox.showerror("Error", "No se pudo liquidar la dieta")
-                
+            
+
+            if self.diet.accommodation_payment_method.upper() == 'CARD':
+                price = self.diet_service.get_diet_service_by_id(create_dto.diet_service_id).accommodation_card_price 
+                self.card_service.discount_card(self.diet.accommodation_card_id, self.liquidation_vars["alojamientos"].get() * price)
+            
+            if not self.diet_service.card_on_the_road(self.diet.accommodation_card_id):
+                self.card_service.toggle_card_active(self.diet.accommodation_card_id)
         except Exception as e:
             messagebox.showerror("Error", f"Error al liquidar: {str(e)}")
             import traceback
             traceback.print_exc()
             
+            
+          

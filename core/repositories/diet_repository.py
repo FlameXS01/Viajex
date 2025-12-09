@@ -110,6 +110,15 @@ class DietRepository(ABC):
         
         """
         pass
+
+    @abstractmethod
+    def card_on_the_road(self, card_id: int) -> bool:
+        """
+        
+        Determina si una tarjeta aun esta ligada a una o más solicitudes de dietas antes de poder reactivarla
+        
+        """
+        pass
     
     @abstractmethod
     def get_last_advance_number(self) -> int:

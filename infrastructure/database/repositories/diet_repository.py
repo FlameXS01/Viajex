@@ -4,6 +4,7 @@ from datetime import date
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from core.entities.diet import Diet, DietStatus
+from core.entities.enums import PaymentMethod
 from core.repositories.diet_repository import DietRepository
 from infrastructure.database.models import DietModel
 
@@ -109,6 +110,13 @@ class DietRepositoryImpl(DietRepository):
             self.session.commit()
             return True
         return False
+    
+    def card_on_the_road(self, card_id) -> bool:
+        return self.session.query(DietModel).filter(
+             DietModel.status == DietStatus.REQUESTED.value,
+             DietModel.accommodation_payment_method == PaymentMethod.CARD.value, 
+             DietModel.accommodation_card_id == card_id
+        ).first() is not None
     
     def get_last_advance_number(self) -> int:
         result = self.session.query(func.max(DietModel.advance_number)).scalar()

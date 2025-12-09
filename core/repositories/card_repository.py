@@ -28,6 +28,11 @@ class CardRepository(ABC):
     def get_all(self) -> List[Card]:
         """Obtiene todas las Tarjetas del sistema"""
         pass
+   
+    @abstractmethod
+    def get_aviable(self) -> List[Card]:
+        """Obtiene todas las Tarjetas del sistema"""
+        pass
     
     @abstractmethod
     def update(self, card: Card) -> Card:

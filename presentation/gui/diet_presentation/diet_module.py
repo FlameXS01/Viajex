@@ -236,7 +236,7 @@ class DietModule(ttk.Frame):
             messagebox.showwarning("Advertencia", "Seleccione una dieta para liquidar")
             return
         
-        dialog = DietLiquidationDialog(self, self.diet_service, self.current_diet)
+        dialog = DietLiquidationDialog(self, self.diet_service, self.current_diet, self.card_service, self.diet_service)
         self.wait_window(dialog)
         if dialog.result:
             self.refresh_diets()

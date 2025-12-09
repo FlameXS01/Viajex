@@ -2,11 +2,12 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 from application.dtos.diet_dtos import DietCreateDTO, DietUpdateDTO
+from application.services.card_service import CardService
 from application.services.diet_service import DietAppService
 from ..widgets.diet_form import DietForm
 
 class DietDialog(tk.Toplevel):
-    def __init__(self, parent, diet_service: DietAppService, request_user_service, card_service, diet=None):
+    def __init__(self, parent, diet_service: DietAppService, request_user_service, card_service: CardService, diet=None):
         super().__init__(parent)
         self.diet_service = diet_service
         self.diet = diet
@@ -237,6 +238,8 @@ class DietDialog(tk.Toplevel):
                 else:
                     messagebox.showerror("Error", f"No se pudo crear la dieta para el usuario {user_id}")
                     return
+            if (form_data["accommodation_payment_method"] == 'CARD'): 
+                self.card_service.toggle_card_active(form_data["accommodation_card_id"])
             
             # Si todo fue bien, mostramos éxito
             self.result = True
