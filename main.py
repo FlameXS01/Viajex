@@ -1,18 +1,13 @@
 import tkinter as tk
 import pandas as pd
-from application.dtos.cards_dtos import CreateCardRequest
+import os
 from application.dtos.diet_dtos import DietServiceCreateDTO
 from application.dtos.request_user_dtos import RequestUserCreateDTO
 from application.services.card_service import CardService
 from application.services.department_service import DepartmentService
-from core.entities.department import Department
-from core.entities.diet_service import DietService
-from core.repositories.department_repository import DepartmentRepository
 from core.use_cases.cards.aviable_card import GetAviableCardsUseCase
 from core.use_cases.cards.discount_card import DiscountCardUseCase
-from core.use_cases.request_user import create_request_user, delete_request_user, get_request_user, update_user_request
 from core.use_cases.request_user.list_users_request import ListRequestUsersUseCase
-from infrastructure.database.repositories import card_repository
 from infrastructure.database.repositories.department_repository import DepartmentRepositoryImpl
 from infrastructure.database.repositories.diet_liquidation_repository import DietLiquidationRepositoryImpl
 from infrastructure.database.repositories.diet_repository import DietRepositoryImpl
@@ -23,10 +18,12 @@ from infrastructure.database.session import Base, engine
 from infrastructure.security.password_hasher import BCryptPasswordHasher
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from tkinter import messagebox
 
 from infrastructure.database.session import Base, engine
 from infrastructure.database.repositories.user_repository import UserRepositoryImpl
 from infrastructure.security.password_hasher import BCryptPasswordHasher
+from infrastructure.database.database_service import DatabaseService
 
 # Use Cases System user
 from core.use_cases.users.create_user import CreateUserUseCase
@@ -61,36 +58,6 @@ from core.use_cases.cards.toggle_card_active import ToggleCardActiveUseCase
 from core.use_cases.cards.update_card import UpdateCardUseCase
 from core.use_cases.cards.recharged_card import RechargeCardUseCase
 
-# Use Case diets
-# from core.use_cases.diets.calculate_diet_amount import CalculateDietAmountUseCase
-# from core.use_cases.diets.list_diets import ListDietsUseCase
-# from core.use_cases.diets.reset_counters import ResetCountersUseCase
-
-# from core.use_cases.diets.diet_liquidations.create_diet_liquidation import CreateDietLiquidationUseCase
-# from core.use_cases.diets.diet_liquidations.delete_diet_liquidation import DeleteDietLiquidationUseCase
-# from core.use_cases.diets.diet_liquidations.get_diet_liquidation import GetDietLiquidationUseCase
-# from core.use_cases.diets.diet_liquidations.get_last_liquidation_number import GetLastLiquidationNumberUseCase
-# from core.use_cases.diets.diet_liquidations.get_liquidation_by_diet import GetLiquidationByDietUseCase
-# from core.use_cases.diets.diet_liquidations.list_liquidations_by_date_range import ListLiquidationsByDateRangeUseCase
-# from core.use_cases.diets.diet_liquidations.reset_liquidation_numbers import ResetLiquidationNumbersUseCase
-# from core.use_cases.diets.diet_liquidations.update_diet_liquidation import UpdateDietLiquidationUseCase
-
-# from core.use_cases.diets.diet_members.add_diet_member import AddDietMemberUseCase
-# from core.use_cases.diets.diet_members.list_diet_members import ListDietMembersUseCase
-# from core.use_cases.diets.diet_members.remove_diet_member import RemoveDietMemberUseCase
-
-# from core.use_cases.diets.diet_services.get_diet_service_by_local import GetDietServiceByLocalUseCase
-# from core.use_cases.diets.diet_services.list_all_diet_services import ListAllDietServicesUseCase
-
-# from core.use_cases.diets.diets.create_diet import CreateDietUseCase
-# from core.use_cases.diets.diets.delete_diet import DeleteDietUseCase
-# from core.use_cases.diets.diets.get_diet import GetDietUseCase
-# from core.use_cases.diets.diets.get_last_advance_number import GetLastAdvanceNumberUseCase
-# from core.use_cases.diets.diets.list_diets_by_status import ListDietsByStatusUseCase
-# from core.use_cases.diets.diets.list_diets_pending_liquidation import ListDietsPendingLiquidationUseCase
-# from core.use_cases.diets.diets.reset_advance_numbers import ResetAdvanceNumbersUseCase
-# from core.use_cases.diets.diets.update_diet import UpdateDietUseCase
-
 # Services
 from application.services.user_service import UserService
 from application.services.auth_service import AuthService
@@ -99,7 +66,6 @@ from application.services.request_service import UserRequestService
 from application.services.diet_service import DietAppService
 
 # GUI
-from presentation.gui.card_presentation.dialogs import recharge_dialog
 from presentation.gui.login_window import LoginWindow
 from presentation.gui.main_dashboard import MainDashboard
 
@@ -359,6 +325,7 @@ def main():
         recharge_card_use_case = RechargeCardUseCase(card_repository)
         discount_card_use_case = DiscountCardUseCase(card_repository)
         get_aviable_cards_use_case = GetAviableCardsUseCase(card_repository)
+
 
         # Inicializar servicio de usuarios
         user_service = UserService(
