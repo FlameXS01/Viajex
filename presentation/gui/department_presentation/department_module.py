@@ -102,7 +102,7 @@ class DepartmentModule(ttk.Frame):
                 else:
                     messagebox.showerror("Error", "No se pudo eliminar el departamento")
             except Exception as e:
-                messagebox.showerror("Error", f"No se pudo eliminar el departamento: {str(e)}")
+                messagebox.showerror("Error", f"No se pudo eliminar el departamento:\nHay solicitantes asociados a él, debe eliminarlos también.")
 
         ConfirmDialog(
             self.winfo_toplevel(),
