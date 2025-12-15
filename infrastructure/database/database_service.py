@@ -17,7 +17,7 @@ class DatabaseService:
     def __init__(self, db_path: str = "dietas_app.db"):
         self.db_path = Path(db_path).resolve()
         self.backup_dir = Path("SalvasDietas").resolve()
-        self.cycles_dir = Path("ciclos").resolve()
+        self.cycles_dir = Path("Ciclos").resolve()
         self._ensure_directories()
     
     def _ensure_directories(self):
@@ -335,7 +335,7 @@ NOTA: La aplicación debe ser reiniciada para comenzar con el nuevo ciclo.
                 raise FileNotFoundError(f"Base de datos no encontrada: {self.db_path}")
             
             # 2. Crear directorio para ciclos
-            cycles_dir = Path("ciclos")
+            cycles_dir = Path("Ciclos")
             cycles_dir.mkdir(exist_ok=True)
             
             # 3. Nombre del archivo

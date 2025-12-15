@@ -363,8 +363,6 @@ class MainDashboard:
         # Menú Archivo
         file_btn = self._create_navbar_label("📁 Archivo")
         file_menu = tk.Menu(self.root, tearoff=0)
-        file_menu.add_command(label="Nuevo", command=self._new_file)
-        file_menu.add_command(label="Abrir", command=self._open_file)
         file_menu.add_separator()
         file_menu.add_command(label="Salir", command=self._on_close)
         self._bind_menu_to_label(file_btn, file_menu)
@@ -386,15 +384,7 @@ class MainDashboard:
         config_menu.add_command(label="Parámetros del Sistema", command=self._show_system_params)
         config_menu.add_separator()
 
-        
-        # Submenú de apariencia
-        appearance_menu = tk.Menu(config_menu, tearoff=0)
-        appearance_menu.add_command(label="Tema Claro", command=lambda: self._change_theme("light"))
-        appearance_menu.add_command(label="Tema Oscuro", command=lambda: self._change_theme("dark"))
-        appearance_menu.add_command(label="Tema Azul", command=lambda: self._change_theme("blue"))
-        config_menu.add_cascade(label="Apariencia", menu=appearance_menu)
-        
-        # Submenú de Inicialización (NUEVO)
+        # Submenú de Inicialización 
         init_menu = tk.Menu(config_menu, tearoff=0)
         init_menu.add_command(label="📂 Departamentos desde Excel", 
                             command=self._initialize_departments_from_file,
@@ -425,6 +415,24 @@ class MainDashboard:
         config_menu.add_command(label="📋 Logs del Sistema", command=self._show_system_logs)
         
         self._bind_menu_to_label(config_btn, config_menu)
+
+        help_btn = self._create_navbar_label("❓ Ayuda")
+        help_menu = tk.Menu(self.root, tearoff=0)
+        
+        help_menu.add_command(label="📖 Manual de Usuario", 
+                            command=self._show_user_manual,
+                            font=('Arial', 10))
+        
+        help_menu.add_command(label="📚 Documentación", 
+                            command=self._show_documentation)
+        
+        help_menu.add_separator()
+        
+        help_menu.add_command(label="🛠️ Soporte Técnico", 
+                            command=self._show_support_info,
+                            font=('Arial', 10))
+        
+        self._bind_menu_to_label(help_btn, help_menu)
 
     def _create_navbar_label(self, text):
         """Crea una etiqueta clickeable para el navbar"""
@@ -462,88 +470,7 @@ class MainDashboard:
             self.settings_service,
             self.database_service  
         )
-
-    def _change_theme(self, theme):
-        """Cambia el tema de la aplicación"""
-        self._apply_theme(theme)
-        if self.settings_service:
-            settings = self.settings_service.get_settings()
-            settings.theme = theme
-            self.settings_service.save_settings(settings)
-        
-    def _apply_theme(self, theme):
-        """Aplica un tema específico a la aplicación - VERSIÓN COMPLETA""" 
-        style = ttk.Style()
-        
-        themes = {
-            "light": {
-                "bg": "#ecf0f1", 
-                "sidebar": "#2c3e50",
-                "text": "#2c3e50",
-                "button_bg": "#3498db"
-            },
-            "dark": {
-                "bg": "#2c3e50", 
-                "sidebar": "#1a252f",
-                "text": "#ecf0f1",
-                "button_bg": "#34495e"
-            },
-            "blue": {
-                "bg": "#e3f2fd", 
-                "sidebar": "#1565c0",
-                "text": "#0d47a1",
-                "button_bg": "#1976d2"
-            }
-        }
-        
-        if theme in themes:
-            colors = themes[theme]
-            
-            # Aplicar colores a los estilos
-            style.configure('Content.TFrame', background=colors['bg'])
-            style.configure('Content.TLabel', background=colors['bg'], 
-                          foreground=colors['text'])
-            style.configure('Title.TLabel', background=colors['bg'], 
-                          foreground=colors['text'])
-            style.configure('Welcome.TLabel', background=colors['bg'], 
-                          foreground=colors['text'])
-            
-            # Sidebar
-            style.configure('Sidebar.TFrame', background=colors['sidebar'])
-            style.configure('Sidebar.TLabel', background=colors['sidebar'], 
-                          foreground='white')
-            
-            # Botones del sidebar
-            style.configure('Sidebar.TButton', background=colors['button_bg'])
-            style.configure('Sidebar.Active.TButton', 
-                          background=colors['button_bg'])
-            
-            # Navbar
-            style.configure('Navbar.TLabel', background=colors['bg'], 
-                          foreground=colors['text'])
-            
-            # Actualizar widgets existentes
-            self.content_frame.configure(style='Content.TFrame')
-            self.navbar_frame.configure(style='Content.TFrame')
-            self.header_frame.configure(style='Content.TFrame')
-            self.module_container.configure(style='Content.TFrame')
-            
-            messagebox.showinfo("Tema cambiado", 
-                              f"Tema '{theme}' aplicado correctamente.\n\n"
-                              "Los cambios se guardarán para la próxima sesión.")
-            
-    def _new_file(self):
-        """Placeholder para Nuevo Archivo"""
-        messagebox.showinfo("En desarrollo", 
-                          "La función 'Nuevo Archivo' está en desarrollo.\n\n"
-                          "Aquí podrás crear nuevos documentos o proyectos.")
-        
-    def _open_file(self):
-        """Placeholder para Abrir Archivo"""
-        messagebox.showinfo("En desarrollo", 
-                          "La función 'Abrir Archivo' está en desarrollo.\n\n"
-                          "Aquí podrás abrir documentos existentes.")
-        
+  
     def _show_system_params(self):
         """Placeholder para Parámetros del Sistema"""
         messagebox.showinfo("En desarrollo", 
@@ -1430,3 +1357,374 @@ class MainDashboard:
             resumen += "👨‍💼 Admin: ❌\n"
         
         messagebox.showinfo("📋 Resultado Final", resumen)
+    
+    def _show_user_manual(self):
+        """Muestra el manual de usuario"""
+        manual_text = """📖 MANUAL DE USUARIO - Sistema de Gestión de Dietas
+
+    1. 📋 CONCEPTOS BÁSICOS:
+    • Dieta: Anticipo económico para gastos de alimentación/alojamiento
+    • Liquidación: Rendición de cuentas de una dieta utilizada
+    • Solicitante: Persona que solicita una dieta
+    • Tarjeta: Medio de pago para alojamiento
+
+    2. 🏢 MÓDULOS PRINCIPALES:
+
+    a) GESTIÓN DE SOLICITANTES:
+        • Registrar nuevos solicitantes
+        • Asignar departamento
+        • Ver historial de dietas
+
+    b) GESTIÓN DE DIETAS:
+        • Crear nuevo anticipo
+        • Especificar tipo (local/foráneo)
+        • Calcular montos automáticamente
+        • Generar solicitud
+
+    c) LIQUIDACIONES:
+        • Registrar gastos realizados
+        • Adjuntar solicitud
+        • Calcular saldos
+        • Generar reporte final
+
+    d) TARJETAS DE HOSPEDAJE:
+        • Asignar tarjetas a solicitudes
+        • Control de saldos
+        • Historial de uso
+
+    3. ⚙️ CONFIGURACIÓN INICIAL:
+
+    PASO 1: Inicializar Departamentos
+        • Ir a: Configuración → Inicialización → Departamentos desde Excel
+        • Requiere archivo Excel con columna 'Unidad' donde se mencionen los departamentos
+
+    PASO 2: Inicializar Solicitantes  
+        • Ir a: Configuración → Inicialización → Solicitantes desde Excel
+        • Requiere archivo con columnas: 'Nomre y apellidos', 'CI', 'Unidad'
+        • Requiere la carga previa de los departamentos
+
+    PASO 3: Inicializar Tarjetas
+        • Ir a: Configuración → Inicialización → Tarjetas desde Excel
+        • Requiere archivo con columna: 'Listado de tarjetas de Hospedaje '
+
+    PASO 4: Configurar Precios
+        • Ir a: Configuración → Inicialización → Servicios de Dieta
+        • Establecer precios para servicios locales y foráneos
+        • Luego de creados los precios por defecto pueden ser modificados libremente en el módulo de Dietas, seccion de Gestión de Servicios
+
+    4. 🔄 FLUJO DE TRABAJO TÍPICO:
+
+    a) NUEVA DIETA:
+        1. Seleccionar solicitante(s)
+        2. Especificar tipo de dieta (local/foráneo)
+        3. Ingresar descripción, fechas y servicios requeridos
+        4. Sistema calcula montos automáticamente
+        5. Generar solicitud de anticipo
+
+    b) LIQUIDAR DIETA:
+        1. Seleccionar dieta a liquidar
+        2. Registrar servicios reales realizados
+        3. Sistema adjuntar solicitudes escaneadas
+        4. Calcular diferencia (favor/contra)
+        5. Generar reporte de liquidación
+
+    5. 💾 ADMINISTRACIÓN:
+
+    a) BACKUP:
+        • Configuración → Backup Base de Datos
+        • Se recomienda realizar al menos una vez al mes
+
+    b) NUEVO CICLO:
+        • Configuración → Iniciar Nuevo Ciclo
+        • Mantiene datos maestros, elimina dietas antiguas
+        • Ideal al comenzar nuevo período contable (Año)
+
+    6. 🚨 SOLUCIÓN DE PROBLEMAS:
+
+    • Error al leer Excel: Verificar formato y nombres de columnas (Deben tener nombres exactos a como aparecen en la ayuda )
+    • Datos incorrectos: Verificar archivos fuente
+    • Pérdida de datos: Restaurar desde backup
+    • Bloqueos: Cerrar la aplicación y volver a abrir
+    • Otros: Contactar soporte
+
+    7. 📞 SOPORTE:
+    • Contacto: jayler@cimex.com.cu
+    • Teléfono: 41 360204 - IP: 1204
+    • Horario: L-V 8:00 AM - 5:30 PM
+
+    Versión del Manual: 1.0 - Enero 2024"""
+        
+        self._show_help_window("Manual de Usuario", manual_text, width=800, height=600)
+
+    def _show_documentation(self):
+        """Muestra documentación técnica"""
+        docs_text = """📚 DOCUMENTACIÓN TÉCNICA
+
+    ESTRUCTURA DEL SISTEMA:
+
+    1. 🗄️ ARQUITECTURA:
+    • Base de datos: SQLite (dietas_app.db)
+    • Backups: Carpeta 'SalvasDietas'
+    • Ciclos: Carpeta 'Ciclos'
+    
+
+    2. 📁 ESTRUCTURA DE ARCHIVOS:
+    dietas_app/
+    ├── dietas_app.db              # Base de datos principal
+    ├── SalvasDietas/              # Backups automáticos
+    │   ├── backup_descripcion_YYYYMMDD_HHMMSS.db
+    │   └── ciclo_nombre_YYYYMMDD_HHMMSS.db
+    ├── Ciclos/                    # Reportes de nuevos ciclos
+    │   └── reporte_ciclo_YYYYMMDD_HHMMSS.txt
+    ├── Files/                     # Archivos de inicialización
+        ├── Maestro de trabajadores cierre septiembre.xlsx
+        └── TARJETAS DE HOSPEDAJExlsx.xls
+
+
+    3. 🗃️ ESTRUCTURA DE LA BASE DE DATOS:
+
+    # Reservada
+
+    4. 🔐 SEGURIDAD:
+    • Autenticación por usuario/contraseña
+    • Roles: ADMIN, MANAGER, USER
+    • Contraseñas encriptadas
+
+    5. 📊 FORMATOS DE ARCHIVOS SOPORTADOS:
+
+    INICIALIZACIÓN:
+    • Excel (.xlsx, .xls)
+    • Columnas específicas requeridas
+
+    EXPORTACIÓN:
+    • Excel (.xlsx)
+    • PDF (reportes)
+
+    6. ⚙️ CONFIGURACIÓN:
+
+    ARCHIVOS DE CONFIGURACIÓN:
+    • settings.json: Preferencias de usuario
+    • REINICIAR_APP.txt: Indicador de restauración
+    • APP_BLOQUEADA.lock: Bloqueo post-operación
+
+    7. 🐛 DIAGNÓSTICO:
+
+    8. 🔄 MIGRACIONES:
+
+    PROCEDIMIENTO PARA ACTUALIZAR:
+    1. Realizar backup completo
+    2. Detener aplicación
+    3. Iniciar aplicación
+    4. Verificar integridad
+
+    VERSIÓN: 1.0.0 - Sistema de Gestión de Dietas"""
+        
+        self._show_help_window("Documentación Técnica", docs_text, width=850, height=650)
+
+    def _show_support_info(self):
+        """Muestra información de soporte técnico"""
+        support_text = """🛠️ SOPORTE TÉCNICO
+
+    INFORMACIÓN DE CONTACTO:
+
+    📧 CORREO ELECTRÓNICO:
+    • Soporte General: jayler@cimex.com.cu
+    • Desarrollo: jayler@cimex.com.cu
+    • Administración: jayler@cimex.com.cu
+
+    📞 TELÉFONOS:
+    • Soporte Técnico: 41 360204 - IP: 1204
+    • Emergencias: 41 360207 - IP: 1207
+
+    🕐 HORARIOS DE ATENCIÓN:
+    • Lunes a Viernes: 8:00 AM - 5:30 PM
+
+    📍 OFICINAS:
+    • Oficina Informática: Sucursal Sancti Spíritus
+
+    PROCEDIMIENTOS DE SOPORTE:
+
+    📝 AL REPORTAR UN PROBLEMA:
+
+    INFORMACIÓN REQUERIDA:
+    1. Descripción detallada del problema
+    2. Pasos para reproducirlo
+    3. Capturas de pantalla (si es posible)
+    4. Archivos involucrados
+
+    EJEMPLO:
+    "Al intentar crear una dieta para el solicitante Juan Pérez, 
+    el sistema muestra error 'Clave foránea no encontrada'. 
+    Ocurrió hoy 15/01/2024 a las 10:30 AM."
+
+    🔧 AUTOAYUDA:
+
+    PROBLEMAS COMUNES Y SOLUCIONES:
+
+    a) ERROR AL LEER ARCHIVO EXCEL:
+        • Verifique que el archivo no esté abierto en otro programa
+        • Confirme nombres de columnas requeridas
+        • Valide formato de archivo (.xlsx, .xls)
+
+    b) LENTITUD DEL SISTEMA:
+        • Elimine backups antiguos innecesarios
+        • Reinicie la aplicación
+
+    c) ERROR 'FOREIGN KEY CONSTRAINT FAILED':
+        • Asegúrese de inicializar departamentos primero
+        • Verifique integridad de datos en Excel
+        • Contacte soporte si persiste
+
+    d) NO SE PUEDE CREAR NUEVO CICLO:
+        • Verifique permisos de escritura en carpeta
+        • Asegúrese de tener espacio en disco
+        • Realice backup manual antes de intentar
+
+
+    📚 RECURSOS ADICIONALES:
+    • Manual de Usuario: Ayuda → Manual de Usuario"""
+        
+        self._show_help_window("Soporte Técnico", support_text, width=900, height=700)
+
+ 
+
+        def _show_about(self):
+            """Muestra información acerca de la aplicación"""
+            from datetime import datetime
+            
+            about_text = f"""ℹ️ ACERCA DE DIETAS APP
+
+        📊 SISTEMA DE GESTIÓN DE DIETAS
+        Versión: 1.0.0
+        Fecha de compilación: {datetime.now().strftime('%d/%m/%Y')}
+
+        DESARROLLADO POR:
+        • Equipo de Desarrollo Cimex Sucursal Sancti'Spíritus
+        • Contactos: 
+                    jayler@cimex.com.cu
+                    jailerpc@cimex.com.cu
+                    dlamargo@cimex.com.cu
+
+        © {datetime.now().year} - Todos los derechos reservados.
+
+        📋 LICENCIA:
+        Este software es propiedad de Cimex Sucursal Sancti'Spíritus.
+        Uso autorizado únicamente para sus clientes registrados.
+
+        ⚙️ TECNOLOGÍAS UTILIZADAS:
+        • Python 3.12+
+        • SQLite 3
+        • Tkinter para interfaz gráfica
+        • Pandas para procesamiento de datos
+
+        🌐 IDIOMAS SOPORTADOS:
+        • Español (predeterminado)
+
+        📞 SOPORTE:
+        • Email: jayler@cimex.com.cu
+        • Teléfono: 47 360204 - IP: 1204
+        • Horario: L-V 8:00 AM - 5:30 PM
+
+        🔒 SEGURIDAD:
+        • Encriptación de contraseñas
+        • Backups semi-automáticos
+        • Control de acceso por roles
+        • Registro de actividades
+
+        📈 ESTADÍSTICAS DEL SISTEMA:
+        • Base de datos: SQLite
+        • Backups: Carpeta 'SalvasDietas'
+        • Ciclos: Carpeta 'ciclos'
+        • Usuarios soportados: Ilimitados
+        • Dietas por ciclo: Ilimitadas
+
+        🙏 AGRADECIMIENTOS ESPECIALES:
+        A todos nuestros usuarios por sus valiosos comentarios
+        y sugerencias que han ayudado a mejorar este sistema.
+
+        ⚠️ ADVERTENCIA:
+        Este software es para uso interno de la organización.
+        No comparta credenciales de acceso con personas no autorizadas.
+
+        ¡GRACIAS POR UTILIZAR DIETAS APP!"""
+            
+            self._show_help_window("Acerca de", about_text, width=700, height=500)
+
+    def _show_help_window(self, title: str, content: str, width: int = 750, height: int = 550):
+        """Ventana genérica para mostrar contenido de ayuda"""
+        help_window = tk.Toplevel(self.root)
+        help_window.title(title)
+        help_window.geometry(f"{width}x{height}")
+        help_window.resizable(True, True)
+        help_window.transient(self.root)
+        
+        # Frame principal
+        main_frame = ttk.Frame(help_window)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Texto con scroll
+        text_frame = ttk.Frame(main_frame)
+        text_frame.pack(fill=tk.BOTH, expand=True)
+        
+        text_widget = tk.Text(text_frame, wrap=tk.WORD, font=('Consolas', 10))
+        text_widget.insert('1.0', content)
+        text_widget.config(state='disabled', bg='#f5f5f5')
+        
+        scrollbar = ttk.Scrollbar(text_frame, orient=tk.VERTICAL, command=text_widget.yview)
+        text_widget.configure(yscrollcommand=scrollbar.set)
+        
+        text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Botones de acción
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        # Botón para copiar contenido
+        ttk.Button(button_frame, text="📋 Copiar al portapapeles", 
+                command=lambda: self._copy_to_clipboard(content)).pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Botón para imprimir
+        ttk.Button(button_frame, text="🖨️ Imprimir", 
+                command=lambda: self._print_content(title, content)).pack(side=tk.LEFT, padx=10)
+        
+        # Botón para cerrar
+        ttk.Button(button_frame, text="Cerrar", 
+                command=help_window.destroy).pack(side=tk.RIGHT)
+        
+        # Centrar ventana
+        self._center_window(help_window)
+
+    def _copy_to_clipboard(self, text: str):
+        """Copia texto al portapapeles"""
+        self.root.clipboard_clear()
+        self.root.clipboard_append(text)
+        messagebox.showinfo("Copiado", "Texto copiado al portapapeles.")
+
+    def _print_content(self, title: str, content: str):
+        """Imprime contenido """
+        try:
+            file_path = filedialog.asksaveasfilename(
+                defaultextension=".txt",
+                initialfile=f"{title.replace(' ', '_')}.txt",
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
+            )
+            
+            if file_path:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                messagebox.showinfo("Guardado", f"Contenido guardado en:\n{file_path}")
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo guardar: {str(e)}")
+
+    def _center_window(self, window):
+        """Centra una ventana en la pantalla"""
+        window.update_idletasks()
+        screen_width = window.winfo_screenwidth()
+        screen_height = window.winfo_screenheight()
+        
+        x = (screen_width // 2) - (window.winfo_width() // 2)
+        y = (screen_height // 2) - (window.winfo_height() // 2)
+        
+        window.geometry(f"+{x}+{y}")
