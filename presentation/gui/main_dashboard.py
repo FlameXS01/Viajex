@@ -1,11 +1,16 @@
 from datetime import datetime
+import os
 from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, messagebox
-from presentation.gui.utils.windows_utils import WindowUtils
+from application.dtos.diet_dtos import DietServiceCreateDTO
+from application.dtos.request_user_dtos import RequestUserCreateDTO
+from core.entities.user import UserRole
 from presentation.gui.user_presentation.user_module import UserModule
 from presentation.gui.card_presentation.card_module import CardModule
-from presentation.gui.card_presentation.card_main_window import CardMainWindow
+from tkinter import filedialog, messagebox
+import pandas as pd
+from presentation.gui.utils.progress_dialog import show_progress_dialog, ProgressDialog
 
 class MainDashboard:
     """Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA"""
@@ -370,10 +375,10 @@ class MainDashboard:
 
         # INICIAR CICLO
         config_menu.add_command(label="🔄 Iniciar Nuevo Ciclo", 
-                          command=self._start_new_cycle,
-                          foreground='#e74c3c',  
-                          font=('Arial', 10, 'bold'))
-    
+                        command=self._start_new_cycle,
+                        foreground='#e74c3c',  
+                        font=('Arial', 10, 'bold'))
+
         config_menu.add_separator()
 
         # Menú Ajustes Generales
@@ -389,10 +394,35 @@ class MainDashboard:
         appearance_menu.add_command(label="Tema Azul", command=lambda: self._change_theme("blue"))
         config_menu.add_cascade(label="Apariencia", menu=appearance_menu)
         
+        # Submenú de Inicialización (NUEVO)
+        init_menu = tk.Menu(config_menu, tearoff=0)
+        init_menu.add_command(label="📂 Departamentos desde Excel", 
+                            command=self._initialize_departments_from_file,
+                            font=('Arial', 9))
+        init_menu.add_command(label="👥 Solicitantes desde Excel", 
+                            command=self._initialize_request_users_from_file,
+                            font=('Arial', 9))
+        init_menu.add_command(label="💳 Tarjetas desde Excel", 
+                            command=self._initialize_cards_from_file,
+                            font=('Arial', 9))
+        init_menu.add_separator()
+        init_menu.add_command(label="🍽️ Servicios de Dieta", 
+                            command=self._initialize_diet_services,
+                            font=('Arial', 9))
+        init_menu.add_command(label="👨‍💼 Usuario Admin", 
+                            command=self._initialize_admin_user,
+                            font=('Arial', 9))
+        init_menu.add_separator()
+        init_menu.add_command(label="⚡ Inicializar Todo", 
+                            command=self._initialize_all_from_files,
+                            font=('Arial', 9, 'bold'),
+                            foreground='#27ae60')
+        config_menu.add_cascade(label="🔄 Inicialización", menu=init_menu)
+        
         config_menu.add_separator()
-        config_menu.add_command(label="Backup Base de Datos", command=self._backup_database)
-        config_menu.add_command(label="Restaurar Backup", command=self._restore_backup)
-        config_menu.add_command(label="Logs del Sistema", command=self._show_system_logs)
+        config_menu.add_command(label="💾 Backup Base de Datos", command=self._backup_database)
+        config_menu.add_command(label="📥 Restaurar Backup", command=self._restore_backup)
+        config_menu.add_command(label="📋 Logs del Sistema", command=self._show_system_logs)
         
         self._bind_menu_to_label(config_btn, config_menu)
 
@@ -577,219 +607,826 @@ class MainDashboard:
         except Exception as e:
             messagebox.showerror("Error", f"Error creando backup: {str(e)}")
 
-    def _restore_backup(self):
-        """Abrir ventana de restauración"""
-        from tkinter import filedialog
-        import os
-        
-        initial_dir = "SalvasDietas" if os.path.exists("SalvasDietas") else "."
-        
-        backup_file = filedialog.askopenfilename(
-            title="Seleccionar archivo de backup",
-            initialdir=initial_dir,
-            filetypes=[("Database files", "*.db"), ("All files", "*.*")]
-        )
-        
-        if backup_file:
-            if not self.database_service:
-                messagebox.showerror("Error", "Servicio de base de datos no disponible 2")
-                return
-            
-            if messagebox.askyesno(
-                "Confirmar Restauración",
-                f"¿Restaurar desde:\n{os.path.basename(backup_file)}?\n\n"
-                "Se creará un backup de la BD actual primero."
-            ):
-                try:
-                    if self.database_service.restore_backup(Path(backup_file)):
-                        messagebox.showinfo(
-                            "Éxito", 
-                            "Backup restaurado. Reinicie la aplicación."
-                        )
-                    
-                except Exception as e:
-                    messagebox.showerror("Error", f"Error restaurando: {str(e)}")
-
     def _start_new_cycle(self):
         """
-        Inicia un nuevo ciclo: crea una nueva base de datos limpia
-        sin dietas ni liquidaciones anteriores
+        Inicia un nuevo ciclo desde el navbar (versión simplificada)
         """
+        from tkinter import simpledialog
+        
         if not self.database_service:
             messagebox.showerror("Error", "Servicio de base de datos no disponible")
             return
         
-        # Mostrar ventana de confirmación
-        confirm_text = """
-        🆕 INICIAR NUEVO CICLO
-        
-        Esta acción creará una NUEVA base de datos que contendrá:
-
-        ✅ SE CONSERVARÁ:
-        • Solicitantes (requests)
-        • Tarjetas (cards) 
-        • Departamentos (department)
-        • Usuarios del sistema (users)
-        • Precios de servicios (diet_services)
-
-        ❌ SE ELIMINARÁ POR COMPLETO:
-        • Todas las dietas (diets)
-        • Todas las liquidaciones (diet_liquidations)
-
-        📝 NOTA SOBRE NUMERACIÓN:
-        • Los nuevos anticipos comenzarán desde #1
-        • Las nuevas liquidaciones comenzarán desde #1
-        • (Tu sistema obtiene el máximo ID actual y suma 1)
-
-        ¿Continuar?
-        """
-        
-        if not messagebox.askyesno("Confirmar Nuevo Ciclo", confirm_text, icon='warning'):
-            return
-        
-        # Pedir nombre para el nuevo ciclo
-        from tkinter import simpledialog
+        # Pedir nombre del ciclo
         ciclo_nombre = simpledialog.askstring(
-            "Nombre del Nuevo Ciclo",
-            "Ingrese un nombre identificador para el nuevo ciclo:",
-            initialvalue=f"Ciclo_{datetime.now().strftime('%Y_%m')}"
+            "Nuevo Ciclo",
+            "Ingrese nombre para el nuevo ciclo:",
+            initialvalue=f"Ciclo_{datetime.now().strftime('%Y_%m')}",
+            parent=self.root
         )
         
-        if not ciclo_nombre or ciclo_nombre.strip() == "":
-            messagebox.showwarning("Nombre requerido", "Debe ingresar un nombre para el nuevo ciclo.")
+        if not ciclo_nombre:
             return
         
-        # Crear backup automático (opcional pero recomendado)
-        try:
-            backup_path = self.database_service.create_backup(f"pre_ciclo_{ciclo_nombre}")
-        except Exception as backup_error:
-            if not messagebox.askyesno("Advertencia", 
-                                    f"No se pudo crear el backup:\n{str(backup_error)}\n\n"
-                                    "¿Continuar de todos modos?"):
-                return
+        # Mostrar confirmación
+        if not messagebox.askyesno(
+            "Confirmar Nuevo Ciclo",
+            f"¿Crear nuevo ciclo '{ciclo_nombre}'?\n\n"
+            "Esto creará un backup automático y cerrará la aplicación.",
+            icon='warning'
+        ):
+            return
         
-        # Mostrar progreso
+        # Bloquear interfaz
         self.root.config(cursor="watch")
         self.root.update()
         
         try:
-            # Crear la nueva base de datos limpia
+            # El servicio ahora maneja todo automáticamente
             new_db_path = self.database_service.create_clean_database_copy(ciclo_nombre)
             
-            # Mostrar mensaje de éxito
+            # Mostrar mensaje final
             messagebox.showinfo(
                 "✅ Ciclo Creado",
-                f"Nuevo ciclo '{ciclo_nombre}' creado exitosamente.\n\n"
-                f"Ubicación: {new_db_path}\n\n"
-                f"📊 Estado:\n"
-                f"• Tablas de dietas: ELIMINADAS\n"
-                f"• Tablas de liquidaciones: ELIMINADAS\n"
-                f"• Datos maestros: CONSERVADOS\n\n"
-                f"🎯 Próximos números:\n"
-                f"• Próxima dieta: #1\n"
-                f"• Próxima liquidación: #1"
+                f"Nuevo ciclo '{ciclo_nombre}' creado.\n\n"
+                f"La aplicación se cerrará ahora.\n"
+                f"Por favor, ábrala nuevamente."
             )
             
+            # Forzar cierre
+            self.root.quit()
+            
         except Exception as e:
-            messagebox.showerror("❌ Error", f"No se pudo crear el nuevo ciclo:\n{str(e)}")
-        
+            messagebox.showerror("❌ Error", f"No se pudo crear el ciclo:\n{str(e)}")
         finally:
             self.root.config(cursor="")
+            self.auth_service.logout()
+            self.root.destroy()
+            exit(0)
 
-    def _show_post_cycle_options(self, new_db_path, ciclo_nombre):
-        """Muestra opciones después de crear el nuevo ciclo"""
+    def _restore_backup(self):
+        """
+        Restaura backup desde el navbar (versión mejorada)
+        """
+        from tkinter import filedialog
+        import os
         
-        # Crear ventana de opciones
-        options_window = tk.Toplevel(self.root)
-        options_window.title("Opciones del Nuevo Ciclo")
-        options_window.geometry("500x400")
-        options_window.transient(self.root)
-        options_window.grab_set()
+        if not self.database_service:
+            messagebox.showerror("Error", "Servicio de base de datos no disponible")
+            return
         
-        # Centrar ventana
-        options_window.update_idletasks()
-        x = self.root.winfo_rootx() + (self.root.winfo_width() // 2) - (options_window.winfo_width() // 2)
-        y = self.root.winfo_rooty() + (self.root.winfo_height() // 2) - (options_window.winfo_height() // 2)
-        options_window.geometry(f"+{x}+{y}")
+        # Buscar en carpeta de backups por defecto
+        initial_dir = "SalvasDietas" if os.path.exists("SalvasDietas") else "."
         
-        # Título
-        ttk.Label(options_window, text="🎯 Nuevo Ciclo Creado", 
-                font=('Arial', 14, 'bold')).pack(pady=(20, 10))
+        backup_file = filedialog.askopenfilename(
+            title="📂 Seleccionar archivo de backup",
+            initialdir=initial_dir,
+            filetypes=[
+                ("Archivos de base de datos", "*.db"),
+                ("Todos los archivos", "*.*")
+            ]
+        )
         
-        ttk.Label(options_window, 
-                text=f"Ciclo: {ciclo_nombre}\nUbicación: {new_db_path.name}",
-                wraplength=400).pack(pady=(0, 20))
+        if not backup_file:
+            return
         
-        # Frame para opciones
-        options_frame = ttk.Frame(options_window)
-        options_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        backup_path = Path(backup_file)
         
-        # Opción 1: Usar ahora la nueva base de datos (requiere reinicio)
-        def use_now():
-            if messagebox.askyesno("Cambiar Base de Datos",
-                                "Para usar la nueva base de datos, la aplicación debe reiniciarse.\n\n"
-                                "¿Desea reiniciar ahora?"):
-                # Guardar configuración para usar la nueva BD
-                self._save_database_config(new_db_path)
-                options_window.destroy()
-                self.root.after(1000, self._restart_application)
+        # Confirmar
+        if not messagebox.askyesno(
+            "⚠️ Confirmar Restauración",
+            f"¿Restaurar desde:\n{backup_path.name}?\n\n"
+            f"ADVERTENCIA:\n"
+            f"1. Se creará backup de la BD actual\n"
+            f"2. La aplicación se CERRARÁ\n"
+            f"3. Debe reiniciar manualmente"
+        ):
+            return
         
-        btn1 = ttk.Button(options_frame, text="🔄 Usar esta base de datos AHORA",
-                        command=use_now, style='Accent.TButton')
-        btn1.pack(fill=tk.X, pady=5)
-        
-        ttk.Label(options_frame, text="(Reiniciará la aplicación)", 
-                font=('Arial', 8)).pack(pady=(0, 15))
-        
-        # Opción 2: Mantener la base de datos actual
-        def keep_current():
-            messagebox.showinfo("Base de Datos Actual",
-                            "Se mantendrá la base de datos actual.\n"
-                            "La nueva base de datos está disponible en:\n"
-                            f"{new_db_path.parent}/")
-            options_window.destroy()
-        
-        btn2 = ttk.Button(options_frame, text="📁 Mantener base de datos actual",
-                        command=keep_current)
-        btn2.pack(fill=tk.X, pady=5)
-        
-        ttk.Label(options_frame, text="(Puede cambiar manualmente después)", 
-                font=('Arial', 8)).pack(pady=(0, 15))
-        
-        # Opción 3: Ver ubicación del archivo
-        def show_location():
-            import os
-            os.startfile(new_db_path.parent)
-            options_window.destroy()
-        
-        btn3 = ttk.Button(options_frame, text="📂 Abrir carpeta de ubicación",
-                        command=show_location)
-        btn3.pack(fill=tk.X, pady=5)
-        
-        # Separador
-        ttk.Separator(options_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=20)
-        
-        # Opción 4: Cerrar
-        ttk.Button(options_frame, text="Cerrar", 
-                command=options_window.destroy).pack()
+        try:
+            # Bloquear interfaz
+            self.root.config(cursor="watch")
+            self.root.update()
+            
+            # Restaurar
+            success = self.database_service.restore_backup(backup_path)
+            
+            if success:
+                messagebox.showinfo(
+                    "✅ Restauración Exitosa",
+                    f"Backup restaurado.\n\n"
+                    f"La aplicación se cerrará ahora.\n"
+                    f"Por favor, ábrala nuevamente."
+                )
+                
+                # Cerrar aplicación
+                self.root.quit()
+            else:
+                messagebox.showerror("❌ Error", "No se pudo restaurar el backup")
+                
+        except Exception as e:
+            messagebox.showerror("❌ Error", f"Error restaurando:\n{str(e)}")
+        finally:
+            self.root.config(cursor="")
+            self.auth_service.logout()
+            self.root.destroy()
+            exit(0)
 
-    def _save_database_config(self, db_path):
-        """Guarda la configuración de la nueva base de datos"""
-        config_path = Path("database_config.json")
+    def _run_with_progress(self, task_name: str, task_func, *args, **kwargs):
+        """
+        Ejecuta una tarea con diálogo de progreso
+        """
+        try:
+            result = show_progress_dialog(
+                self.root,
+                task_func,
+                task_name
+            )
+            return result
+        except Exception as e:
+            messagebox.showerror(f"❌ Error en {task_name}", f"{str(e)}")
+            return None
+
+    def _execute_departments_initialization(self, update_progress):
+        """Lógica interna para inicializar departamentos con progreso"""
+        from tkinter import filedialog
+        import pandas as pd
+        import os
         
-        config = {
-            'active_database': str(db_path),
-            'previous_database': str(self.database_service.db_path),
-            'changed_at': datetime.now().isoformat()
+        update_progress(0, "Seleccionando archivo...")
+        
+        file_path = filedialog.askopenfilename(
+            title="📂 Seleccionar archivo Excel para departamentos",
+            initialdir=".",
+            filetypes=[
+                ("Archivos Excel", "*.xlsx *.xls"),
+                ("Todos los archivos", "*.*")
+            ]
+        )
+        
+        if not file_path:
+            return None
+        
+        update_progress(10, "Verificando archivo...")
+        
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"El archivo no existe: {file_path}")
+        
+        update_progress(20, "Leyendo archivo Excel...")
+        
+        df = pd.read_excel(file_path, skiprows=3)
+        
+        required_columns = ['Unidad']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        
+        if missing_columns:
+            raise ValueError(f"Columnas faltantes: {', '.join(missing_columns)}")
+        
+        update_progress(30, "Procesando unidades...")
+        
+        # CORRECCIÓN: Usar value_counts() correctamente
+        dirty_unidades = df['Unidad'].value_counts()
+        unidades = []
+        total_unidades = len(dirty_unidades)
+        
+        # CORRECCIÓN: Iterar sobre los índices (nombres de unidades)
+        for idx, unidad in enumerate(dirty_unidades.index, 1):
+            unidad_limpia = str(unidad).strip()
+            if unidad_limpia and unidad_limpia.lower() != 'nan':
+                unidades.append(unidad_limpia)
+            
+            # Actualizar progreso cada 10 unidades
+            if idx % 10 == 0 or idx == total_unidades:
+                progress = 30 + int((idx / total_unidades) * 20)
+                update_progress(progress, f"Procesando unidades... ({idx}/{total_unidades})")
+        
+        if not unidades:
+            raise ValueError("No se encontraron unidades en el archivo")
+        
+        update_progress(50, f"Creando {len(unidades)} departamentos...")
+        
+        success_count = 0
+        error_count = 0
+        total_unidades = len(unidades)
+        
+        for idx, unidad in enumerate(unidades, 1):
+            # Calcular progreso
+            progress = 50 + int((idx / total_unidades) * 50)
+            update_progress(progress, f"Creando departamentos... ({idx}/{total_unidades})", 
+                        f"Procesando: {unidad[:30]}...")
+            
+            try:
+                department = self.department_service.get_department_by_name(name=unidad)
+                if not department:
+                    department = self.department_service.create_department_f(name=unidad)
+                    if department:
+                        success_count += 1
+                    else:
+                        error_count += 1
+            except Exception as e:
+                error_count += 1
+        
+        update_progress(100, "Finalizando...")
+        
+        return {
+            'success': success_count,
+            'errors': error_count,
+            'total': len(unidades),
+            'file': os.path.basename(file_path)
         }
+    
+    def _initialize_departments_from_file(self):
+        """Inicializa departamentos desde archivo Excel"""
+        from tkinter import messagebox
         
-        with open(config_path, 'w', encoding='utf-8') as f:
-            json.dump(config, f, indent=2, ensure_ascii=False)
+        try:
+            result = self._run_with_progress(
+                "Inicializando Departamentos",
+                self._execute_departments_initialization
+            )
+            
+            if result:
+                if result['errors'] > 0:
+                    messagebox.showinfo(
+                        "✅ Inicialización parcial",
+                        f"Inicialización completada:\n\n"
+                        f"📄 Archivo: {result['file']}\n"
+                        f"✅ Creados: {result['success']}\n"
+                        f"❌ Errores: {result['errors']}\n"
+                        f"📊 Total: {result['total']}"
+                    )
+                else:
+                    messagebox.showinfo(
+                        "✅ Inicialización exitosa",
+                        f"Departamentos inicializados correctamente:\n\n"
+                        f"📄 Archivo: {result['file']}\n"
+                        f"📊 Total creados: {result['success']}"
+                    )
+        
+        except Exception as e:
+            if "Columnas faltantes" in str(e):
+                messagebox.showerror(
+                    "❌ Estructura incorrecta",
+                    f"El archivo no tiene la estructura esperada.\n\n"
+                    f"Columna requerida: 'Unidad'\n\n"
+                    f"Por favor, use un archivo Excel con columna 'Unidad' "
+                    f"que contenga los nombres de departamentos."
+                )
+            elif "No se encontraron unidades" in str(e):
+                messagebox.showwarning(
+                    "⚠️ Sin datos",
+                    "No se encontraron unidades/departamentos en el archivo."
+                )
+            elif "archivo no existe" in str(e).lower():
+                messagebox.showerror(
+                    "❌ Archivo no encontrado",
+                    "El archivo seleccionado no existe o no se puede acceder."
+                )
+            else:
+                messagebox.showerror(
+                    "❌ Error crítico",
+                    f"Ocurrió un error inesperado:\n\n{str(e)}"
+                )
 
-    def _restart_application(self):
-        """Reinicia la aplicación"""
-        messagebox.showinfo("Reiniciar", 
-                        "La aplicación se cerrará para completar el cambio.\n"
-                        "Por favor, ábrala nuevamente manualmente.")
-        self.root.quit()
-        self.root.destroy()
+    def _execute_request_users_initialization(self, update_progress):
+        """Lógica interna para inicializar solicitantes con progreso"""
+        from tkinter import filedialog
+        import pandas as pd
+        import os
+        
+        update_progress(0, "Verificando dependencias...")
+        
+        if not hasattr(self, 'department_service') or not self.department_service:
+            raise ValueError("Servicio de departamentos no disponible")
+        
+        update_progress(5, "Seleccionando archivo...")
+        
+        file_path = filedialog.askopenfilename(
+            title="📂 Seleccionar archivo Excel para solicitantes",
+            initialdir=".",
+            filetypes=[
+                ("Archivos Excel", "*.xlsx *.xls"),
+                ("Todos los archivos", "*.*")
+            ]
+        )
+        
+        if not file_path:
+            return None
+        
+        update_progress(10, "Verificando archivo...")
+        
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"Archivo no encontrado: {file_path}")
+        
+        update_progress(15, "Leyendo archivo Excel...")
+        
+        df = pd.read_excel(file_path, skiprows=3)
+        
+        required_columns = ['Nomre y apellidos', 'CI', 'Unidad']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        
+        if missing_columns:
+            raise ValueError(f"Columnas faltantes: {', '.join(missing_columns)}")
+        
+        update_progress(20, "Procesando datos...")
+        
+        # CORRECCIÓN: Usar las columnas correctamente
+        personas = []
+        total_filas = len(df)
+        
+        for idx, row in df.iterrows():
+            try:
+                nombre = str(row['Nomre y apellidos']).strip()
+                ci = str(row['CI']).strip()
+                unidad = str(row['Unidad']).strip()
+                
+                if not nombre or nombre.lower() == 'nan' or nombre == 'None':
+                    continue
+                if not ci or ci.lower() == 'nan' or ci == 'None':
+                    continue
+                if len(ci) > 11:
+                    continue
+                
+                personas.append({
+                    'nombre': nombre,
+                    'ci': ci,
+                    'unidad': unidad
+                })
+            except Exception as e:
+                continue
+            
+            # Actualizar progreso cada 50 filas
+            if idx % 50 == 0 or idx == total_filas - 1:
+                progress = 20 + int((idx / total_filas) * 30)
+                update_progress(progress, f"Procesando datos... ({idx}/{total_filas})")
+        
+        if not personas:
+            raise ValueError("No se encontraron personas con datos válidos en el archivo")
+        
+        update_progress(50, f"Creando {len(personas)} solicitantes...")
+        
+        success_count = 0
+        error_count = 0
+        dept_not_found = 0
+        total_personas = len(personas)
+        
+        for idx, persona in enumerate(personas, 1):
+            # Calcular progreso
+            progress = 50 + int((idx / total_personas) * 50)
+            update_progress(progress, f"Creando solicitantes... ({idx}/{total_personas})",
+                        f"CI: {persona['ci']}")
+            
+            try:
+                requ_user = self.request_user_service.get_user_by_ci(persona['ci'])
+                if requ_user:
+                    continue
+                
+                department = self.department_service.get_department_by_name(name=persona['unidad'])
+                if not department:
+                    dept_not_found += 1
+                    continue
+              
+                
+                user_data = RequestUserCreateDTO(
+                    username=None,
+                    fullname=persona['nombre'],
+                    email=None,
+                    ci=persona['ci'],
+                    department_id=department.id
+                )
+                
+                requ_user = self.request_user_service.create_user(user_data)
+                
+                if requ_user:
+                    success_count += 1
+                else:
+                    error_count += 1
+                    
+            except Exception as e:
+                error_count += 1
+        
+        update_progress(100, "Finalizando...")
+        
+        return {
+            'total': len(personas),
+            'created': success_count,
+            'dept_not_found': dept_not_found,
+            'errors': error_count,
+            'file': os.path.basename(file_path)
+        } 
+    
+    def _initialize_request_users_from_file(self):
+        """Inicializa solicitantes desde archivo Excel"""
+        try:
+            result = self._run_with_progress(
+                "Inicializando Solicitantes",
+                self._execute_request_users_initialization
+            )
+            
+            if result:
+                result_message = f"Inicialización completada:\n\n"
+                result_message += f"📄 Archivo: {result['file']}\n"
+                result_message += f"📊 Total procesados: {result['total']}\n"
+                result_message += f"✅ Solicitantes creados: {result['created']}\n"
+                result_message += f"❌ Errores: {result['errors']}\n"
+                
+                if result['dept_not_found'] > 0:
+                    result_message += f"⚠️ Departamentos no encontrados: {result['dept_not_found']}\n"
+                    result_message += "(Algunos solicitantes no pudieron ser creados por falta de departamento)"
+                
+                messagebox.showinfo("📊 Resultado", result_message)
+        
+        except Exception as e:
+            if "Servicio de departamentos" in str(e):
+                messagebox.showerror(
+                    "❌ Servicio no disponible",
+                    "Primero inicialice los departamentos."
+                )
+            elif "Columnas faltantes" in str(e):
+                messagebox.showerror(
+                    "❌ Estructura incorrecta",
+                    f"El archivo debe contener las columnas:\n\n"
+                    f"• 'Nomre y apellidos': Nombres completos\n"
+                    f"• 'CI': Número de identificación\n"
+                    f"• 'Unidad': Departamento asignado\n\n"
+                    f"Verifique la estructura del archivo Excel."
+                )
+            elif "No se encontraron personas" in str(e):
+                messagebox.showwarning(
+                    "⚠️ Sin datos válidos",
+                    "No se encontraron personas con datos válidos en el archivo."
+                )
+            else:
+                messagebox.showerror("❌ Error", f"Error inesperado:\n\n{str(e)}")
+
+    def _execute_cards_initialization(self, update_progress):
+        """Lógica interna para inicializar tarjetas con progreso"""
+        from tkinter import filedialog
+        import pandas as pd
+        import os
+        
+        update_progress(0, "Seleccionando archivo...")
+        
+        file_path = filedialog.askopenfilename(
+            title="📂 Seleccionar archivo Excel para tarjetas",
+            initialdir=".",
+            filetypes=[
+                ("Archivos Excel", "*.xls *.xlsx"),
+                ("Todos los archivos", "*.*")
+            ]
+        )
+        
+        if not file_path:
+            return None
+        
+        update_progress(10, "Verificando archivo...")
+        
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"Archivo no encontrado: {file_path}")
+        
+        update_progress(20, "Leyendo archivo Excel...")
+        
+        df = pd.read_excel(file_path, skiprows=0)
+        
+        expected_column = 'Listado de tarjetas de Hospedaje '
+        
+        if expected_column not in df.columns:
+            similar_columns = [col for col in df.columns if 'tarjeta' in str(col).lower() or 'hospedaje' in str(col).lower()]
+            
+            if similar_columns:
+                raise ValueError(f"Columna esperada: '{expected_column}'\nColumnas similares: {', '.join(similar_columns)}")
+            else:
+                raise ValueError(f"Columna '{expected_column}' no encontrada")
+        
+        update_progress(30, "Procesando tarjetas...")
+        
+        dirty_data = df[expected_column]
+        tarjetas_procesadas = 0
+        tarjetas_creadas = 0
+        tarjetas_existentes = 0
+        errores = 0
+        total_items = len(dirty_data)
+        
+        for idx, (index, number) in enumerate(dirty_data.items(), 1):
+            try:
+                number = str(number).strip()
+                
+                if not number or number.lower() in ['nan', 'none', 'null', '']:
+                    continue
+                
+                tarjetas_procesadas += 1
+                
+                card = self.card_service.get_card_by_card_number(number)
+                if not card:
+                    card_number = number
+                    card_pin = '0000'
+                    amount = 0.00
+                    
+                    success = self.card_service.create_card(card_number, card_pin, amount)
+                    if success:
+                        tarjetas_creadas += 1
+                    else:
+                        errores += 1
+                else:
+                    tarjetas_existentes += 1
+                    
+            except Exception:
+                errores += 1
+            
+            # Actualizar progreso cada 100 tarjetas
+            if idx % 100 == 0 or idx == total_items:
+                progress = 30 + int((idx / total_items) * 70)
+                update_progress(progress, f"Procesando tarjetas... ({idx}/{total_items})")
+        
+        update_progress(100, "Finalizando...")
+        
+        return {
+            'processed': tarjetas_procesadas,
+            'created': tarjetas_creadas,
+            'existing': tarjetas_existentes,
+            'errors': errores,
+            'file': os.path.basename(file_path)
+        }
+    
+    def _initialize_cards_from_file(self):
+        """Inicializa tarjetas desde archivo Excel"""
+        try:
+            result = self._run_with_progress(
+                "Inicializando Tarjetas",
+                self._execute_cards_initialization
+            )
+            
+            if result:
+                result_message = f"Inicialización completada:\n\n"
+                result_message += f"📄 Archivo: {result['file']}\n"
+                result_message += f"📊 Tarjetas procesadas: {result['processed']}\n"
+                result_message += f"✅ Nuevas tarjetas: {result['created']}\n"
+                result_message += f"ℹ️ Tarjetas existentes: {result['existing']}\n"
+                
+                if result['errors'] > 0:
+                    result_message += f"❌ Errores: {result['errors']}\n\n"
+                    result_message += "Algunas tarjetas no pudieron ser procesadas."
+                
+                messagebox.showinfo("💳 Resultado", result_message)
+        
+        except Exception as e:
+            if "Columna esperada" in str(e):
+                messagebox.showerror(
+                    "❌ Estructura incorrecta",
+                    f"El archivo debe contener la columna:\n\n"
+                    f"'Listado de tarjetas de Hospedaje '\n\n"
+                    f"Por favor, verifique el nombre de la columna."
+                )
+            elif "no encontrado" in str(e).lower():
+                messagebox.showerror(
+                    "❌ Archivo no encontrado",
+                    "El archivo seleccionado no existe.\n\n"
+                    "Por defecto se espera: 'Files/TARJETAS DE HOSPEDAJExlsx.xls'"
+                )
+            else:
+                messagebox.showerror("❌ Error", f"Error inesperado:\n\n{str(e)}")
+
+    def _initialize_diet_services(self):
+        """Inicializa los servicios de dieta por defecto"""
+        try:
+            result = self._run_with_progress(
+                "Inicializando Servicios de Dieta",
+                self._execute_diet_services_initialization
+            )
+            
+            if result:
+                if result['local'] and result['foreign']:
+                    messagebox.showinfo(
+                        "✅ Servicios creados",
+                        "Servicios de dieta inicializados correctamente."
+                    )
+                elif result['local'] or result['foreign']:
+                    messagebox.showwarning(
+                        "⚠️ Inicialización parcial",
+                        f"Servicio local: {'✅' if result['local'] else '❌'}\n"
+                        f"Servicio foráneo: {'✅' if result['foreign'] else '❌'}"
+                    )
+                else:
+                    messagebox.showerror("❌ Error", "No se pudieron crear los servicios.")
+        
+        except Exception as e:
+            messagebox.showerror("❌ Error", f"Error inesperado:\n\n{str(e)}")
+
+    def _execute_diet_services_initialization(self, update_progress):
+        """Lógica interna para inicializar servicios de dieta con progreso"""
+        update_progress(0, "Verificando servicios existentes...")
+        
+        service_local = self.diet_service.get_diet_service_by_local(True)
+        service_foreign = self.diet_service.get_diet_service_by_local(False)
+        
+        update_progress(30, "Creando servicios...")
+        
+        try:
+            diet_service_local = DietServiceCreateDTO(
+                is_local=True,
+                breakfast_price=200,
+                lunch_price=200,
+                dinner_price=200,
+                accommodation_cash_price=200,
+                accommodation_card_price=200
+            )
+            success_local = self.diet_service.create_diet_service(diet_service_local)
+        except Exception:
+            success_local = False
+        
+        update_progress(60, "Creando servicio foráneo...")
+        
+        try:
+            diet_service_foreign = DietServiceCreateDTO(
+                is_local=False,
+                breakfast_price=300,
+                lunch_price=300,
+                dinner_price=300,
+                accommodation_cash_price=300,
+                accommodation_card_price=300
+            )
+            success_foreign = self.diet_service.create_diet_service(diet_service_foreign)
+        except Exception:
+            success_foreign = False
+        
+        update_progress(100, "Finalizando...")
+        
+        return {
+            'local': success_local,
+            'foreign': success_foreign
+        }
+
+    def _initialize_admin_user(self):
+        """Inicializa el usuario administrador por defecto"""
+        admin_user = self.user_service.get_user_by_username("admin")
+        
+        if admin_user:
+            messagebox.showinfo(
+                "✅ Usuario existente",
+                "El usuario administrador ya existe.\n\n"
+                "Usuario: admin\n\n"
+                "Use la opción de gestión de usuarios para cambiar la contraseña."
+            )
+            return
+        
+        try:
+            admin_user = self.user_service.create_user(
+                username="admin",
+                email="admin@dietasapp.com",
+                password="admin01*",
+                role=UserRole.ADMIN
+            )
+            
+            if admin_user:
+                messagebox.showinfo(
+                    "✅ Usuario creado",
+                    "Usuario administrador creado exitosamente.\n\n"
+                    "Usuario: admin\nContraseña: admin01*\n\n"
+                    "Cambie la contraseña después del primer inicio."
+                )
+            else:
+                messagebox.showerror("❌ Error", "No se pudo crear el usuario.")
+                
+        except Exception as e:
+            messagebox.showerror("❌ Error", f"Error creando usuario:\n\n{str(e)}")
+
+    def _initialize_all_from_files(self):
+        """Ejecuta todas las inicializaciones en orden"""
+        
+        def execute_complete_initialization(update_progress):
+            resultados = {}
+            
+            update_progress(0, "Iniciando inicialización completa...")
+            
+            # 1. Departamentos
+            update_progress(10, "Paso 1/5: Inicializando departamentos...")
+            resultados['departamentos'] = self._execute_departments_initialization(update_progress)
+            
+            # 2. Solicitantes
+            update_progress(40, "Paso 2/5: Inicializando solicitantes...")
+            if resultados['departamentos'] and resultados['departamentos'].get('success', 0) > 0:
+                resultados['solicitantes'] = self._execute_request_users_initialization(update_progress)
+            else:
+                resultados['solicitantes'] = {'error': 'Sin departamentos creados'}
+            
+            # 3. Tarjetas
+            update_progress(60, "Paso 3/5: Inicializando tarjetas...")
+            resultados['tarjetas'] = self._execute_cards_initialization(update_progress)
+            
+            # 4. Servicios de dieta
+            update_progress(80, "Paso 4/5: Inicializando servicios de dieta...")
+            resultados['servicios'] = self._execute_diet_services_initialization(update_progress)
+            
+            # 5. Usuario admin
+            update_progress(90, "Paso 5/5: Inicializando usuario administrador...")
+            resultados['admin'] = self._initialize_admin_user()
+            
+            update_progress(100, "Inicialización completa finalizada")
+            return resultados
+        
+        try:
+            result = self._run_with_progress(
+                "Inicialización Completa",
+                execute_complete_initialization
+            )
+            
+            if result:
+                self._show_initialization_summary(result)
+        
+        except Exception as e:
+            messagebox.showerror("❌ Error", f"Error en inicialización:\n\n{str(e)}")
+
+    def _initialize_diet_services_internal(self):
+        """Versión interna para inicialización completa"""
+        try:
+            diet_service_local = DietServiceCreateDTO(
+                is_local=True,
+                breakfast_price=200,
+                lunch_price=200,
+                dinner_price=200,
+                accommodation_cash_price=200,
+                accommodation_card_price=200
+            )
+            success_local = self.diet_service.create_diet_service(diet_service_local)
+        except Exception:
+            success_local = False
+        
+        try:
+            diet_service_foreign = DietServiceCreateDTO(
+                is_local=False,
+                breakfast_price=300,
+                lunch_price=300,
+                dinner_price=300,
+                accommodation_cash_price=300,
+                accommodation_card_price=300
+            )
+            success_foreign = self.diet_service.create_diet_service(diet_service_foreign)
+        except Exception:
+            success_foreign = False
+        
+        return {
+            'local': success_local,
+            'foreign': success_foreign
+        }
+
+    def _initialize_admin_user_internal(self):
+        """Versión interna para inicialización completa"""
+        admin_user = self.user_service.get_user_by_username("admin")
+        
+        if not admin_user:
+            try:
+                admin_user = self.user_service.create_user(
+                    username="admin",
+                    email="admin@dietasapp.com",
+                    password="admin01*",
+                    role=UserRole.ADMIN
+                )
+                return {'created': True, 'user': 'admin'}
+            except Exception:
+                return {'created': False, 'error': 'Error creando usuario'}
+        
+        return {'created': False, 'message': 'Ya existe'}
+
+    def _show_initialization_summary(self, result):
+        """Muestra resumen de inicialización completa"""
+        resumen = "📊 RESUMEN DE INICIALIZACIÓN\n\n"
+        
+        if 'departamentos' in result and result['departamentos']:
+            dept = result['departamentos']
+            resumen += f"📂 Departamentos: ✅ {dept.get('success', 0)}/{dept.get('total', 0)}\n"
+        else:
+            resumen += "📂 Departamentos: ❌\n"
+        
+        if 'solicitantes' in result and result['solicitantes']:
+            sol = result['solicitantes']
+            if 'error' in sol:
+                resumen += f"👥 Solicitantes: ❌ {sol['error']}\n"
+            else:
+                resumen += f"👥 Solicitantes: ✅ {sol.get('created', 0)}/{sol.get('total', 0)}\n"
+        else:
+            resumen += "👥 Solicitantes: ❌\n"
+        
+        if 'tarjetas' in result and result['tarjetas']:
+            cards = result['tarjetas']
+            resumen += f"💳 Tarjetas: ✅ {cards.get('created', 0)}/{cards.get('processed', 0)}\n"
+        else:
+            resumen += "💳 Tarjetas: ❌\n"
+        
+        if 'servicios' in result and result['servicios']:
+            serv = result['servicios']
+            local = '✅' if serv.get('local') else '❌'
+            foreign = '✅' if serv.get('foreign') else '❌'
+            resumen += f"🍽️ Servicios: {local} local, {foreign} foráneo\n"
+        else:
+            resumen += "🍽️ Servicios: ❌\n"
+        
+        if 'admin' in result and result['admin']:
+            admin = result['admin']
+            if admin.get('created'):
+                resumen += "👨‍💼 Admin: ✅ Creado\n"
+            else:
+                resumen += f"👨‍💼 Admin: ℹ️ {admin.get('message', '')}\n"
+        else:
+            resumen += "👨‍💼 Admin: ❌\n"
+        
+        messagebox.showinfo("📋 Resultado Final", resumen)

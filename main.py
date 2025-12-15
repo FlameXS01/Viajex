@@ -1,8 +1,4 @@
 import tkinter as tk
-import pandas as pd
-import os
-from application.dtos.diet_dtos import DietServiceCreateDTO
-from application.dtos.request_user_dtos import RequestUserCreateDTO
 from application.services.card_service import CardService
 from application.services.department_service import DepartmentService
 from core.use_cases.cards.aviable_card import GetAviableCardsUseCase
@@ -18,12 +14,10 @@ from infrastructure.database.session import Base, engine
 from infrastructure.security.password_hasher import BCryptPasswordHasher
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from tkinter import messagebox
 
 from infrastructure.database.session import Base, engine
 from infrastructure.database.repositories.user_repository import UserRepositoryImpl
 from infrastructure.security.password_hasher import BCryptPasswordHasher
-from infrastructure.database.database_service import DatabaseService
 
 # Use Cases System user
 from core.use_cases.users.create_user import CreateUserUseCase
@@ -75,84 +69,6 @@ from infrastructure.database.repositories.card_repository import CardRepositoryI
 
 
 
-def _departaments_by_file() -> list[str]:
-    """
-    
-    Script para obtener los nombres de las unidades(departments)
-    
-    """
-    # Se saltan las primeras 3 filas porque no brindan informacion
-    df = pd.read_excel("Files/Maestro de trabajadores cierre septiembre.xlsx",skiprows=3)
-    dirty_unidades = df['Unidad'].value_counts()  
-    unidades =[]
-    for value, unidad in enumerate(dirty_unidades.index):
-        unidades.append(unidad.strip())
-    return unidades
-
-def _request_users_by_file() -> list[dict]:
-    """
-    
-    Script para obtener los nombres de los solicitantes
-    
-    """
-    # Se saltan las primeras 3 filas porque no brindan informacion
-    df = pd.read_excel("Files/Maestro de trabajadores cierre septiembre.xlsx",skiprows=3)
-    dirty_data = df[['Nomre y apellidos', 'CI', 'Unidad']]
-    personas = []
-    for index, fila in dirty_data.iterrows():
-            nombre = str(fila['Nomre y apellidos']).strip()
-            ci = str(fila['CI']).strip()
-            unidad = str(fila['Unidad']).strip()
-           
-            if len(ci) > 11:
-                continue
-
-            persona = {
-                'nombre': nombre,
-                'ci': ci, 
-                'unidad': unidad
-            }
-            personas.append(persona)
-    return personas
-    
-def initialize_request_users(request_user_service: UserRequestService, personas: list[dict], department_service: DepartmentService):
-    """
-    Crea los solicitantes por defecto si no existen
-    
-    Args:
-        request_user_service: Servicio para manejar usuarios
-        personas: Lista de personas desde el archivo
-        department_service: Servicio para manejar departamentos
-    """
-    for persona in personas:
-        try:
-            requ_user = request_user_service.get_user_by_ci(persona['ci'])
-            if requ_user:
-                continue
-
-            department = department_service.get_department_by_name(name=persona['unidad'])
-            if not department:
-                print(f"  ❌ Departamento no encontrado: '{persona['unidad']}'")
-                continue
-
-            # Crear DTO y usuario
-            user_data = RequestUserCreateDTO(
-                username=None,
-                fullname=persona['nombre'],
-                email=None,
-                ci=persona['ci'],
-                department_id=department.id                                                                         # type: ignore
-            )
-            
-            requ_user = request_user_service.create_user(user_data)
-            
-            if requ_user:
-                continue
-        except Exception as e:
-            print(f"❌ Error creando {persona.get('nombre', 'N/A')}: {e}")
-            import traceback
-            traceback.print_exc()
-    print('Solicitantes inicializados')
 
 def initialize_admin_user(user_service: UserService):
     """
@@ -174,104 +90,6 @@ def initialize_admin_user(user_service: UserService):
         except Exception as e:
             print(f"Error creando usuario admin: {e}")
 
-def initializate_departments (department_service: DepartmentService, unidades: list[str]):
-    """
-    
-    Crea los departamentos por defecto si no existen
-    
-    """
-    for unidad in unidades:
-        department = department_service.get_department_by_name(name=unidad)
-        if not department:
-            try:
-                # Crear usuario admin por defecto
-                department = department_service.create_department_f(
-                    name=unidad
-                )
-            except Exception as e:
-                print(f"Error creando departamento {unidad}: {e}")
-    print('Departamentos inicializados')
-
-def initializate_diet_service (diet_service: DietAppService):
-    """
-    
-    Crea los departamentos por defecto si no existen
-    
-    """
-    try: 
-        service = diet_service.get_diet_service_by_local(True)
-        if not service:
-            diet_service_local = DietServiceCreateDTO(
-                is_local = True,
-                breakfast_price = 200,
-                lunch_price = 200,
-                dinner_price = 200,
-                accommodation_cash_price = 200,
-                accommodation_card_price = 200
-            )
-            succes = diet_service.create_diet_service(diet_service_local)
-            if not succes:
-                print('error creando servicio de dieta local')
-
-        service = diet_service.get_diet_service_by_local(is_local = False)
-        if not service:
-            diet_service_foreign = DietServiceCreateDTO(
-                is_local = False,
-                breakfast_price = 300,
-                lunch_price = 300,
-                dinner_price = 300,
-                accommodation_cash_price = 300,
-                accommodation_card_price = 300
-            )
-            succes = diet_service.create_diet_service(diet_service_foreign)
-            if not succes:
-                print('error creando servicio de dieta fuera de la provincia')  
-
-        print('Servicios de dietas inicializados')
-    except Exception as e:
-        print(f"Error creando servcios de dietas: {e}")
-        import traceback
-        traceback.print_exc()
-
-def initializate_card(card_service: CardService):
-    """
-    
-    Crea las tarjetas por defecto si no existen
-    
-    """
-    try:
-        df = pd.read_excel("Files/TARJETAS DE HOSPEDAJExlsx.xls", skiprows=0)
-        dirty_data = df['Listado de tarjetas de Hospedaje ']
-        
-        for index, number in dirty_data.items():
-            number = str(number).strip()
-            
-            if not number or number == 'nan' or number == 'None':
-                continue
-            #print(number)
-            card = card_service.get_card_by_card_number(number)
-            if not card:
-                card_number = number
-                card_pin = '0000'
-                amount = 0.00
-                
-                success = card_service.create_card(card_number, card_pin, amount)
-                if not success:
-                    print(f'Error creando tarjeta con número: {number}')
-           
-
-        print('Tarjetas de hospedajes inicializadas correctamente')
-        
-    except FileNotFoundError:
-        print("Error: Archivo no encontrado. Verifica la ruta y nombre del archivo.")
-    except KeyError as e:
-        print(f"Error: Columna no encontrada en el archivo: {e}")
-    except Exception as e:
-        print(f"Error creando tarjetas: {e}")
-        import traceback
-        traceback.print_exc()
-
-    
 
 def main():
     """Función principal que inicializa la aplicación completa"""
@@ -380,21 +198,9 @@ def main():
             get_card_by_number_use_case = get_card_by_number_use_case
         )
 
-        # Crear usuario admin por defecto
+        # # Crear usuario admin por defecto
         initialize_admin_user(user_service)
 
-        # Crear departamentos
-        unidades = _departaments_by_file()
-        initializate_departments(department_service, unidades)
-
-        # Crear solicitantes
-        personas = _request_users_by_file()
-        initialize_request_users(request_user_service, personas, department_service)
-
-        # Crear servicios de dietas
-        initializate_diet_service(diet_service)
-
-        initializate_card(card_service)
 
         # Inicializar casos de uso de autenticación
         login_use_case = LoginUseCase(user_repository, password_hasher)
