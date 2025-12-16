@@ -16,7 +16,7 @@ class MainDashboard:
     """Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA"""
     
     def __init__(self, user, user_service, auth_service, department_service, 
-                request_user_service, card_service, diet_service, settings_service=None, database_service=None
+                request_user_service, card_service, diet_service, account_service, settings_service=None, database_service=None
                 ):
         self.user = user
         self.user_service = user_service
@@ -28,6 +28,7 @@ class MainDashboard:
         self.current_module_instance = None  
         self.settings_service = settings_service
         self.database_service = database_service
+        self.account_service = account_service
 
         if database_service is None:
             try:
@@ -363,6 +364,13 @@ class MainDashboard:
         # Menú Archivo
         file_btn = self._create_navbar_label("📁 Archivo")
         file_menu = tk.Menu(self.root, tearoff=0)
+
+        file_menu.add_command(
+                label="📊 Manejar Cuentas", 
+                command=self._manage_accounts,
+                accelerator="Ctrl+A"
+            )
+
         file_menu.add_separator()
         file_menu.add_command(label="Salir", command=self._on_close)
         self._bind_menu_to_label(file_btn, file_menu)
@@ -1586,9 +1594,7 @@ class MainDashboard:
         
         self._show_help_window("Soporte Técnico", support_text, width=900, height=700)
 
- 
-
-        def _show_about(self):
+    def _show_about(self):
             """Muestra información acerca de la aplicación"""
             from datetime import datetime
             
@@ -1728,3 +1734,19 @@ class MainDashboard:
         y = (screen_height // 2) - (window.winfo_height() // 2)
         
         window.geometry(f"+{x}+{y}")
+
+    def _manage_accounts(self):
+        """Abrir diálogo de gestión de cuentas"""
+        if not hasattr(self, 'account_service') or self.account_service is None:
+            messagebox.showerror("Error", "Servicio de cuentas no disponible")
+            return
+        
+        try:
+            from presentation.gui.account_presentation.dialogs.account_management_dialog import AccountManagementDialog
+            
+            dialog = AccountManagementDialog(self.root, self.account_service)
+            dialog.wait_window()  # Diálogo modal
+        except ImportError as e:
+            messagebox.showerror("Error", f"Módulo no disponible: {str(e)}")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo abrir gestión de cuentas: {str(e)}")

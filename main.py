@@ -1,9 +1,20 @@
 import tkinter as tk
+from application.services.account_service import AccountService
 from application.services.card_service import CardService
 from application.services.department_service import DepartmentService
+from core.use_cases.account import create_account_use_case
+from core.use_cases.account.create_account_use_case import CreateAccountUseCase
+from core.use_cases.account.delete_account_use_case import DeleteAccountUseCase
+from core.use_cases.account.get_account_by_id_use_case import GetAccountByIdUseCase
+from core.use_cases.account.get_account_by_number_use_case import GetAccountByNumberUseCase
+from core.use_cases.account.get_all_accounts_use_case import GetAllAccountsUseCase
+from core.use_cases.account.search_accounts_by_description_use_case import SearchAccountsByDescriptionUseCase
+from core.use_cases.account.update_account_use_case import UpdateAccountUseCase
+from core.use_cases.account.validate_account_number_use_case import ValidateAccountNumberUseCase
 from core.use_cases.cards.aviable_card import GetAviableCardsUseCase
 from core.use_cases.cards.discount_card import DiscountCardUseCase
 from core.use_cases.request_user.list_users_request import ListRequestUsersUseCase
+from infrastructure.database.repositories.account_repository import AccountRepositoryImpl
 from infrastructure.database.repositories.department_repository import DepartmentRepositoryImpl
 from infrastructure.database.repositories.diet_liquidation_repository import DietLiquidationRepositoryImpl
 from infrastructure.database.repositories.diet_repository import DietRepositoryImpl
@@ -105,6 +116,7 @@ def main():
         department_repository = DepartmentRepositoryImpl(db_session)
         request_user_repository = RequestUserRepositoryImpl(db_session)
         card_repository= CardRepositoryImpl(db_session)
+        account_repository = AccountRepositoryImpl(db_session)
 
         diet_liquidation_repository = DietLiquidationRepositoryImpl(db_session)
         diet_repository = DietRepositoryImpl(db_session)
@@ -143,6 +155,16 @@ def main():
         recharge_card_use_case = RechargeCardUseCase(card_repository)
         discount_card_use_case = DiscountCardUseCase(card_repository)
         get_aviable_cards_use_case = GetAviableCardsUseCase(card_repository)
+
+        # Inicializar casos de uso de Account
+        create_account_use_case = CreateAccountUseCase(account_repository)
+        delete_account_use_case = DeleteAccountUseCase(account_repository)
+        update_account_use_case = UpdateAccountUseCase(account_repository)
+        get_account_by_id_use_case = GetAccountByIdUseCase(account_repository)
+        get_all_accounts_use_case = GetAllAccountsUseCase(account_repository)
+        get_account_by_number_use_case = GetAccountByNumberUseCase(account_repository)
+        search_accounts_by_description_use_case = SearchAccountsByDescriptionUseCase(account_repository)
+        validate_account_number_use_case = ValidateAccountNumberUseCase(account_repository)
 
 
         # Inicializar servicio de usuarios
@@ -198,6 +220,18 @@ def main():
             get_card_by_number_use_case = get_card_by_number_use_case
         )
 
+         # Inicializar servicio de usuarios
+        account_service = AccountService(
+            create_account_use_case = create_account_use_case,
+            delete_account_use_case = delete_account_use_case,
+            update_account_use_case = update_account_use_case,
+            get_account_by_id_use_case = get_account_by_id_use_case,
+            get_all_accounts_use_case = get_all_accounts_use_case,
+            get_account_by_number_use_case = get_account_by_number_use_case,
+            search_accounts_by_description_use_case = search_accounts_by_description_use_case,
+            validate_account_number_use_case = validate_account_number_use_case
+        )
+
         # # Crear usuario admin por defecto
         initialize_admin_user(user_service)
 
@@ -218,7 +252,8 @@ def main():
                 department_service, 
                 request_user_service,
                 card_service,
-                diet_service
+                diet_service,
+                account_service
                 )
             dashboard.run()
 
