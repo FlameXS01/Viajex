@@ -1,18 +1,20 @@
 import tkinter as tk
-import pandas as pd
-from application.dtos.cards_dtos import CreateCardRequest
-from application.dtos.diet_dtos import DietServiceCreateDTO
-from application.dtos.request_user_dtos import RequestUserCreateDTO
+from application.services.account_service import AccountService
 from application.services.card_service import CardService
 from application.services.department_service import DepartmentService
-from core.entities.department import Department
-from core.entities.diet_service import DietService
-from core.repositories.department_repository import DepartmentRepository
+from core.use_cases.account import create_account_use_case
+from core.use_cases.account.create_account_use_case import CreateAccountUseCase
+from core.use_cases.account.delete_account_use_case import DeleteAccountUseCase
+from core.use_cases.account.get_account_by_id_use_case import GetAccountByIdUseCase
+from core.use_cases.account.get_account_by_number_use_case import GetAccountByNumberUseCase
+from core.use_cases.account.get_all_accounts_use_case import GetAllAccountsUseCase
+from core.use_cases.account.search_accounts_by_description_use_case import SearchAccountsByDescriptionUseCase
+from core.use_cases.account.update_account_use_case import UpdateAccountUseCase
+from core.use_cases.account.validate_account_number_use_case import ValidateAccountNumberUseCase
 from core.use_cases.cards.aviable_card import GetAviableCardsUseCase
 from core.use_cases.cards.discount_card import DiscountCardUseCase
-from core.use_cases.request_user import create_request_user, delete_request_user, get_request_user, update_user_request
 from core.use_cases.request_user.list_users_request import ListRequestUsersUseCase
-from infrastructure.database.repositories import card_repository
+from infrastructure.database.repositories.account_repository import AccountRepositoryImpl
 from infrastructure.database.repositories.department_repository import DepartmentRepositoryImpl
 from infrastructure.database.repositories.diet_liquidation_repository import DietLiquidationRepositoryImpl
 from infrastructure.database.repositories.diet_repository import DietRepositoryImpl
@@ -61,36 +63,6 @@ from core.use_cases.cards.toggle_card_active import ToggleCardActiveUseCase
 from core.use_cases.cards.update_card import UpdateCardUseCase
 from core.use_cases.cards.recharged_card import RechargeCardUseCase
 
-# Use Case diets
-# from core.use_cases.diets.calculate_diet_amount import CalculateDietAmountUseCase
-# from core.use_cases.diets.list_diets import ListDietsUseCase
-# from core.use_cases.diets.reset_counters import ResetCountersUseCase
-
-# from core.use_cases.diets.diet_liquidations.create_diet_liquidation import CreateDietLiquidationUseCase
-# from core.use_cases.diets.diet_liquidations.delete_diet_liquidation import DeleteDietLiquidationUseCase
-# from core.use_cases.diets.diet_liquidations.get_diet_liquidation import GetDietLiquidationUseCase
-# from core.use_cases.diets.diet_liquidations.get_last_liquidation_number import GetLastLiquidationNumberUseCase
-# from core.use_cases.diets.diet_liquidations.get_liquidation_by_diet import GetLiquidationByDietUseCase
-# from core.use_cases.diets.diet_liquidations.list_liquidations_by_date_range import ListLiquidationsByDateRangeUseCase
-# from core.use_cases.diets.diet_liquidations.reset_liquidation_numbers import ResetLiquidationNumbersUseCase
-# from core.use_cases.diets.diet_liquidations.update_diet_liquidation import UpdateDietLiquidationUseCase
-
-# from core.use_cases.diets.diet_members.add_diet_member import AddDietMemberUseCase
-# from core.use_cases.diets.diet_members.list_diet_members import ListDietMembersUseCase
-# from core.use_cases.diets.diet_members.remove_diet_member import RemoveDietMemberUseCase
-
-# from core.use_cases.diets.diet_services.get_diet_service_by_local import GetDietServiceByLocalUseCase
-# from core.use_cases.diets.diet_services.list_all_diet_services import ListAllDietServicesUseCase
-
-# from core.use_cases.diets.diets.create_diet import CreateDietUseCase
-# from core.use_cases.diets.diets.delete_diet import DeleteDietUseCase
-# from core.use_cases.diets.diets.get_diet import GetDietUseCase
-# from core.use_cases.diets.diets.get_last_advance_number import GetLastAdvanceNumberUseCase
-# from core.use_cases.diets.diets.list_diets_by_status import ListDietsByStatusUseCase
-# from core.use_cases.diets.diets.list_diets_pending_liquidation import ListDietsPendingLiquidationUseCase
-# from core.use_cases.diets.diets.reset_advance_numbers import ResetAdvanceNumbersUseCase
-# from core.use_cases.diets.diets.update_diet import UpdateDietUseCase
-
 # Services
 from application.services.user_service import UserService
 from application.services.auth_service import AuthService
@@ -99,7 +71,6 @@ from application.services.request_service import UserRequestService
 from application.services.diet_service import DietAppService
 
 # GUI
-from presentation.gui.card_presentation.dialogs import recharge_dialog
 from presentation.gui.login_window import LoginWindow
 from presentation.gui.main_dashboard import MainDashboard
 
@@ -109,84 +80,6 @@ from infrastructure.database.repositories.card_repository import CardRepositoryI
 
 
 
-def _departaments_by_file() -> list[str]:
-    """
-    
-    Script para obtener los nombres de las unidades(departments)
-    
-    """
-    # Se saltan las primeras 3 filas porque no brindan informacion
-    df = pd.read_excel("Files/Maestro de trabajadores cierre septiembre.xlsx",skiprows=3)
-    dirty_unidades = df['Unidad'].value_counts()  
-    unidades =[]
-    for value, unidad in enumerate(dirty_unidades.index):
-        unidades.append(unidad.strip())
-    return unidades
-
-def _request_users_by_file() -> list[dict]:
-    """
-    
-    Script para obtener los nombres de los solicitantes
-    
-    """
-    # Se saltan las primeras 3 filas porque no brindan informacion
-    df = pd.read_excel("Files/Maestro de trabajadores cierre septiembre.xlsx",skiprows=3)
-    dirty_data = df[['Nomre y apellidos', 'CI', 'Unidad']]
-    personas = []
-    for index, fila in dirty_data.iterrows():
-            nombre = str(fila['Nomre y apellidos']).strip()
-            ci = str(fila['CI']).strip()
-            unidad = str(fila['Unidad']).strip()
-           
-            if len(ci) > 11:
-                continue
-
-            persona = {
-                'nombre': nombre,
-                'ci': ci, 
-                'unidad': unidad
-            }
-            personas.append(persona)
-    return personas
-    
-def initialize_request_users(request_user_service: UserRequestService, personas: list[dict], department_service: DepartmentService):
-    """
-    Crea los solicitantes por defecto si no existen
-    
-    Args:
-        request_user_service: Servicio para manejar usuarios
-        personas: Lista de personas desde el archivo
-        department_service: Servicio para manejar departamentos
-    """
-    for persona in personas:
-        try:
-            requ_user = request_user_service.get_user_by_ci(persona['ci'])
-            if requ_user:
-                continue
-
-            department = department_service.get_department_by_name(name=persona['unidad'])
-            if not department:
-                print(f"  ❌ Departamento no encontrado: '{persona['unidad']}'")
-                continue
-
-            # Crear DTO y usuario
-            user_data = RequestUserCreateDTO(
-                username=None,
-                fullname=persona['nombre'],
-                email=None,
-                ci=persona['ci'],
-                department_id=department.id                                                                         # type: ignore
-            )
-            
-            requ_user = request_user_service.create_user(user_data)
-            
-            if requ_user:
-                continue
-        except Exception as e:
-            print(f"❌ Error creando {persona.get('nombre', 'N/A')}: {e}")
-            import traceback
-            traceback.print_exc()
-    print('Solicitantes inicializados')
 
 def initialize_admin_user(user_service: UserService):
     """
@@ -208,104 +101,6 @@ def initialize_admin_user(user_service: UserService):
         except Exception as e:
             print(f"Error creando usuario admin: {e}")
 
-def initializate_departments (department_service: DepartmentService, unidades: list[str]):
-    """
-    
-    Crea los departamentos por defecto si no existen
-    
-    """
-    for unidad in unidades:
-        department = department_service.get_department_by_name(name=unidad)
-        if not department:
-            try:
-                # Crear usuario admin por defecto
-                department = department_service.create_department_f(
-                    name=unidad
-                )
-            except Exception as e:
-                print(f"Error creando departamento {unidad}: {e}")
-    print('Departamentos inicializados')
-
-def initializate_diet_service (diet_service: DietAppService):
-    """
-    
-    Crea los departamentos por defecto si no existen
-    
-    """
-    try: 
-        service = diet_service.get_diet_service_by_local(True)
-        if not service:
-            diet_service_local = DietServiceCreateDTO(
-                is_local = True,
-                breakfast_price = 200,
-                lunch_price = 200,
-                dinner_price = 200,
-                accommodation_cash_price = 200,
-                accommodation_card_price = 200
-            )
-            succes = diet_service.create_diet_service(diet_service_local)
-            if not succes:
-                print('error creando servicio de dieta local')
-
-        service = diet_service.get_diet_service_by_local(is_local = False)
-        if not service:
-            diet_service_foreign = DietServiceCreateDTO(
-                is_local = False,
-                breakfast_price = 300,
-                lunch_price = 300,
-                dinner_price = 300,
-                accommodation_cash_price = 300,
-                accommodation_card_price = 300
-            )
-            succes = diet_service.create_diet_service(diet_service_foreign)
-            if not succes:
-                print('error creando servicio de dieta fuera de la provincia')  
-
-        print('Servicios de dietas inicializados')
-    except Exception as e:
-        print(f"Error creando servcios de dietas: {e}")
-        import traceback
-        traceback.print_exc()
-
-def initializate_card(card_service: CardService):
-    """
-    
-    Crea las tarjetas por defecto si no existen
-    
-    """
-    try:
-        df = pd.read_excel("Files/TARJETAS DE HOSPEDAJExlsx.xls", skiprows=0)
-        dirty_data = df['Listado de tarjetas de Hospedaje ']
-        
-        for index, number in dirty_data.items():
-            number = str(number).strip()
-            
-            if not number or number == 'nan' or number == 'None':
-                continue
-            #print(number)
-            card = card_service.get_card_by_card_number(number)
-            if not card:
-                card_number = number
-                card_pin = '0000'
-                amount = 0.00
-                
-                success = card_service.create_card(card_number, card_pin, amount)
-                if not success:
-                    print(f'Error creando tarjeta con número: {number}')
-           
-
-        print('Tarjetas de hospedajes inicializadas correctamente')
-        
-    except FileNotFoundError:
-        print("Error: Archivo no encontrado. Verifica la ruta y nombre del archivo.")
-    except KeyError as e:
-        print(f"Error: Columna no encontrada en el archivo: {e}")
-    except Exception as e:
-        print(f"Error creando tarjetas: {e}")
-        import traceback
-        traceback.print_exc()
-
-    
 
 def main():
     """Función principal que inicializa la aplicación completa"""
@@ -321,6 +116,7 @@ def main():
         department_repository = DepartmentRepositoryImpl(db_session)
         request_user_repository = RequestUserRepositoryImpl(db_session)
         card_repository= CardRepositoryImpl(db_session)
+        account_repository = AccountRepositoryImpl(db_session)
 
         diet_liquidation_repository = DietLiquidationRepositoryImpl(db_session)
         diet_repository = DietRepositoryImpl(db_session)
@@ -359,6 +155,17 @@ def main():
         recharge_card_use_case = RechargeCardUseCase(card_repository)
         discount_card_use_case = DiscountCardUseCase(card_repository)
         get_aviable_cards_use_case = GetAviableCardsUseCase(card_repository)
+
+        # Inicializar casos de uso de Account
+        create_account_use_case = CreateAccountUseCase(account_repository)
+        delete_account_use_case = DeleteAccountUseCase(account_repository)
+        update_account_use_case = UpdateAccountUseCase(account_repository)
+        get_account_by_id_use_case = GetAccountByIdUseCase(account_repository)
+        get_all_accounts_use_case = GetAllAccountsUseCase(account_repository)
+        get_account_by_number_use_case = GetAccountByNumberUseCase(account_repository)
+        search_accounts_by_description_use_case = SearchAccountsByDescriptionUseCase(account_repository)
+        validate_account_number_use_case = ValidateAccountNumberUseCase(account_repository)
+
 
         # Inicializar servicio de usuarios
         user_service = UserService(
@@ -413,21 +220,21 @@ def main():
             get_card_by_number_use_case = get_card_by_number_use_case
         )
 
-        # Crear usuario admin por defecto
+         # Inicializar servicio de usuarios
+        account_service = AccountService(
+            create_account_use_case = create_account_use_case,
+            delete_account_use_case = delete_account_use_case,
+            update_account_use_case = update_account_use_case,
+            get_account_by_id_use_case = get_account_by_id_use_case,
+            get_all_accounts_use_case = get_all_accounts_use_case,
+            get_account_by_number_use_case = get_account_by_number_use_case,
+            search_accounts_by_description_use_case = search_accounts_by_description_use_case,
+            validate_account_number_use_case = validate_account_number_use_case
+        )
+
+        # # Crear usuario admin por defecto
         initialize_admin_user(user_service)
 
-        # Crear departamentos
-        unidades = _departaments_by_file()
-        initializate_departments(department_service, unidades)
-
-        # Crear solicitantes
-        personas = _request_users_by_file()
-        initialize_request_users(request_user_service, personas, department_service)
-
-        # Crear servicios de dietas
-        initializate_diet_service(diet_service)
-
-        initializate_card(card_service)
 
         # Inicializar casos de uso de autenticación
         login_use_case = LoginUseCase(user_repository, password_hasher)
@@ -445,7 +252,8 @@ def main():
                 department_service, 
                 request_user_service,
                 card_service,
-                diet_service
+                diet_service,
+                account_service
                 )
             dashboard.run()
 

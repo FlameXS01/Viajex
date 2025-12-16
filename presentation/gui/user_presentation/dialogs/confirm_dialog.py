@@ -10,7 +10,7 @@ class ConfirmDialog:
         
         self.dialog = tk.Toplevel(parent)
         self.dialog.title(title)
-        self.dialog.geometry("400x150")
+        self.dialog.geometry("400x175")
         self.dialog.transient(parent)
         self.dialog.grab_set()
         

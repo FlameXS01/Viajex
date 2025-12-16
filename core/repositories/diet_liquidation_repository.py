@@ -95,11 +95,4 @@ class DietLiquidationRepository(ABC):
         """
         pass
     
-    @abstractmethod
-    def reset_liquidation_numbers(self) -> bool:
-        """
-        
-        Reinicia la secuencia de números de liquidación a 1
-        
-        """
-        pass
+    

@@ -25,22 +25,40 @@ class DepartmentService:
         self.get_department_list = get_department_list
 
     def create_department_f(self, name: str) -> DepartmentResponseDTO:
-        department = self.create_department.execute(name)
-        return DepartmentResponseDTO(id=department.id, name=department.name)                                # type: ignore
-    
+        try:
+            department = self.create_department.execute(name)
+            return DepartmentResponseDTO(id=department.id, name=department.name)                                # type: ignore
+        except Exception as e:
+            raise Exception(f"Error al crear departamento: {str(e)}")
+        
     def get_department_by_id(self, department_id: int) -> Optional[DepartmentResponseDTO]:
-        department = self.get_department.execute(department_id)
-        return DepartmentResponseDTO(id=department.id, name=department.name) if department else None        # type: ignore
-    
+        try:
+            department = self.get_department.execute(department_id)
+            return DepartmentResponseDTO(id=department.id, name=department.name) if department else None        # type: ignore
+        except Exception as e:
+            raise Exception(f"Error al obtener departamento: {str(e)}")
+        
     def get_department_by_name(self, name: str) -> Optional[Department]:
-        return self.department_repository.get_by_name(name)
-    
+        try:
+            return self.department_repository.get_by_name(name)
+        except Exception as e:
+            raise Exception(f"Error al buscar departamento por nombre: {str(e)}")
+        
     def get_all_departments(self) -> list[DepartmentResponseDTO]:
-        departments = self.get_department_list.execute()
-        return [DepartmentResponseDTO(id=dept.id, name=dept.name) for dept in departments]                  # type: ignore
-    
+        try:
+            departments = self.get_department_list.execute()
+            return [DepartmentResponseDTO(id=dept.id, name=dept.name) for dept in departments]                  # type: ignore
+        except Exception as e:
+            raise Exception(f"Error al obtener todos los departamentos: {str(e)}")
+        
     def update_department_f(self, department_id: int, name: str) -> Department:
-        return self.update_department.execute(department_id, name)
-
+        try:
+            return self.update_department.execute(department_id, name)
+        except Exception as e:
+            raise Exception(f"Error al actualizar departamento: {str(e)}")
+        
     def delete_department_f(self, department_id: int) -> bool:
-        return self.delete_department.execute(department_id)
+        try:
+            return self.delete_department.execute(department_id)    
+        except Exception as e:
+            raise

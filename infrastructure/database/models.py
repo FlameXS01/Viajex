@@ -265,5 +265,20 @@ class UserModel(Base):
         return f"<UserModel(id={self.id}, username='{self.username}')>"
 
 
+class AccountModel(Base):
+    """
+    Modelo de SQLAlchemy para la tabla accounts.
     
+    Representa cuentas contables o bancarias en el sistema.
+    
+    Campos:
+        id: Identificador único
+        account: Número o código de cuenta (único)
+        description: Descripción de la cuenta
+    """
+    __tablename__ = "accounts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    account = Column(String(50), unique=True, index=True, nullable=False)
+    description = Column(String(255), nullable=True)    
        
