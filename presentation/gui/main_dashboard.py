@@ -4,6 +4,7 @@ from presentation.gui.utils.windows_utils import WindowUtils
 from presentation.gui.user_presentation.user_module import UserModule
 from presentation.gui.card_presentation.card_module import CardModule
 from presentation.gui.card_presentation.card_main_window import CardMainWindow
+from presentation.gui.reports_presentation.reports_module import ReportsModule
 
 class MainDashboard:
     """Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA"""
@@ -177,6 +178,15 @@ class MainDashboard:
         ttk.Button(action_frame, text="⛌ Salir", 
                   style='Sidebar.TButton',
                   command=self._on_close).pack(fill=tk.X, pady=5)
+    def show_reports_module(self):
+        """Muestra el módulo de reportes"""
+        self.switch_frame(ReportsModule, {
+            'card_service': self.card_service,
+            'diet_service': self.diet_service,
+            'department_service': self.department_service,
+            'user_service': self.user_service,
+            'request_service': self.request_service
+        })    
 
     def _create_content_area(self, parent):
         """Crea el área de contenido principal"""
