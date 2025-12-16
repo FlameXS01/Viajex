@@ -1,8 +1,3 @@
-"""
-Módulo principal de informes para el sistema VIAJEX.
-Proporciona interfaz unificada para generación de todos los reportes.
-"""
-
 import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import Dict, Any, Optional, List
@@ -32,7 +27,7 @@ from application.services.user_service import UserService
 
 
 
-class ReportsModule(ttk.Frame):
+class ReportModule(ttk.Frame):
     """Módulo principal para generación de reportes e informes del sistema"""
     
     def __init__(self, parent, 
@@ -256,7 +251,7 @@ class ReportsModule(ttk.Frame):
                 'name': 'Reporte de Cuentas',
                 'description': 'Reporte detallado de cuentas por departamento',
                 'required_filters': ['date_range', 'department'],
-                'service_method': self.department_service.generate_accounts_report,
+                'service_method': None #self.department_service.generate_accounts_report,
             },
             # ... añadir más definiciones según sea necesario
         }

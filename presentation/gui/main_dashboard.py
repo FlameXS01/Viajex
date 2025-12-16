@@ -4,7 +4,7 @@ from presentation.gui.utils.windows_utils import WindowUtils
 from presentation.gui.user_presentation.user_module import UserModule
 from presentation.gui.card_presentation.card_module import CardModule
 from presentation.gui.card_presentation.card_main_window import CardMainWindow
-from presentation.gui.reports_presentation.reports_module import ReportsModule
+from presentation.gui.reports_presentation.reports_module import ReportModule
 
 class MainDashboard:
     """Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA"""
@@ -178,6 +178,7 @@ class MainDashboard:
         ttk.Button(action_frame, text="⛌ Salir", 
                   style='Sidebar.TButton',
                   command=self._on_close).pack(fill=tk.X, pady=5)
+        
     def show_reports_module(self):
         """Muestra el módulo de reportes"""
         self.switch_frame(ReportsModule, {
@@ -310,11 +311,17 @@ class MainDashboard:
                 
             elif module_name == 'reports':
                 self.module_title.config(text="Reportes y Estadísticas")
-                placeholder = ttk.Frame(self.module_container, style='Content.TFrame')
-                placeholder.pack(fill=tk.BOTH, expand=True)
-                ttk.Label(placeholder, text="Módulo de Reportes - En desarrollo", 
-                         font=('Arial', 16), style='Content.TLabel').pack(expand=True)
-                
+                from presentation.gui.reports_presentation.reports_module import ReportModule
+                self.current_module_instance = ReportModule(
+                    self.module_container,
+                    self.card_service, 
+                    self.diet_service, 
+                    self.department_service, 
+                    self.user_service, 
+                    self.request_user_service
+                ) 
+                self.current_module_instance.pack(fill=tk.BOTH, expand=True)
+
             elif module_name == 'departments':
                 self.module_title.config(text="Gestión de Departamentos")
                 from presentation.gui.department_presentation.department_module import DepartmentModule
