@@ -29,11 +29,10 @@ class CreateDietLiquidationUseCase:
             print(diet.status)
             raise ValueError("La dieta ya ha sido liquidada")
         
-        # Validar regla de 72 horas (3 días)
+        
         liquidation_date = liquidation_data['liquidation_date']
         max_liquidation_date = diet.end_date + timedelta(days=3)
-        if liquidation_date.date() > max_liquidation_date:
-            raise ValueError("No se puede liquidar después de 72 horas de la fecha fin")
+        
         
         # Validar que las cantidades liquidadas no excedan las solicitadas
         if (liquidation_data['breakfast_count_liquidated'] > diet.breakfast_count or

@@ -20,14 +20,16 @@ class TransactionHistoryPanel(ttk.Frame):
         style = ttk.Style()
         style.configure('Credit.TLabel', foreground='green')
         style.configure('Debit.TLabel', foreground='red')
+
+        style.configure('Credit.Treeview', background='#e8f5e9')  
+        style.configure('Debit.Treeview', background='#ffebee')
     
     def _create_widgets(self):
-        """Crea la interfaz optimizada - CORREGIDA"""
+        """Crea la interfaz optimizada """
         # Configurar grid
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)  # La fila 1 (lista) se expandirá
+        self.rowconfigure(1, weight=1)  
         
-        # 1. Botones de filtro rápido - ROW 0
         filter_frame = ttk.Frame(self)
         filter_frame.grid(row=0, column=0, sticky='ew', pady=(0, 10))
         
@@ -81,6 +83,9 @@ class TransactionHistoryPanel(ttk.Frame):
         h_scrollbar = ttk.Scrollbar(list_frame, orient=tk.HORIZONTAL, command=self.tree.xview)
         self.tree.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
         
+        self.tree.tag_configure('credit', background="#65a87f")  
+        self.tree.tag_configure('debit', background="#813B45")
+
         # Grid layout
         self.tree.grid(row=0, column=0, sticky='nsew')
         v_scrollbar.grid(row=0, column=1, sticky='ns')
@@ -196,6 +201,7 @@ class TransactionHistoryPanel(ttk.Frame):
             # Determinar tipo
             trans_type = self._format_type(trans.transaction_type)
             
+            tag = 'credit' if amount > 0 else 'debit'
             # Insertar
             self.tree.insert("", tk.END, values=(
                 trans.id,
@@ -203,7 +209,7 @@ class TransactionHistoryPanel(ttk.Frame):
                 trans_type,
                 amount_str,
                 f"${trans.previous_balance:,.2f}" 
-            ))
+            ), tags=(tag,))
     
     def _update_statistics(self, response):
         """Actualiza estadísticas"""
