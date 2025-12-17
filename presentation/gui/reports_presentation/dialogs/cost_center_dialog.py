@@ -8,7 +8,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Tuple
-from .base_report_dialog import BaseReportDialog
+from presentation.gui.reports_presentation.dialogs.base_report_dialog import BaseReportDialog
 
 
 class CostCenterDialog(BaseReportDialog):
@@ -49,17 +49,78 @@ class CostCenterDialog(BaseReportDialog):
         self.departments = departments or default_departments
         self.entities = entities or ["CIMEX - Gerencia Administrativa", "CIMEX - Otra Entidad"]
         
-        super().__init__(parent, "Reporte de Centros de Costo", width=650, height=550)
+        super().__init__(parent, "Reporte de Centros de Costo", width=700, height=600)
     
     def _create_widgets(self) -> None:
         """Crea los widgets del diálogo."""
-        # Frame principal
-        main_frame = ttk.Frame(self, padding="20")
-        main_frame.grid(row=0, column=0, sticky="nsew")
+        # Crear Canvas con Scrollbar
+        self._create_scrollable_frame()
+    
+    def _create_scrollable_frame(self) -> None:
+        """Crea un frame desplazable para el diálogo."""
+        # Crear contenedor principal con canvas y scrollbars
+        container = ttk.Frame(self)
+        container.grid(row=0, column=0, sticky="nsew")
         
-        # Configurar expansión
+        # Configurar expansión del contenedor
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
+        
+        # Crear canvas
+        canvas = tk.Canvas(container)
+        canvas.grid(row=0, column=0, sticky="nsew")
+        
+        # Crear scrollbar vertical
+        v_scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        v_scrollbar.grid(row=0, column=1, sticky="ns")
+        
+        # Crear scrollbar horizontal
+        h_scrollbar = ttk.Scrollbar(container, orient="horizontal", command=canvas.xview)
+        h_scrollbar.grid(row=1, column=0, sticky="ew")
+        
+        # Configurar canvas
+        canvas.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
+        
+        # Crear frame interno dentro del canvas
+        self.inner_frame = ttk.Frame(canvas)
+        
+        # Crear ventana en el canvas para el frame interno
+        canvas_frame = canvas.create_window((0, 0), window=self.inner_frame, anchor="nw")
+        
+        # Configurar eventos de scroll
+        def _configure_canvas(event):
+            # Configurar región de scroll
+            canvas.configure(scrollregion=canvas.bbox("all"))
+            # Hacer que el frame interno tenga el mismo ancho que el canvas
+            canvas.itemconfig(canvas_frame, width=canvas.winfo_width())
+        
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        
+        # Bind eventos
+        canvas.bind("<Configure>", _configure_canvas)
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        canvas.bind_all("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))
+        canvas.bind_all("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))
+        
+        # Permitir que el canvas se expanda
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
+        
+        # Crear el contenido en el frame interno
+        self._create_content()
+    
+    def _create_content(self) -> None:
+        """Crea el contenido dentro del frame desplazable."""
+        # Frame principal dentro del frame interno
+        main_frame = ttk.Frame(self.inner_frame, padding="20")
+        main_frame.grid(row=0, column=0, sticky="nsew")
+        
+        # Configurar expansión del frame interno
+        self.inner_frame.rowconfigure(0, weight=1)
+        self.inner_frame.columnconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
         
         # Título descriptivo
@@ -134,38 +195,53 @@ class CostCenterDialog(BaseReportDialog):
         # Frame para tabla de departamentos
         table_frame = self._create_section(main_frame, "Departamentos Disponibles", 4)
         
+        # Configurar expansión de table_frame
+        table_frame.rowconfigure(0, weight=1)
+        table_frame.columnconfigure(0, weight=1)
+        
+        # Crear frame para treeview y scrollbars
+        tree_container = ttk.Frame(table_frame)
+        tree_container.grid(row=0, column=0, sticky="nsew", columnspan=2)
+        tree_container.grid_rowconfigure(0, weight=1)
+        tree_container.grid_columnconfigure(0, weight=1)
+        
         # Treeview para mostrar departamentos
         columns = ("Depto", "Nombre", "CCosto", "Cta Alimentación", "Cta Hospedaje")
         self.departments_tree = ttk.Treeview(
-            table_frame,
+            tree_container,
             columns=columns,
             show="headings",
-            height=8,
+            height=10,  # Aumentado para mostrar más filas
             selectmode="extended"
         )
         
         # Configurar columnas
-        col_widths = [50, 200, 100, 120, 120]
+        col_widths = [60, 220, 120, 130, 130]
         for col, width in zip(columns, col_widths):
             self.departments_tree.heading(col, text=col)
             self.departments_tree.column(col, width=width, minwidth=50)
         
-        # Scrollbars
-        vsb = ttk.Scrollbar(table_frame, orient="vertical", 
-                           command=self.departments_tree.yview)
-        hsb = ttk.Scrollbar(table_frame, orient="horizontal", 
-                           command=self.departments_tree.xview)
-        self.departments_tree.configure(yscrollcommand=vsb.set, 
-                                       xscrollcommand=hsb.set)
+        # Scrollbars para treeview
+        tree_vsb = ttk.Scrollbar(
+            tree_container, 
+            orient="vertical", 
+            command=self.departments_tree.yview
+        )
+        tree_hsb = ttk.Scrollbar(
+            tree_container, 
+            orient="horizontal", 
+            command=self.departments_tree.xview
+        )
+        
+        self.departments_tree.configure(
+            yscrollcommand=tree_vsb.set, 
+            xscrollcommand=tree_hsb.set
+        )
         
         # Grid para treeview y scrollbars
         self.departments_tree.grid(row=0, column=0, sticky="nsew")
-        vsb.grid(row=0, column=1, sticky="ns")
-        hsb.grid(row=1, column=0, sticky="ew")
-        
-        # Configurar expansión
-        table_frame.columnconfigure(0, weight=1)
-        table_frame.rowconfigure(0, weight=1)
+        tree_vsb.grid(row=0, column=1, sticky="ns")
+        tree_hsb.grid(row=1, column=0, sticky="ew")
         
         # Botones para selección
         selection_frame = ttk.Frame(table_frame)
@@ -282,14 +358,44 @@ class CostCenterDialog(BaseReportDialog):
             variable=self.include_totals_var
         ).grid(row=3, column=0, columnspan=2, sticky="w", pady=(10, 0))
         
-        # Frame para botones
-        self.button_frame.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(20, 0))
+        # Frame para botones (fuera del scroll para que siempre estén visibles)
+        # Cambiamos esto: poner botones en el frame interno, no en el canvas
+        button_container = ttk.Frame(self.inner_frame)
+        button_container.grid(row=1, column=0, sticky="ew", pady=(10, 0))
+        
+        self.button_frame = ttk.Frame(button_container)
+        self.button_frame.pack(fill=tk.X, padx=20, pady=(0, 20))
+        
+        # Botones estándar
+        ttk.Button(
+            self.button_frame,
+            text="Aceptar",
+            command=self._on_ok,
+            width=15
+        ).pack(side=tk.RIGHT, padx=(5, 0))
+        
+        ttk.Button(
+            self.button_frame,
+            text="Cancelar",
+            command=self._on_cancel,
+            width=15
+        ).pack(side=tk.RIGHT)
         
         # Cargar departamentos en el treeview
         self._load_departments()
         
         # Bind eventos
         self.dept_type_var.trace_add('write', self._filter_departments)
+        
+        # Ajustar el tamaño mínimo del frame interno
+        self.inner_frame.update_idletasks()
+    
+    def _create_section(self, parent: ttk.Frame, title: str, row: int) -> ttk.Frame:
+        """Crea una sección con título."""
+        frame = ttk.LabelFrame(parent, text=f" {title} ", padding="15")
+        frame.grid(row=row, column=0, columnspan=2, sticky="ew", pady=(0, 15))
+        frame.columnconfigure(1, weight=1)
+        return frame
     
     def _load_departments(self) -> None:
         """Carga los departamentos en el Treeview."""

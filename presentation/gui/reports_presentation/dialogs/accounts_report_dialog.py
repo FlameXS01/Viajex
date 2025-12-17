@@ -8,7 +8,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Tuple
-from .base_report_dialog import BaseReportDialog
+from presentation.gui.reports_presentation.dialogs.base_report_dialog import BaseReportDialog
 
 
 class AccountsReportDialog(BaseReportDialog):
