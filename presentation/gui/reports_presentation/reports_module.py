@@ -90,26 +90,97 @@ class ReportModule(ttk.Frame):
         main_container.columnconfigure(0, weight=1)
         main_container.rowconfigure(0, weight=1)
         
-        # Panel izquierdo: Selección de tipos de reporte
-        left_panel = ttk.LabelFrame(main_container, text="Tipos de Reporte", padding="15")
-        left_panel.grid(row=0, column=0, sticky='nsew', padx=(0, 10))
-        left_panel.columnconfigure(0, weight=1)
-        
-        # Panel derecho: Configuración y acciones
-        right_panel = ttk.LabelFrame(main_container, text="Configuración", padding="15")
-        right_panel.grid(row=0, column=1, sticky='nsew')
-        right_panel.columnconfigure(0, weight=1)
-        right_panel.rowconfigure(1, weight=1)
-        
         # Configurar proporciones de columnas
         main_container.columnconfigure(0, weight=1)
         main_container.columnconfigure(1, weight=2)
+        
+        # Panel izquierdo: Frame contenedor con scrollbar
+        left_container = ttk.Frame(main_container, style='Content.TFrame')
+        left_container.grid(row=0, column=0, sticky='nsew', padx=(0, 10))
+        left_container.columnconfigure(0, weight=1)
+        left_container.rowconfigure(0, weight=1)
+        
+        # Crear Canvas y Scrollbar para el panel izquierdo
+        left_canvas = tk.Canvas(left_container, highlightthickness=0)
+        left_scrollbar = ttk.Scrollbar(left_container, orient="vertical", command=left_canvas.yview)
+        
+        # Frame que irá dentro del Canvas
+        left_panel = ttk.LabelFrame(left_canvas, text="Tipos de Reporte", padding="15")
+        
+        # Configurar el scrolling
+        left_canvas.configure(yscrollcommand=left_scrollbar.set)
+        
+        # Crear ventana en el canvas para el frame
+        left_canvas_frame = left_canvas.create_window((0, 0), window=left_panel, anchor="nw")
+        
+        # Empaquetar canvas y scrollbar
+        left_canvas.grid(row=0, column=0, sticky="nsew")
+        left_scrollbar.grid(row=0, column=1, sticky="ns")
+        
+        # Configurar el frame dentro del canvas
+        left_panel.columnconfigure(0, weight=1)
+        
+        # Panel derecho: Configuración y acciones (también con scrollbar)
+        right_container = ttk.Frame(main_container, style='Content.TFrame')
+        right_container.grid(row=0, column=1, sticky='nsew')
+        right_container.columnconfigure(0, weight=1)
+        right_container.rowconfigure(0, weight=1)
+        
+        # Crear Canvas y Scrollbar para el panel derecho
+        right_canvas = tk.Canvas(right_container, highlightthickness=0)
+        right_scrollbar = ttk.Scrollbar(right_container, orient="vertical", command=right_canvas.yview)
+        
+        # Frame que irá dentro del Canvas
+        right_panel = ttk.LabelFrame(right_canvas, text="Configuración", padding="15")
+        
+        # Configurar el scrolling
+        right_canvas.configure(yscrollcommand=right_scrollbar.set)
+        
+        # Crear ventana en el canvas para el frame
+        right_canvas_frame = right_canvas.create_window((0, 0), window=right_panel, anchor="nw")
+        
+        # Empaquetar canvas y scrollbar
+        right_canvas.grid(row=0, column=0, sticky="nsew")
+        right_scrollbar.grid(row=0, column=1, sticky="ns")
+        
+        # Configurar el frame dentro del canvas
+        right_panel.columnconfigure(0, weight=1)
+        right_panel.rowconfigure(1, weight=1)
         
         # Crear botones de tipos de reporte
         self._create_report_buttons(left_panel)
         
         # Crear panel de configuración
         self._create_config_panel(right_panel)
+        
+        # Configurar eventos para ajustar el scroll region
+        def configure_left_scroll(event):
+            # Actualizar el scroll region del canvas
+            left_canvas.configure(scrollregion=left_canvas.bbox("all"))
+            # Asegurar que la ventana del canvas ocupe todo el ancho
+            left_canvas.itemconfig(left_canvas_frame, width=event.width)
+            
+        def configure_right_scroll(event):
+            # Actualizar el scroll region del canvas
+            right_canvas.configure(scrollregion=right_canvas.bbox("all"))
+            # Asegurar que la ventana del canvas ocupe todo el ancho
+            right_canvas.itemconfig(right_canvas_frame, width=event.width)
+        
+        # Vincular eventos de redimensionamiento
+        left_panel.bind("<Configure>", configure_left_scroll)
+        left_canvas.bind("<Configure>", lambda e: left_canvas.itemconfig(left_canvas_frame, width=e.width))
+        
+        right_panel.bind("<Configure>", configure_right_scroll)
+        right_canvas.bind("<Configure>", lambda e: right_canvas.itemconfig(right_canvas_frame, width=e.width))
+        
+        # Habilitar scroll con rueda del mouse
+        def bind_mouse_wheel(widget):
+            widget.bind("<MouseWheel>", lambda e: widget.yview_scroll(int(-1*(e.delta/120)), "units"))
+            widget.bind("<Button-4>", lambda e: widget.yview_scroll(-1, "units"))
+            widget.bind("<Button-5>", lambda e: widget.yview_scroll(1, "units"))
+        
+        bind_mouse_wheel(left_canvas)
+        bind_mouse_wheel(right_canvas)
         
         # Panel inferior: Resultados/Exportación
         bottom_panel = ttk.Frame(self, style='Content.TFrame')
@@ -205,6 +276,16 @@ class ReportModule(ttk.Frame):
                                               text="Seleccione un tipo de reporte para configurar",
                                               font=('Arial', 10, 'italic'))
         self.specific_config_label.grid(row=0, column=0, sticky='w', padx=5, pady=5)
+        
+        # Agregar más contenido para demostrar el scroll
+        ttk.Label(self.specific_config_frame, 
+                 text="\nConfiguraciones adicionales disponibles según el reporte seleccionado:\n",
+                 font=('Arial', 9)).grid(row=1, column=0, sticky='w', padx=5, pady=5)
+        
+        for i in range(2, 10):
+            ttk.Label(self.specific_config_frame, 
+                     text=f"Opción de configuración {i-1}: Valor por defecto",
+                     font=('Arial', 8)).grid(row=i, column=0, sticky='w', padx=15, pady=2)
         
         # Configurar expansión del panel
         parent.rowconfigure(1, weight=1)
@@ -491,7 +572,7 @@ class ReportModule(ttk.Frame):
             self.export_btn.config(state='disabled')
     
     def _check_required_filters(self):
-        """Verifica que se hayan configurado los filtros requeridos"""
+        """Verifica que se hayan configurados los filtros requeridos"""
         if not self.current_report_type:
             return False
         
@@ -575,10 +656,12 @@ class ReportModule(ttk.Frame):
         
         1. SELECCIÓN DE REPORTE:
            - Elija un tipo de reporte de la lista izquierda
+           - Use la barra de desplazamiento si hay muchos reportes
         
         2. CONFIGURACIÓN DE FILTROS:
            - Configure el rango de fechas requerido
            - Use 'Gestionar Filtros' para opciones avanzadas
+           - Desplácese hacia abajo para ver todas las opciones
         
         3. GENERACIÓN:
            - Use 'Previsualizar' para ver una vista previa
@@ -625,7 +708,7 @@ if __name__ == "__main__":
             return [{"test": "data"}]
     
     # Instanciar módulo con servicios mock
-    module = ReportsModule(root,
+    module = ReportModule(root,
                           MockService("Card"),
                           MockService("Diet"),
                           MockService("Department"),
