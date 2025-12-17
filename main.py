@@ -1,7 +1,10 @@
 import tkinter as tk
 from application.services.account_service import AccountService
 from application.services.card_service import CardService
+from application.services.card_transaction_service import CardTransactionService
 from application.services.department_service import DepartmentService
+from core.entities import card_transaction
+from core.repositories import card_transaction_repository
 from core.use_cases.account import create_account_use_case
 from core.use_cases.account.create_account_use_case import CreateAccountUseCase
 from core.use_cases.account.delete_account_use_case import DeleteAccountUseCase
@@ -13,8 +16,15 @@ from core.use_cases.account.update_account_use_case import UpdateAccountUseCase
 from core.use_cases.account.validate_account_number_use_case import ValidateAccountNumberUseCase
 from core.use_cases.cards.aviable_card import GetAviableCardsUseCase
 from core.use_cases.cards.discount_card import DiscountCardUseCase
+from core.use_cases.cards.export_card_transactions_use_case import ExportCardTransactionsUseCase
+from core.use_cases.cards.generate_daily_snapshots_use_case import GenerateDailySnapshotsUseCase
+from core.use_cases.cards.get_card_balance_at_date_use_case import GetCardBalanceAtDateUseCase
+from core.use_cases.cards.get_card_monthly_summary_use_case import GetCardMonthlySummaryUseCase
+from core.use_cases.cards.get_card_transactions_use_case import GetCardTransactionsUseCase
+from core.use_cases.cards.record_card_transaction_use_case import RecordCardTransactionUseCase
 from core.use_cases.request_user.list_users_request import ListRequestUsersUseCase
 from infrastructure.database.repositories.account_repository import AccountRepositoryImpl
+from infrastructure.database.repositories.card_transaction_repository import CardBalanceSnapshotRepositoryImpl, CardTransactionRepositoryImpl
 from infrastructure.database.repositories.department_repository import DepartmentRepositoryImpl
 from infrastructure.database.repositories.diet_liquidation_repository import DietLiquidationRepositoryImpl
 from infrastructure.database.repositories.diet_repository import DietRepositoryImpl
@@ -115,8 +125,10 @@ def main():
         password_hasher = BCryptPasswordHasher()
         department_repository = DepartmentRepositoryImpl(db_session)
         request_user_repository = RequestUserRepositoryImpl(db_session)
-        card_repository= CardRepositoryImpl(db_session)
         account_repository = AccountRepositoryImpl(db_session)
+        card_repository= CardRepositoryImpl(db_session)
+        card_transaction_repository = CardTransactionRepositoryImpl(db_session)
+        card_balance_snapshot_repository = CardBalanceSnapshotRepositoryImpl(db_session)
 
         diet_liquidation_repository = DietLiquidationRepositoryImpl(db_session)
         diet_repository = DietRepositoryImpl(db_session)
@@ -155,6 +167,13 @@ def main():
         recharge_card_use_case = RechargeCardUseCase(card_repository)
         discount_card_use_case = DiscountCardUseCase(card_repository)
         get_aviable_cards_use_case = GetAviableCardsUseCase(card_repository)
+
+        get_card_transactions_use_case = GetCardTransactionsUseCase(card_transaction_repository, card_repository)
+        get_card_balance_at_date_use_case = GetCardBalanceAtDateUseCase(card_transaction_repository, card_repository)
+        get_card_monthly_summary_use_case = GetCardMonthlySummaryUseCase(card_balance_snapshot_repository, card_transaction_repository, card_repository)
+        export_card_transactions_use_case = ExportCardTransactionsUseCase(card_transaction_repository, card_repository)
+        generate_daily_snapshots_use_case = GenerateDailySnapshotsUseCase(card_transaction_repository, card_balance_snapshot_repository, card_repository)
+        record_card_transaction_use_case = RecordCardTransactionUseCase(card_transaction_repository, card_repository)
 
         # Inicializar casos de uso de Account
         create_account_use_case = CreateAccountUseCase(account_repository)
@@ -220,6 +239,15 @@ def main():
             get_card_by_number_use_case = get_card_by_number_use_case
         )
 
+        card_transaction = CardTransactionService(
+            get_card_transactions_use_case = get_card_transactions_use_case,
+            get_card_balance_at_date_use_case = get_card_balance_at_date_use_case,
+            get_card_monthly_summary_use_case = get_card_monthly_summary_use_case,
+            export_card_transactions_use_case = export_card_transactions_use_case,
+            generate_daily_snapshots_use_case = generate_daily_snapshots_use_case, 
+            record_card_transaction_use_case = record_card_transaction_use_case
+        )
+
          # Inicializar servicio de usuarios
         account_service = AccountService(
             create_account_use_case = create_account_use_case,
@@ -253,7 +281,8 @@ def main():
                 request_user_service,
                 card_service,
                 diet_service,
-                account_service
+                account_service, 
+                card_transaction
                 )
             dashboard.run()
 

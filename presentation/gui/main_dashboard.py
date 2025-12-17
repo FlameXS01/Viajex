@@ -16,7 +16,7 @@ class MainDashboard:
     """Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA"""
     
     def __init__(self, user, user_service, auth_service, department_service, 
-                request_user_service, card_service, diet_service, account_service, settings_service=None, database_service=None
+                request_user_service, card_service, diet_service, account_service, card_transaction_service, settings_service=None, database_service=None
                 ):
         self.user = user
         self.user_service = user_service
@@ -29,6 +29,7 @@ class MainDashboard:
         self.settings_service = settings_service
         self.database_service = database_service
         self.account_service = account_service
+        self.card_transaction_service = card_transaction_service
 
         if database_service is None:
             try:
@@ -281,7 +282,7 @@ class MainDashboard:
             
             elif module_name == 'cards':  
                 self.module_title.config(text="Gestión de Tarjetas")
-                self.current_module_instance = CardModule(self.module_container, self.card_service)
+                self.current_module_instance = CardModule(self.module_container, self.card_service, self.card_transaction_service)
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
                 
             

@@ -282,3 +282,50 @@ class AccountModel(Base):
     account = Column(String(50), unique=True, index=True, nullable=False)
     description = Column(String(255), nullable=True)    
        
+class CardTransactionModel(Base):
+    __tablename__ = "card_transactions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    card_id = Column(Integer, ForeignKey("cards.card_id"), nullable=False, index=True)
+    transaction_type = Column(String(50), nullable=False, index=True)  
+    
+    # MONTOS CON PRECISIÓN
+    amount = Column(Numeric(12, 2), nullable=False)  
+    previous_balance = Column(Numeric(12, 2), nullable=False)
+    new_balance = Column(Numeric(12, 2), nullable=False)
+    
+    # TRAZABILIDAD COMPLETA
+    operation_date = Column(DateTime(timezone=True), nullable=False, index=True)  
+    recorded_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)  
+    
+    # RELACIÓN CON DIETAS/GASTOS
+    diet_id = Column(Integer, ForeignKey("diets.id"), nullable=True)  
+    liquidation_id = Column(Integer, ForeignKey("diet_liquidations.id"), nullable=True)
+    
+    # AUDITORÍA
+    notes = Column(Text, nullable=True)
+
+    
+    @property
+    def is_credit(self) -> bool:
+        return self.amount > 0
+    
+    @property
+    def is_debit(self) -> bool:
+        return self.amount < 0
+
+class CardBalanceSnapshotModel(Base):
+    """
+    SNAPSHOTS
+    """
+    __tablename__ = "card_balance_snapshots"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    card_id = Column(Integer, ForeignKey("cards.card_id"), nullable=False, index=True)
+    snapshot_date = Column(Date, nullable=False, index=True)  
+    opening_balance = Column(Numeric(12, 2), nullable=False, default=0)
+    closing_balance = Column(Numeric(12, 2), nullable=False, default=0)
+    total_credits = Column(Numeric(12, 2), nullable=False, default=0)
+    total_debits = Column(Numeric(12, 2), nullable=False, default=0)
+    transaction_count = Column(Integer, nullable=False, default=0)
+    
