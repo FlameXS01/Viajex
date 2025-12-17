@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from traceback import print_exc
+import traceback
 from typing import List, Optional, Callable
 from application.dtos.diet_dtos import DietResponseDTO, DietLiquidationResponseDTO
 from application.services import user_service
@@ -145,7 +146,7 @@ class DietList(ttk.Frame):
         self.tree.bind("<<TreeviewSelect>>", self._on_selection)
     
     def _on_selection(self, event):
-        """Maneja la selección de items - CORREGIDO"""
+        """Maneja la selección de items """
         if not self.selection_callback:
             return
         
@@ -167,6 +168,7 @@ class DietList(ttk.Frame):
                 
         except Exception as e:
             print(f"Error en selección: {e}")
+            traceback.print_exc()
             self.selection_callback(None)
     
     def _get_diet_type(self, diet):

@@ -1,3 +1,4 @@
+import json
 import tkinter as tk
 from tkinter import ttk, messagebox
 
@@ -164,11 +165,12 @@ class DietActions(ttk.Frame):
             self.delete_btn.config(state=tk.NORMAL)
             self.info_btn.config(state=tk.NORMAL)  
             
-            
-            if selected_diet.status == "requested": 
-                self.liquidate_btn.config(state=tk.NORMAL)
-            else:
+            if (hasattr(selected_diet, 'status')):
+                if selected_diet.status == "requested": 
+                    self.liquidate_btn.config(state=tk.NORMAL)
+            elif(hasattr(selected_diet, 'liquidation_number')):
                 self.liquidate_btn.config(state=tk.DISABLED)
+                self.edit_btn.config(state=tk.NORMAL)
     
     def refresh_counters(self):
         """Actualiza los contadores en la interfaz"""
