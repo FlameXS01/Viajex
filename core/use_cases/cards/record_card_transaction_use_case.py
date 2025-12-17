@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 from typing import Optional
 from core.entities.card_transaction import CardTransaction
 from core.repositories.card_transaction_repository import CardTransactionRepository
@@ -32,7 +31,7 @@ class RecordCardTransactionUseCase:
         self,
         card_id: int,
         transaction_type: str,
-        amount: Decimal,
+        amount: float,
         operation_date: Optional[datetime] = None,
         description: Optional[str] = None,
         reference_id: Optional[int] = None,
@@ -71,12 +70,8 @@ class RecordCardTransactionUseCase:
         if not card:
             raise ValueError(f"Tarjeta con ID {card_id} no encontrada")
         
-        # Validar que la tarjeta esté activa para transacciones
-        if not card.is_active and transaction_type not in ['ADJUSTMENT', 'INITIAL_BALANCE']:
-            raise ValueError(f"No se pueden realizar transacciones en tarjeta inactiva: {card.card_number}")
-        
         # Validar saldo suficiente para débitos
-        current_balance = Decimal(str(card.balance)) if card.balance else Decimal('0')
+        current_balance = float(str(card.balance)) if card.balance else float('0')
         if amount < 0 and abs(amount) > current_balance:
             raise ValueError(
                 f"Saldo insuficiente. "
@@ -99,7 +94,7 @@ class RecordCardTransactionUseCase:
             previous_balance=current_balance,
             new_balance=new_balance,
             operation_date=operation_date,
-            notes=description  # Usamos notes para la descripción
+            notes=description  
         )
         
         # Asignar referencias si existen
@@ -112,7 +107,6 @@ class RecordCardTransactionUseCase:
         saved_transaction = self.card_transaction_repository.save(transaction)
         
         # Actualizar balance de la tarjeta
-        card.balance = float(new_balance)
         self.card_repository.update(card)
         
         logger.info(

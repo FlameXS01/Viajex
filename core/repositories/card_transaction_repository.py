@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from datetime import datetime, date
-from decimal import Decimal
 from typing import List, Optional, Dict, Any
 from core.entities.card_transaction import CardTransaction
 from core.entities.card_balance_snapshot import CardBalanceSnapshot
@@ -89,7 +88,7 @@ class CardTransactionRepository(ABC):
         pass
     
     @abstractmethod
-    def get_balance_at_date(self, card_id: int, target_date: datetime) -> Decimal:
+    def get_balance_at_date(self, card_id: int, target_date: datetime) -> float:
         """
         Obtiene el balance de una tarjeta en una fecha y hora específica.
         
@@ -98,7 +97,7 @@ class CardTransactionRepository(ABC):
             target_date: Fecha y hora para consultar el balance
             
         Returns:
-            Decimal: Balance de la tarjeta en la fecha especificada
+            float: Balance de la tarjeta en la fecha especificada
         """
         pass
     

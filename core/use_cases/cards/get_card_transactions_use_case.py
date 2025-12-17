@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 from typing import List, Optional
 from core.entities.card_transaction import CardTransaction
 from core.repositories.card_transaction_repository import CardTransactionRepository
@@ -84,8 +83,8 @@ class GetCardTransactionsUseCase:
         )
         
         # Calcular totales
-        total_credits = Decimal('0')
-        total_debits = Decimal('0')
+        total_credits = float('0')
+        total_debits = float('0')
         
         for transaction in transactions:
             if transaction.amount > 0:

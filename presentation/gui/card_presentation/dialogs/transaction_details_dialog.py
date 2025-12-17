@@ -1,3 +1,6 @@
+from tkinter import ttk
+import tkinter as tk
+
 class TransactionDetailsDialog:
     """Diálogo para mostrar detalles completos de una transacción"""
     
@@ -13,7 +16,4 @@ class TransactionDetailsDialog:
         self.dialog.geometry("500x400")
         self.dialog.resizable(False, False)
         
-        # Contenido con secciones claras
-        self._create_info_section()
-        self._create_balance_section()
-        self._create_metadata_section()
+       

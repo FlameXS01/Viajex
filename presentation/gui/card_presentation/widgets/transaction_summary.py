@@ -8,7 +8,6 @@ class TransactionSummaryPanel(ttk.LabelFrame):
         super().__init__(parent, text="Resumen del Período", padding="15")
         
         self._create_summary_metrics()
-        self._create_chart_placeholder()
     
     def _create_summary_metrics(self):
         """Crea métricas principales"""

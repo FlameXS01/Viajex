@@ -2,7 +2,6 @@ import csv
 import json
 import os
 from datetime import datetime
-from decimal import Decimal
 from typing import List, Optional
 from core.repositories.card_transaction_repository import CardTransactionRepository
 from core.repositories.card_repository import CardRepository
@@ -130,8 +129,8 @@ class ExportCardTransactionsUseCase:
             ])
             
             # Datos
-            total_credits = Decimal('0')
-            total_debits = Decimal('0')
+            total_credits = float('0')
+            total_debits = float('0')
             
             for t in transactions:
                 # Determinar tipo de referencia
@@ -169,8 +168,8 @@ class ExportCardTransactionsUseCase:
                 
                 # Balance inicial y final
                 if transactions:
-                    initial_balance = transactions[-1].previous_balance if transactions else Decimal('0')
-                    final_balance = transactions[0].new_balance if transactions else Decimal('0')
+                    initial_balance = transactions[-1].previous_balance if transactions else float('0')
+                    final_balance = transactions[0].new_balance if transactions else float('0')
                     
                     writer.writerow([''])
                     writer.writerow(['Balance inicial:', f"{initial_balance:,.2f}"])
@@ -202,8 +201,8 @@ class ExportCardTransactionsUseCase:
             'transactions': []
         }
         
-        total_credits = Decimal('0')
-        total_debits = Decimal('0')
+        total_credits = float('0')
+        total_debits = float('0')
         
         for t in transactions:
             transaction_data = {

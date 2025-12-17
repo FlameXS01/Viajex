@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 from core.repositories.card_transaction_repository import CardTransactionRepository
 from core.repositories.card_repository import CardRepository
 
@@ -17,7 +16,7 @@ class GetCardBalanceAtDateUseCase:
         self.card_transaction_repository = card_transaction_repository
         self.card_repository = card_repository
     
-    def execute(self, card_id: int, target_date: datetime) -> Decimal:
+    def execute(self, card_id: int, target_date: datetime) -> float:
         """
         Obtiene el balance de una tarjeta en una fecha/hora específica.
         
@@ -26,7 +25,7 @@ class GetCardBalanceAtDateUseCase:
             target_date: Fecha y hora para consultar el balance
             
         Returns:
-            Decimal: Balance en la fecha especificada
+            float: Balance en la fecha especificada
             
         Raises:
             ValueError: Si las validaciones fallan

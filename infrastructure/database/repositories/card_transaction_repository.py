@@ -1,4 +1,3 @@
-from decimal import Decimal
 from datetime import datetime, date, timedelta
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
@@ -142,7 +141,7 @@ class CardTransactionRepositoryImpl(CardTransactionRepository):
             logger.error(f"Error al contar transacciones de tarjeta {card_id}: {str(e)}")
             raise Exception(f"Error de base de datos al contar transacciones: {str(e)}")
     
-    def get_balance_at_date(self, card_id: int, target_date: datetime) -> Decimal:
+    def get_balance_at_date(self, card_id: int, target_date: datetime) -> float:
         """
         Obtiene el balance de una tarjeta en una fecha/hora específica.
         
@@ -157,17 +156,17 @@ class CardTransactionRepositoryImpl(CardTransactionRepository):
             
             if last_transaction:
                 # Balance después de la última transacción
-                return Decimal(str(last_transaction.new_balance))
+                return float(str(last_transaction.new_balance))
             else:
                 # Si no hay transacciones previas, verificar si la tarjeta existe
                 card = self.db.query(CardModel).filter(CardModel.card_id == card_id).first()
                 if card and card.balance is not None:
                     # Si la tarjeta existe pero no tiene transacciones, usar balance actual
                     # Esto solo debería pasar durante la migración
-                    return Decimal(str(card.balance))
+                    return float(str(card.balance))
                 else:
                     # Tarjeta no encontrada o sin balance
-                    return Decimal('0')
+                    return float('0')
                     
         except SQLAlchemyError as e:
             logger.error(f"Error al obtener balance histórico: {str(e)}")
@@ -221,21 +220,21 @@ class CardTransactionRepositoryImpl(CardTransactionRepository):
             results = summary_query.all()
             
             # Calcular totales generales
-            total_credits = Decimal('0')
-            total_debits = Decimal('0')
+            total_credits = float('0')
+            total_debits = float('0')
             by_type = {}
             
             for transaction_type, count, total_amount in results:
-                amount_decimal = Decimal(str(total_amount)) if total_amount else Decimal('0')
+                amount_float = float(str(total_amount)) if total_amount else float('0')
                 by_type[transaction_type] = {
                     'count': count,
-                    'total_amount': amount_decimal
+                    'total_amount': amount_float
                 }
                 
-                if amount_decimal > 0:
-                    total_credits += amount_decimal
+                if amount_float > 0:
+                    total_credits += amount_float
                 else:
-                    total_debits += abs(amount_decimal)
+                    total_debits += abs(amount_float)
             
             # Obtener balance inicial y final del período
             opening_balance = self.get_balance_at_date(card_id, start_date)
@@ -265,9 +264,9 @@ class CardTransactionRepositoryImpl(CardTransactionRepository):
             id=model.id,
             card_id=model.card_id,
             transaction_type=model.transaction_type,
-            amount=Decimal(str(model.amount)) if model.amount else Decimal('0'),
-            previous_balance=Decimal(str(model.previous_balance)) if model.previous_balance else Decimal('0'),
-            new_balance=Decimal(str(model.new_balance)) if model.new_balance else Decimal('0'),
+            amount=float(str(model.amount)) if model.amount else float('0'),
+            previous_balance=float(str(model.previous_balance)) if model.previous_balance else float('0'),
+            new_balance=float(str(model.new_balance)) if model.new_balance else float('0'),
             operation_date=model.operation_date,
             recorded_at=model.recorded_at,
             diet_id=model.diet_id,
@@ -406,24 +405,24 @@ class CardBalanceSnapshotRepositoryImpl(CardBalanceSnapshotRepository):
                 result = results[0]
                 return {
                     'month': month,
-                    'total_credits': Decimal(str(result.total_credits)) if result.total_credits else Decimal('0'),
-                    'total_debits': Decimal(str(result.total_debits)) if result.total_debits else Decimal('0'),
+                    'total_credits': float(str(result.total_credits)) if result.total_credits else float('0'),
+                    'total_debits': float(str(result.total_debits)) if result.total_debits else float('0'),
                     'transaction_count': result.transaction_count or 0,
-                    'net_movement': (Decimal(str(result.total_credits)) if result.total_credits else Decimal('0')) - 
-                                   (Decimal(str(result.total_debits)) if result.total_debits else Decimal('0'))
+                    'net_movement': (float(str(result.total_credits)) if result.total_credits else float('0')) - 
+                                   (float(str(result.total_debits)) if result.total_debits else float('0'))
                 }
             elif not month:
                 # Resumen anual (todos los meses)
                 monthly_summaries = []
                 annual_totals = {
-                    'total_credits': Decimal('0'),
-                    'total_debits': Decimal('0'),
+                    'total_credits': float('0'),
+                    'total_debits': float('0'),
                     'transaction_count': 0
                 }
                 
                 for result in results:
-                    month_credits = Decimal(str(result.total_credits)) if result.total_credits else Decimal('0')
-                    month_debits = Decimal(str(result.total_debits)) if result.total_debits else Decimal('0')
+                    month_credits = float(str(result.total_credits)) if result.total_credits else float('0')
+                    month_debits = float(str(result.total_debits)) if result.total_debits else float('0')
                     
                     monthly_summaries.append({
                         'month': int(result.month),
@@ -480,9 +479,9 @@ class CardBalanceSnapshotRepositoryImpl(CardBalanceSnapshotRepository):
             id=model.id,
             card_id=model.card_id,
             snapshot_date=model.snapshot_date,
-            opening_balance=Decimal(str(model.opening_balance)) if model.opening_balance else Decimal('0'),
-            closing_balance=Decimal(str(model.closing_balance)) if model.closing_balance else Decimal('0'),
-            total_credits=Decimal(str(model.total_credits)) if model.total_credits else Decimal('0'),
-            total_debits=Decimal(str(model.total_debits)) if model.total_debits else Decimal('0'),
+            opening_balance=float(str(model.opening_balance)) if model.opening_balance else float('0'),
+            closing_balance=float(str(model.closing_balance)) if model.closing_balance else float('0'),
+            total_credits=float(str(model.total_credits)) if model.total_credits else float('0'),
+            total_debits=float(str(model.total_debits)) if model.total_debits else float('0'),
             transaction_count=model.transaction_count or 0
         )

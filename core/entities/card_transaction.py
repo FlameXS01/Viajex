@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import datetime
-from decimal import Decimal
 from typing import Optional
 
 
@@ -17,9 +16,9 @@ class CardTransaction:
     id: Optional[int] = None
     card_id: int = None
     transaction_type: str = None
-    amount: Decimal = None
-    previous_balance: Decimal = None
-    new_balance: Decimal = None
+    amount: float = None
+    previous_balance: float = None
+    new_balance: float = None
     operation_date: datetime = None
     recorded_at: Optional[datetime] = None
     diet_id: Optional[int] = None

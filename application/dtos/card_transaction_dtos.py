@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import datetime, date
-from decimal import Decimal
 from typing import Optional, List, Dict, Any
 
 
@@ -19,7 +18,7 @@ class CreateCardTransactionRequest:
     """
     card_id: int
     transaction_type: str
-    amount: Decimal
+    amount: float
     description: Optional[str] = None
     reference_id: Optional[int] = None
     reference_type: Optional[str] = None
@@ -35,9 +34,9 @@ class CardTransactionResponse:
     id: int
     card_id: int
     transaction_type: str
-    amount: Decimal
-    previous_balance: Decimal
-    new_balance: Decimal
+    amount: float
+    previous_balance: float
+    new_balance: float
     operation_date: datetime
     recorded_at: datetime
     description: Optional[str] = None
@@ -73,9 +72,9 @@ class GetCardTransactionsResponse:
     success: bool
     transactions: List[CardTransactionResponse]
     total_count: int
-    total_credits: Decimal
-    total_debits: Decimal
-    net_movement: Decimal
+    total_credits: float
+    total_debits: float
+    net_movement: float
     message: Optional[str] = None
 
 
@@ -96,7 +95,7 @@ class GetCardBalanceAtDateResponse:
     success: bool
     card_id: int
     target_date: datetime
-    balance_at_date: Decimal
+    balance_at_date: float
     message: Optional[str] = None
 
 
@@ -116,12 +115,12 @@ class MonthlySummary:
     DTO para resumen mensual individual.
     """
     month: int
-    opening_balance: Decimal
-    closing_balance: Decimal
-    total_credits: Decimal
-    total_debits: Decimal
+    opening_balance: float
+    closing_balance: float
+    total_credits: float
+    total_debits: float
     transaction_count: int
-    net_movement: Decimal
+    net_movement: float
 
 
 @dataclass
@@ -156,9 +155,9 @@ class CardBalanceHistoryResponse:
     card_id: int
     period: Dict[str, date]
     daily_balances: List[Dict[str, Any]]
-    opening_balance: Decimal
-    closing_balance: Decimal
-    total_movement: Decimal
+    opening_balance: float
+    closing_balance: float
+    total_movement: float
     message: Optional[str] = None
 
 

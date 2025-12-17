@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
-from decimal import Decimal
+
 
 
 @dataclass
@@ -14,23 +14,23 @@ class CardBalanceSnapshot:
     id: int = None
     card_id: int = None
     snapshot_date: date = None
-    opening_balance: Decimal = None
-    closing_balance: Decimal = None
-    total_credits: Decimal = None
-    total_debits: Decimal = None
+    opening_balance: float = None
+    closing_balance: float = None
+    total_credits: float = None
+    total_debits: float = None
     transaction_count: int = None
 
     @property
-    def net_movement(self) -> Decimal:
+    def net_movement(self) -> float:
         """Movimiento neto del día (créditos - débitos)"""
-        return self.total_credits - self.total_debits if self.total_credits and self.total_debits else Decimal('0')
+        return self.total_credits - self.total_debits if self.total_credits and self.total_debits else float('0')
 
     @property
-    def expected_closing_balance(self) -> Decimal:
+    def expected_closing_balance(self) -> float:
         """Balance de cierre esperado basado en cálculos"""
         if self.opening_balance is not None and self.total_credits is not None and self.total_debits is not None:
             return self.opening_balance + self.total_credits - self.total_debits
-        return Decimal('0')
+        return float('0')
 
     def __post_init__(self):
         """Validaciones después de la inicialización"""

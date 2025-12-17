@@ -1,4 +1,3 @@
-from decimal import Decimal
 from typing import Dict, Any, Optional
 from core.repositories.card_transaction_repository import CardTransactionRepository, CardBalanceSnapshotRepository
 from core.repositories.card_repository import CardRepository
@@ -83,18 +82,18 @@ class GetCardMonthlySummaryUseCase:
         
         return {
             'month': month,
-            'total_credits': summary.get('total_credits', Decimal('0')),
-            'total_debits': summary.get('total_debits', Decimal('0')),
+            'total_credits': summary.get('total_credits', float('0')),
+            'total_debits': summary.get('total_debits', float('0')),
             'transaction_count': summary.get('transaction_count', 0),
-            'net_movement': summary.get('net_movement', Decimal('0'))
+            'net_movement': summary.get('net_movement', float('0'))
         }
     
     def _calculate_annual_summary_manually(self, card_id: int, year: int) -> Dict[str, Any]:
         """Calcula resumen anual manualmente cuando no hay snapshots."""
         monthly_summaries = []
         annual_totals = {
-            'total_credits': Decimal('0'),
-            'total_debits': Decimal('0'),
+            'total_credits': float('0'),
+            'total_debits': float('0'),
             'transaction_count': 0
         }
         

@@ -164,8 +164,8 @@ def main():
         get_all_cards_use_case = GetAllCardsUseCase(card_repository)
         toggle_card_active_use_case = ToggleCardActiveUseCase(card_repository)
         get_card_by_number_use_case = GetCardByNumberUseCase(card_repository)
-        recharge_card_use_case = RechargeCardUseCase(card_repository)
-        discount_card_use_case = DiscountCardUseCase(card_repository)
+        recharge_card_use_case = RechargeCardUseCase(card_repository, card_transaction_repository)
+        discount_card_use_case = DiscountCardUseCase(card_repository, card_transaction_repository)
         get_aviable_cards_use_case = GetAviableCardsUseCase(card_repository)
 
         get_card_transactions_use_case = GetCardTransactionsUseCase(card_transaction_repository, card_repository)

@@ -1,6 +1,5 @@
 from datetime import datetime, date
-from decimal import Decimal
-from typing import List, Optional, Dict, Any
+from typing import Dict, Any
 from application.dtos.card_transaction_dtos import (
     CreateCardTransactionRequest,
     CardTransactionResponse,
@@ -95,8 +94,8 @@ class CardTransactionService:
                 start_date=request.start_date,
                 end_date=request.end_date,
                 transaction_type=request.transaction_type,
-                page=1,  # Podría hacerlo configurable
-                page_size=100  # Podría hacerlo configurable
+                page=1,  
+                page_size=100  
             )
             
             # Convertir entidades a DTOs de respuesta
@@ -119,9 +118,9 @@ class CardTransactionService:
                 success=False,
                 transactions=[],
                 total_count=0,
-                total_credits=Decimal('0'),
-                total_debits=Decimal('0'),
-                net_movement=Decimal('0'),
+                total_credits=float('0'),
+                total_debits=float('0'),
+                net_movement=float('0'),
                 message=str(e)
             )
     
@@ -154,7 +153,7 @@ class CardTransactionService:
                 success=False,
                 card_id=request.card_id,
                 target_date=request.target_date,
-                balance_at_date=Decimal('0'),
+                balance_at_date=float('0'),
                 message=str(e)
             )
     
@@ -186,8 +185,8 @@ class CardTransactionService:
                     monthly_summaries=[
                         MonthlySummary(
                             month=result['month'],
-                            opening_balance=Decimal('0'),  # No disponible en resumen básico
-                            closing_balance=Decimal('0'),  # No disponible en resumen básico
+                            opening_balance=float('0'),  # No disponible en resumen básico
+                            closing_balance=float('0'),  # No disponible en resumen básico
                             total_credits=result['total_credits'],
                             total_debits=result['total_debits'],
                             transaction_count=result['transaction_count'],
@@ -206,8 +205,8 @@ class CardTransactionService:
                 monthly_summaries = [
                     MonthlySummary(
                         month=item['month'],
-                        opening_balance=Decimal('0'),
-                        closing_balance=Decimal('0'),
+                        opening_balance=float('0'),
+                        closing_balance=float('0'),
                         total_credits=item['total_credits'],
                         total_debits=item['total_debits'],
                         transaction_count=item['transaction_count'],
@@ -256,7 +255,7 @@ class CardTransactionService:
             
             # Obtener balance para cada fecha
             daily_balances = []
-            total_movement = Decimal('0')
+            total_movement = float('0')
             
             for current_date in date_range:
                 try:
@@ -292,8 +291,8 @@ class CardTransactionService:
                     continue
             
             # Calcular balances inicial y final
-            opening_balance = Decimal('0')
-            closing_balance = Decimal('0')
+            opening_balance = float('0')
+            closing_balance = float('0')
             
             if daily_balances:
                 opening_balance = daily_balances[0]['balance'] - daily_balances[0]['daily_movement']
@@ -316,9 +315,9 @@ class CardTransactionService:
                 card_id=request.card_id,
                 period={'start': request.start_date, 'end': request.end_date},
                 daily_balances=[],
-                opening_balance=Decimal('0'),
-                closing_balance=Decimal('0'),
-                total_movement=Decimal('0'),
+                opening_balance=float('0'),
+                closing_balance=float('0'),
+                total_movement=float('0'),
                 message=str(e)
             )
     

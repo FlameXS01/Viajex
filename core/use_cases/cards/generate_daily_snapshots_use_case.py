@@ -1,5 +1,4 @@
 from datetime import datetime, date, timedelta
-from decimal import Decimal
 from core.repositories.card_transaction_repository import CardTransactionRepository, CardBalanceSnapshotRepository
 from core.repositories.card_repository import CardRepository
 import logging
@@ -120,8 +119,8 @@ class GenerateDailySnapshotsUseCase:
         )
         
         # Calcular totales
-        total_credits = Decimal('0')
-        total_debits = Decimal('0')
+        total_credits = float('0')
+        total_debits = float('0')
         
         for transaction in transactions:
             if transaction.amount > 0:

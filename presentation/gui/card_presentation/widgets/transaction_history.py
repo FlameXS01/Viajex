@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime, timedelta
+import traceback
 
 class TransactionHistoryPanel(ttk.Frame):
     """Panel optimizado para visualizar historial de transacciones"""
@@ -73,7 +74,7 @@ class TransactionHistoryPanel(ttk.Frame):
         
         for col_id, heading, width, anchor in column_configs:
             self.tree.heading(col_id, text=heading)
-            self.tree.column(col_id, width=width, anchor=anchor)
+            self.tree.column(col_id, width=width, anchor=anchor) # type: ignore
         
         # Scrollbars
         v_scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.tree.yview)
@@ -163,13 +164,14 @@ class TransactionHistoryPanel(ttk.Frame):
             )
             
             response = self.card_transaction_service.get_transactions(request)
-            
             if response and response.success:
                 self.transactions = response.transactions
                 self._display_transactions()
                 self._update_statistics(response)
             else:
                 messagebox.showerror("Error", "No se pudieron cargar las transacciones")
+                traceback.print_exc()
+            
                 
         except Exception as e:
             messagebox.showerror("Error", f"Error al cargar historial: {str(e)}")
@@ -200,7 +202,7 @@ class TransactionHistoryPanel(ttk.Frame):
                 trans.operation_date.strftime("%Y-%m-%d %H:%M"),
                 trans_type,
                 amount_str,
-                f"${trans.new_balance:,.2f}"
+                f"${trans.previous_balance:,.2f}" 
             ))
     
     def _update_statistics(self, response):
@@ -249,6 +251,7 @@ class TransactionHistoryPanel(ttk.Frame):
                 self._update_statistics(response)
             else:
                 messagebox.showerror("Error", "No se pudieron cargar las transacciones")
+                traceback.print_exc()
                 
         except Exception as e:
             messagebox.showerror("Error", f"Error al aplicar filtro: {str(e)}")
@@ -284,13 +287,15 @@ class TransactionHistoryPanel(ttk.Frame):
         frame = ttk.Frame(dialog, padding="20")
         frame.pack(fill=tk.BOTH, expand=True)
         
+        saldo_anterior = transaction.previous_balance - transaction.amount
+
         details = [
             ("ID:", transaction.id),
             ("Fecha:", transaction.operation_date.strftime("%Y-%m-%d %H:%M:%S")),
             ("Tipo:", self._format_type(transaction.transaction_type)),
             ("Monto:", f"${transaction.amount:,.2f}"),
-            ("Saldo Anterior:", f"${transaction.previous_balance:,.2f}"),
-            ("Nuevo Saldo:", f"${transaction.new_balance:,.2f}"),
+            ("Saldo Anterior:", f"${saldo_anterior:,.2f}" if saldo_anterior > 0 else 0 ),
+            ("Nuevo Saldo:", f"${transaction.previous_balance:,.2f}"),
             ("Descripción:", transaction.description or "Sin descripción")
         ]
         
