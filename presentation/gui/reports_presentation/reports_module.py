@@ -1,719 +1,496 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
-from typing import Dict, Any, Optional, List
+from tkinter import ttk, filedialog, messagebox
+from datetime import datetime
+from typing import List, Dict, Any
+import pandas as pd
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+import os
 
-# Importar diálogos de reportes
-from presentation.gui.reports_presentation.dialogs.accounting_voucher_dialog import AccountingVoucherDialog
-from presentation.gui.reports_presentation.dialogs.accounts_report_dialog import AccountsReportDialog
-from presentation.gui.reports_presentation.dialogs.cards_in_advance_dialog import CardsInAdvanceDialog
-from presentation.gui.reports_presentation.dialogs.cards_in_cash_dialog import CardsInCashDialog
-from presentation.gui.reports_presentation.dialogs.cost_center_dialog import CostCenterDialog
-from presentation.gui.reports_presentation.dialogs.daily_results_dialog import DailyResultsDialog
-from presentation.gui.reports_presentation.dialogs.department_report_dialog import DepartmentReportDialog
-from presentation.gui.reports_presentation.dialogs.employee_report_dialog import EmployeeReportDialog
-from presentation.gui.reports_presentation.dialogs.unsettled_advances_dialog import UnsettledAdvancesDialog
-from presentation.gui.reports_presentation.dialogs.export_options_dialog import ExportOptionsDialog
-from presentation.gui.reports_presentation.dialogs.email_report_dialog import EmailReportDialog
-from presentation.gui.reports_presentation.dialogs.report_preview_dialog import ReportPreviewDialog
-from presentation.gui.reports_presentation.dialogs.date_range_dialog import DateRangeDialog
-from presentation.gui.reports_presentation.dialogs.filter_manager_dialog import FilterManagerDialog
-from application.services.request_service import UserRequestService 
-
-# Importar servicios necesarios
 from application.services.card_service import CardService
-from application.services.diet_service import DietService
+from application.services.diet_service import DietAppService
+from application.services.request_service import UserRequestService
 from application.services.department_service import DepartmentService
-from application.services.user_service import UserService
-
-
 
 class ReportModule(ttk.Frame):
-    """Módulo principal para generación de reportes e informes del sistema"""
+    """Módulo de generación de reportes para el sistema de dietas"""
     
-    def __init__(self, parent, 
-                 card_service: CardService,
-                 diet_service: DietService,
-                 department_service: DepartmentService,
-                 user_service: UserService,
-                 request_service: UserRequestService):
-        """
-        Inicializa el módulo de reportes.
-        
-        Args:
-            parent: Widget padre
-            card_service: Servicio de gestión de tarjetas
-            diet_service: Servicio de gestión de dietas
-            department_service: Servicio de departamentos
-            user_service: Servicio de usuarios
-            request_service: Servicio de solicitudes
-        """
+    def __init__(self, parent, card_service: CardService, diet_service: DietAppService, 
+                 request_service: UserRequestService, department_service: DepartmentService):
         super().__init__(parent, style='Content.TFrame')
-        
-        # Servicios
         self.card_service = card_service
         self.diet_service = diet_service
-        self.department_service = department_service
-        self.user_service = user_service
         self.request_service = request_service
+        self.department_service = department_service
         
-        # Estado del módulo
-        self.current_report_type = None
-        self.current_filters = {}
-        self.current_data = []
+        self.report_types = [
+            "Reporte General de Tarjetas",
+            "Reporte de Tarjetas Activas",
+            "Reporte de Tarjetas Inactivas",
+            "Reporte de Movimientos por Tarjeta",
+            "Reporte de Saldos",
+            "Reporte de Solicitantes por Departamento",
+            "Reporte General de Solicitantes",
+            "Reporte de Departamentos",
+            "Reporte de Estadísticas del Sistema"
+        ]
         
-        # Configuración inicial
+        self.formats = ["PDF", "Excel (XLSX)"]
+        
+        self._create_widgets()
+
+    def _create_widgets(self):
+        """Crea la interfaz del módulo de reportes"""
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         
-        self._create_widgets()
-        self._setup_report_definitions()
-        
-    def _create_widgets(self):
-        """Crea los componentes de la interfaz del módulo"""
         # Header del módulo
         header_frame = ttk.Frame(self, style='Content.TFrame')
         header_frame.grid(row=0, column=0, sticky='ew', pady=(0, 20))
         header_frame.columnconfigure(1, weight=1)
         
         # Título
-        ttk.Label(header_frame, text="Generación de Reportes", 
-                 font=('Arial', 18, 'bold'), style='Content.TLabel').grid(row=0, column=0, sticky='w')
+        ttk.Label(header_frame, text="Generador de Reportes", 
+                  font=('Arial', 18, 'bold'), style='Content.TLabel').grid(row=0, column=0, sticky='w')
         
-        # Botón de ayuda/guía
-        help_btn = ttk.Button(header_frame, text="Guía de Uso", 
-                             command=self._show_help)
-        help_btn.grid(row=0, column=1, sticky='e', padx=(0, 10))
+        # Contenedor principal
+        main_frame = ttk.Frame(self, style='Content.TFrame')
+        main_frame.grid(row=1, column=0, sticky='nsew')
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.rowconfigure(4, weight=1)
         
-        # Contenedor principal (selección de reportes + configuración)
-        main_container = ttk.Frame(self, style='Content.TFrame')
-        main_container.grid(row=1, column=0, sticky='nsew', pady=10)
-        main_container.columnconfigure(0, weight=1)
-        main_container.rowconfigure(0, weight=1)
+        # Selección de tipo de reporte
+        ttk.Label(main_frame, text="Tipo de Reporte:", 
+                  font=('Arial', 11, 'bold')).grid(row=0, column=0, sticky='w', pady=(0, 5))
         
-        # Configurar proporciones de columnas
-        main_container.columnconfigure(0, weight=1)
-        main_container.columnconfigure(1, weight=2)
+        self.report_combo = ttk.Combobox(main_frame, values=self.report_types, 
+                                         state='readonly', font=('Arial', 10))
+        self.report_combo.grid(row=1, column=0, sticky='ew', pady=(0, 20))
+        self.report_combo.set(self.report_types[0])
+        self.report_combo.bind('<<ComboboxSelected>>', self._on_report_type_change)
         
-        # Panel izquierdo: Frame contenedor con scrollbar
-        left_container = ttk.Frame(main_container, style='Content.TFrame')
-        left_container.grid(row=0, column=0, sticky='nsew', padx=(0, 10))
-        left_container.columnconfigure(0, weight=1)
-        left_container.rowconfigure(0, weight=1)
+        # Frame para parámetros específicos
+        self.params_frame = ttk.LabelFrame(main_frame, text="Parámetros del Reporte", padding="15")
+        self.params_frame.grid(row=2, column=0, sticky='ew', pady=(0, 20))
+        self.params_frame.columnconfigure(0, weight=1)
         
-        # Crear Canvas y Scrollbar para el panel izquierdo
-        left_canvas = tk.Canvas(left_container, highlightthickness=0)
-        left_scrollbar = ttk.Scrollbar(left_container, orient="vertical", command=left_canvas.yview)
+        # Inicializar parámetros para el primer reporte
+        self._create_card_report_params()
         
-        # Frame que irá dentro del Canvas
-        left_panel = ttk.LabelFrame(left_canvas, text="Tipos de Reporte", padding="15")
+        # Selección de formato
+        format_frame = ttk.Frame(main_frame, style='Content.TFrame')
+        format_frame.grid(row=3, column=0, sticky='ew', pady=(0, 20))
+        format_frame.columnconfigure(1, weight=1)
         
-        # Configurar el scrolling
-        left_canvas.configure(yscrollcommand=left_scrollbar.set)
+        ttk.Label(format_frame, text="Formato de Salida:", 
+                  font=('Arial', 11, 'bold')).grid(row=0, column=0, sticky='w', padx=(0, 10))
         
-        # Crear ventana en el canvas para el frame
-        left_canvas_frame = left_canvas.create_window((0, 0), window=left_panel, anchor="nw")
+        self.format_combo = ttk.Combobox(format_frame, values=self.formats, 
+                                         state='readonly', font=('Arial', 10), width=15)
+        self.format_combo.grid(row=0, column=1, sticky='w')
+        self.format_combo.set(self.formats[0])
         
-        # Empaquetar canvas y scrollbar
-        left_canvas.grid(row=0, column=0, sticky="nsew")
-        left_scrollbar.grid(row=0, column=1, sticky="ns")
+        # Botones de acción
+        buttons_frame = ttk.Frame(main_frame, style='Content.TFrame')
+        buttons_frame.grid(row=4, column=0, sticky='se')
+        buttons_frame.columnconfigure(0, weight=1)
         
-        # Configurar el frame dentro del canvas
-        left_panel.columnconfigure(0, weight=1)
+        self.generate_btn = ttk.Button(buttons_frame, text="Generar Reporte", 
+                                       command=self._generate_report, style='Accent.TButton')
+        self.generate_btn.grid(row=0, column=0, sticky='e', padx=(0, 10))
         
-        # Panel derecho: Configuración y acciones (también con scrollbar)
-        right_container = ttk.Frame(main_container, style='Content.TFrame')
-        right_container.grid(row=0, column=1, sticky='nsew')
-        right_container.columnconfigure(0, weight=1)
-        right_container.rowconfigure(0, weight=1)
+        self.preview_btn = ttk.Button(buttons_frame, text="Vista Previa", 
+                                      command=self._preview_report, state=tk.DISABLED)
+        self.preview_btn.grid(row=0, column=1, sticky='e')
+
+    def _on_report_type_change(self, event):
+        """Cambia los parámetros según el tipo de reporte seleccionado"""
+        # Limpiar frame de parámetros
+        for widget in self.params_frame.winfo_children():
+            widget.destroy()
         
-        # Crear Canvas y Scrollbar para el panel derecho
-        right_canvas = tk.Canvas(right_container, highlightthickness=0)
-        right_scrollbar = ttk.Scrollbar(right_container, orient="vertical", command=right_canvas.yview)
+        report_type = self.report_combo.get()
         
-        # Frame que irá dentro del Canvas
-        right_panel = ttk.LabelFrame(right_canvas, text="Configuración", padding="15")
-        
-        # Configurar el scrolling
-        right_canvas.configure(yscrollcommand=right_scrollbar.set)
-        
-        # Crear ventana en el canvas para el frame
-        right_canvas_frame = right_canvas.create_window((0, 0), window=right_panel, anchor="nw")
-        
-        # Empaquetar canvas y scrollbar
-        right_canvas.grid(row=0, column=0, sticky="nsew")
-        right_scrollbar.grid(row=0, column=1, sticky="ns")
-        
-        # Configurar el frame dentro del canvas
-        right_panel.columnconfigure(0, weight=1)
-        right_panel.rowconfigure(1, weight=1)
-        
-        # Crear botones de tipos de reporte
-        self._create_report_buttons(left_panel)
-        
-        # Crear panel de configuración
-        self._create_config_panel(right_panel)
-        
-        # Configurar eventos para ajustar el scroll region
-        def configure_left_scroll(event):
-            # Actualizar el scroll region del canvas
-            left_canvas.configure(scrollregion=left_canvas.bbox("all"))
-            # Asegurar que la ventana del canvas ocupe todo el ancho
-            left_canvas.itemconfig(left_canvas_frame, width=event.width)
+        if "Tarjeta" in report_type:
+            self._create_card_report_params()
+        elif "Solicitante" in report_type:
+            self._create_request_user_report_params()
+        elif "Departamento" in report_type:
+            self._create_department_report_params()
+        elif "Estadísticas" in report_type:
+            self._create_statistics_params()
             
-        def configure_right_scroll(event):
-            # Actualizar el scroll region del canvas
-            right_canvas.configure(scrollregion=right_canvas.bbox("all"))
-            # Asegurar que la ventana del canvas ocupe todo el ancho
-            right_canvas.itemconfig(right_canvas_frame, width=event.width)
+        # Actualizar estado del botón de vista previa
+        self.preview_btn['state'] = tk.DISABLED if "Excel" in self.format_combo.get() else tk.NORMAL
+
+    def _create_card_report_params(self):
+        """Crea parámetros para reportes de tarjetas"""
+        # Filtro por estado
+        status_frame = ttk.Frame(self.params_frame)
+        status_frame.grid(row=0, column=0, sticky='w', pady=(0, 10))
         
-        # Vincular eventos de redimensionamiento
-        left_panel.bind("<Configure>", configure_left_scroll)
-        left_canvas.bind("<Configure>", lambda e: left_canvas.itemconfig(left_canvas_frame, width=e.width))
+        ttk.Label(status_frame, text="Estado:").grid(row=0, column=0, sticky='w', padx=(0, 10))
+        self.status_var = tk.StringVar(value="Todos")
+        status_combo = ttk.Combobox(status_frame, textvariable=self.status_var, 
+                                    values=["Todos", "Activas", "Inactivas"], 
+                                    state='readonly', width=15)
+        status_combo.grid(row=0, column=1, sticky='w')
         
-        right_panel.bind("<Configure>", configure_right_scroll)
-        right_canvas.bind("<Configure>", lambda e: right_canvas.itemconfig(right_canvas_frame, width=e.width))
+        # Filtro por saldo mínimo
+        balance_frame = ttk.Frame(self.params_frame)
+        balance_frame.grid(row=1, column=0, sticky='w', pady=(0, 10))
         
-        # Habilitar scroll con rueda del mouse
-        def bind_mouse_wheel(widget):
-            widget.bind("<MouseWheel>", lambda e: widget.yview_scroll(int(-1*(e.delta/120)), "units"))
-            widget.bind("<Button-4>", lambda e: widget.yview_scroll(-1, "units"))
-            widget.bind("<Button-5>", lambda e: widget.yview_scroll(1, "units"))
+        ttk.Label(balance_frame, text="Saldo Mínimo:").grid(row=0, column=0, sticky='w', padx=(0, 10))
+        self.min_balance_var = tk.DoubleVar(value=0.0)
+        min_balance_spin = ttk.Spinbox(balance_frame, from_=0, to=100000, 
+                                       textvariable=self.min_balance_var, width=15)
+        min_balance_spin.grid(row=0, column=1, sticky='w')
         
-        bind_mouse_wheel(left_canvas)
-        bind_mouse_wheel(right_canvas)
+        # Ordenar por
+        sort_frame = ttk.Frame(self.params_frame)
+        sort_frame.grid(row=2, column=0, sticky='w')
         
-        # Panel inferior: Resultados/Exportación
-        bottom_panel = ttk.Frame(self, style='Content.TFrame')
-        bottom_panel.grid(row=2, column=0, sticky='ew', pady=(20, 0))
-        bottom_panel.columnconfigure(1, weight=1)
+        ttk.Label(sort_frame, text="Ordenar por:").grid(row=0, column=0, sticky='w', padx=(0, 10))
+        self.sort_var = tk.StringVar(value="Número")
+        sort_combo = ttk.Combobox(sort_frame, textvariable=self.sort_var, 
+                                  values=["Número", "Saldo", "Fecha de Creación"], 
+                                  state='readonly', width=15)
+        sort_combo.grid(row=0, column=1, sticky='w')
+
+    def _create_request_user_report_params(self):
+        """Crea parámetros para reportes de solicitantes"""
+        # Filtro por departamento
+        dept_frame = ttk.Frame(self.params_frame)
+        dept_frame.grid(row=0, column=0, sticky='w', pady=(0, 10))
         
-        # Botones de acciones generales
-        self._create_action_buttons(bottom_panel)
+        ttk.Label(dept_frame, text="Departamento:").grid(row=0, column=0, sticky='w', padx=(0, 10))
+        self.dept_filter_var = tk.StringVar(value="Todos")
         
-    def _create_report_buttons(self, parent):
-        """Crea los botones para seleccionar tipos de reporte"""
-        
-        # Definición de categorías de reportes
-        report_categories = {
-            "Financieros": [
-                ("Vales Contables", "accounting_voucher", self._open_accounting_voucher),
-                ("Reporte de Cuentas", "accounts", self._open_accounts_report),
-                ("Resultados Diarios", "daily_results", self._open_daily_results),
-                ("Centro de Costos", "cost_center", self._open_cost_center),
-            ],
-            "Tarjetas y Dietas": [
-                ("Tarjetas en Adelanto", "cards_advance", self._open_cards_advance),
-                ("Tarjetas en Efectivo", "cards_cash", self._open_cards_cash),
-                ("Adelantos no Liquidadas", "unsettled", self._open_unsettled_advances),
-                ("Dietas Pendientes", "pending_diets", self._open_pending_diets),
-            ],
-            "Recursos Humanos": [
-                ("Reporte por Departamento", "department", self._open_department_report),
-                ("Reporte por Empleado", "employee", self._open_employee_report),
-                ("Solicitudes Usuarios", "user_requests", self._open_user_requests),
-            ],
-            "Exportación": [
-                ("Opciones de Exportación", "export", self._open_export_options),
-                ("Enviar por Email", "email", self._open_email_report),
-            ]
-        }
-        
-        row = 0
-        for category_name, reports in report_categories.items():
-            # Encabezado de categoría
-            ttk.Label(parent, text=category_name, 
-                     font=('Arial', 11, 'bold'), 
-                     style='Content.TLabel').grid(row=row, column=0, sticky='w', pady=(10, 5))
-            row += 1
+        # Obtener departamentos para el combobox
+        try:
+            departments = self.department_service.get_all_departments()
+            dept_names = ["Todos"] + [dept.name for dept in departments]
+        except:
+            dept_names = ["Todos"]
             
-            # Botones de reportes
-            for report_name, report_id, command in reports:
-                btn = ttk.Button(parent, text=report_name, 
-                                command=command,
-                                style='Report.TButton' if report_id == self.current_report_type else 'TButton')
-                btn.grid(row=row, column=0, sticky='ew', pady=2)
-                row += 1
-            
-            # Separador entre categorías
-            if category_name != list(report_categories.keys())[-1]:
-                ttk.Separator(parent, orient='horizontal').grid(row=row, column=0, sticky='ew', pady=10)
-                row += 1
-    
-    def _create_config_panel(self, parent):
-        """Crea el panel de configuración de reportes"""
+        dept_combo = ttk.Combobox(dept_frame, textvariable=self.dept_filter_var, 
+                                  values=dept_names, state='readonly', width=20)
+        dept_combo.grid(row=0, column=1, sticky='w')
+
+    def _create_department_report_params(self):
+        """Crea parámetros para reportes de departamentos"""
+        # Opción de incluir conteo de solicitantes
+        include_frame = ttk.Frame(self.params_frame)
+        include_frame.grid(row=0, column=0, sticky='w')
         
-        # Frame para filtros básicos
-        filter_frame = ttk.LabelFrame(parent, text="Filtros Básicos", padding="10")
-        filter_frame.grid(row=0, column=0, sticky='ew', pady=(0, 15))
-        
-        # Rango de fechas
-        ttk.Label(filter_frame, text="Rango de Fechas:").grid(row=0, column=0, sticky='w', padx=(0, 10))
-        
-        self.date_range_btn = ttk.Button(filter_frame, text="Seleccionar Fechas",
-                                        command=self._open_date_range)
-        self.date_range_btn.grid(row=0, column=1, sticky='w')
-        
-        self.date_range_label = ttk.Label(filter_frame, text="No seleccionado", 
-                                         font=('Arial', 9))
-        self.date_range_label.grid(row=0, column=2, sticky='w', padx=10)
-        
-        # Filtros avanzados
-        ttk.Label(filter_frame, text="Filtros Avanzados:").grid(row=1, column=0, sticky='w', 
-                                                               padx=(0, 10), pady=(10, 0))
-        
-        self.advanced_filters_btn = ttk.Button(filter_frame, text="Gestionar Filtros",
-                                              command=self._open_filter_manager)
-        self.advanced_filters_btn.grid(row=1, column=1, sticky='w', pady=(10, 0))
-        
-        # Frame para configuración específica del reporte
-        self.specific_config_frame = ttk.LabelFrame(parent, text="Configuración Específica", 
-                                                   padding="10")
-        self.specific_config_frame.grid(row=1, column=0, sticky='nsew', pady=10)
-        self.specific_config_frame.columnconfigure(0, weight=1)
-        
-        # Label placeholder para configuración específica
-        self.specific_config_label = ttk.Label(self.specific_config_frame, 
-                                              text="Seleccione un tipo de reporte para configurar",
-                                              font=('Arial', 10, 'italic'))
-        self.specific_config_label.grid(row=0, column=0, sticky='w', padx=5, pady=5)
-        
-        # Agregar más contenido para demostrar el scroll
-        ttk.Label(self.specific_config_frame, 
-                 text="\nConfiguraciones adicionales disponibles según el reporte seleccionado:\n",
-                 font=('Arial', 9)).grid(row=1, column=0, sticky='w', padx=5, pady=5)
-        
-        for i in range(2, 10):
-            ttk.Label(self.specific_config_frame, 
-                     text=f"Opción de configuración {i-1}: Valor por defecto",
-                     font=('Arial', 8)).grid(row=i, column=0, sticky='w', padx=15, pady=2)
-        
-        # Configurar expansión del panel
-        parent.rowconfigure(1, weight=1)
-        
-    def _create_action_buttons(self, parent):
-        """Crea los botones de acciones en la parte inferior"""
-        
-        # Botón de previsualización
-        preview_btn = ttk.Button(parent, text="Previsualizar Reporte", 
-                                command=self._preview_report,
-                                state='disabled')
-        preview_btn.grid(row=0, column=0, padx=(0, 10))
-        self.preview_btn = preview_btn
-        
-        # Botón de generación
-        generate_btn = ttk.Button(parent, text="Generar Reporte", 
-                                 command=self._generate_report,
-                                 state='disabled')
-        generate_btn.grid(row=0, column=1)
-        self.generate_btn = generate_btn
-        
-        # Botón de exportación
-        export_btn = ttk.Button(parent, text="Exportar Reporte", 
-                               command=self._export_report,
-                               state='disabled')
-        export_btn.grid(row=0, column=2, padx=10)
-        self.export_btn = export_btn
-        
-        # Botón de limpiar
-        clear_btn = ttk.Button(parent, text="Limpiar Configuración", 
-                              command=self._clear_configuration)
-        clear_btn.grid(row=0, column=3)
-        
-    def _setup_report_definitions(self):
-        """Configura las definiciones de reportes disponibles"""
-        self.report_definitions = {
-            'accounting_voucher': {
-                'name': 'Vales Contables',
-                'description': 'Genera vales contables para gastos y dietas',
-                'required_filters': ['date_range'],
-                'service_method': None,  # Se implementará según necesidad
-            },
-            'accounts': {
-                'name': 'Reporte de Cuentas',
-                'description': 'Reporte detallado de cuentas por departamento',
-                'required_filters': ['date_range', 'department'],
-                'service_method': None #self.department_service.generate_accounts_report,
-            },
-            # ... añadir más definiciones según sea necesario
-        }
-    
-    # =========================================================================
-    # MÉTODOS PARA ABRIR DIÁLOGOS ESPECÍFICOS
-    # =========================================================================
-    
-    def _open_accounting_voucher(self):
-        """Abre el diálogo de vales contables"""
-        self._select_report_type('accounting_voucher')
-        dialog = AccountingVoucherDialog(self.winfo_toplevel(), 
-                                        self.diet_service,
-                                        self.department_service)
-        dialog.show()
-    
-    def _open_accounts_report(self):
-        """Abre el diálogo de reporte de cuentas"""
-        self._select_report_type('accounts')
-        dialog = AccountsReportDialog(self.winfo_toplevel(),
-                                     self.department_service)
-        dialog.show()
-    
-    def _open_cards_advance(self):
-        """Abre el diálogo de tarjetas en adelanto"""
-        self._select_report_type('cards_advance')
-        dialog = CardsInAdvanceDialog(self.winfo_toplevel(),
-                                     self.card_service)
-        dialog.show()
-    
-    def _open_cards_cash(self):
-        """Abre el diálogo de tarjetas en efectivo"""
-        self._select_report_type('cards_cash')
-        dialog = CardsInCashDialog(self.winfo_toplevel(),
-                                  self.card_service)
-        dialog.show()
-    
-    def _open_cost_center(self):
-        """Abre el diálogo de centro de costos"""
-        self._select_report_type('cost_center')
-        dialog = CostCenterDialog(self.winfo_toplevel(),
-                                 self.department_service)
-        dialog.show()
-    
-    def _open_daily_results(self):
-        """Abre el diálogo de resultados diarios"""
-        self._select_report_type('daily_results')
-        dialog = DailyResultsDialog(self.winfo_toplevel(),
-                                   self.diet_service,
-                                   self.card_service)
-        dialog.show()
-    
-    def _open_department_report(self):
-        """Abre el diálogo de reporte por departamento"""
-        self._select_report_type('department')
-        dialog = DepartmentReportDialog(self.winfo_toplevel(),
-                                       self.department_service,
-                                       self.user_service)
-        dialog.show()
-    
-    def _open_employee_report(self):
-        """Abre el diálogo de reporte por empleado"""
-        self._select_report_type('employee')
-        dialog = EmployeeReportDialog(self.winfo_toplevel(),
-                                     self.user_service,
-                                     self.diet_service)
-        dialog.show()
-    
-    def _open_unsettled_advances(self):
-        """Abre el diálogo de adelantos no liquidadas"""
-        self._select_report_type('unsettled')
-        dialog = UnsettledAdvancesDialog(self.winfo_toplevel(),
-                                        self.diet_service)
-        dialog.show()
-    
-    def _open_pending_diets(self):
-        """Abre el diálogo de dietas pendientes (método placeholder)"""
-        self._select_report_type('pending_diets')
-        # Por implementar
-        messagebox.showinfo("Información", "Reporte de Dietas Pendientes - En desarrollo")
-    
-    def _open_user_requests(self):
-        """Abre el diálogo de solicitudes de usuarios (método placeholder)"""
-        self._select_report_type('user_requests')
-        # Por implementar
-        messagebox.showinfo("Información", "Reporte de Solicitudes - En desarrollo")
-    
-    def _open_export_options(self):
-        """Abre el diálogo de opciones de exportación"""
-        self._select_report_type('export')
-        dialog = ExportOptionsDialog(self.winfo_toplevel())
-        result = dialog.show()
-        if result:
-            self._handle_export_options(result)
-    
-    def _open_email_report(self):
-        """Abre el diálogo para enviar reporte por email"""
-        self._select_report_type('email')
-        if not self.current_data:
-            messagebox.showwarning("Advertencia", 
-                                 "Genere un reporte primero para poder enviarlo por email")
-            return
-        
-        dialog = EmailReportDialog(self.winfo_toplevel(),
-                                  self.current_data,
-                                  self.current_report_type)
-        dialog.show()
-    
-    def _open_date_range(self):
-        """Abre el diálogo para seleccionar rango de fechas"""
-        dialog = DateRangeDialog(self.winfo_toplevel())
-        date_range = dialog.show()
-        
-        if date_range:
-            start_date, end_date = date_range
-            self.current_filters['date_range'] = {
-                'start': start_date,
-                'end': end_date
-            }
-            self.date_range_label.config(
-                text=f"{start_date} a {end_date}"
-            )
-            self._update_button_states()
-    
-    def _open_filter_manager(self):
-        """Abre el diálogo para gestionar filtros avanzados"""
-        dialog = FilterManagerDialog(self.winfo_toplevel(),
-                                    self.current_filters,
-                                    self.current_report_type)
-        updated_filters = dialog.show()
-        
-        if updated_filters is not None:
-            self.current_filters.update(updated_filters)
-            self._update_button_states()
-    
-    def _preview_report(self):
-        """Muestra una previsualización del reporte"""
-        if not self._validate_report_configuration():
-            return
-        
-        # Generar datos para previsualización
-        preview_data = self._generate_report_data(preview=True)
-        
-        if preview_data:
-            dialog = ReportPreviewDialog(self.winfo_toplevel(),
-                                        preview_data,
-                                        self.current_report_type)
-            dialog.show()
-    
+        self.include_count_var = tk.BooleanVar(value=True)
+        include_check = ttk.Checkbutton(include_frame, text="Incluir conteo de solicitantes", 
+                                        variable=self.include_count_var)
+        include_check.grid(row=0, column=0, sticky='w')
+
+    def _create_statistics_params(self):
+        """Crea parámetros para reporte de estadísticas"""
+        info_label = ttk.Label(self.params_frame, 
+                               text="Este reporte genera estadísticas generales del sistema.")
+        info_label.grid(row=0, column=0, sticky='w', pady=(0, 10))
+
     def _generate_report(self):
-        """Genera el reporte completo"""
-        if not self._validate_report_configuration():
+        """Genera el reporte según los parámetros seleccionados"""
+        report_type = self.report_combo.get()
+        output_format = self.format_combo.get()
+        
+        if not report_type:
+            messagebox.showwarning("Advertencia", "Seleccione un tipo de reporte")
             return
         
         try:
-            self.current_data = self._generate_report_data(preview=False)
+            # Generar datos según el tipo de reporte
+            if "Tarjeta" in report_type:
+                data = self._get_card_data(report_type)
+                default_name = f"reporte_tarjetas_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            elif "Solicitante" in report_type:
+                data = self._get_request_user_data(report_type)
+                default_name = f"reporte_solicitantes_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            elif "Departamento" in report_type:
+                data = self._get_department_data(report_type)
+                default_name = f"reporte_departamentos_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            elif "Estadísticas" in report_type:
+                data = self._get_statistics_data()
+                default_name = f"reporte_estadisticas_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            else:
+                messagebox.showerror("Error", "Tipo de reporte no implementado")
+                return
             
-            if self.current_data:
-                messagebox.showinfo("Éxito", 
-                                  f"Reporte generado exitosamente.\n"
-                                  f"Registros procesados: {len(self.current_data)}")
-                
-                # Habilitar botones de exportación y email
-                self.export_btn.config(state='normal')
-                self._update_button_states()
+            # Generar en el formato seleccionado
+            if "Excel" in output_format:
+                self._generate_excel(data, report_type, default_name)
+            else:
+                self._generate_pdf(data, report_type, default_name)
                 
         except Exception as e:
-            messagebox.showerror("Error", f"Error al generar reporte: {str(e)}")
+            messagebox.showerror("Error", f"No se pudo generar el reporte: {str(e)}")
             import traceback
             traceback.print_exc()
-    
-    def _export_report(self):
-        """Exporta el reporte generado"""
-        if not self.current_data:
-            messagebox.showwarning("Advertencia", 
-                                 "No hay datos para exportar. Genere un reporte primero.")
-            return
+
+    def _get_card_data(self, report_type: str) -> List[Dict[str, Any]]:
+        """Obtiene datos para reportes de tarjetas"""
+        cards = self.card_service.get_all_cards()
+        data = []
         
-        dialog = ExportOptionsDialog(self.winfo_toplevel())
-        options = dialog.show()
+        for card in cards:
+            # Aplicar filtros
+            if "Activas" in report_type and not card.is_active:
+                continue
+            if "Inactivas" in report_type and card.is_active:
+                continue
+            
+            if hasattr(card, 'balance') and card.balance < self.min_balance_var.get():
+                continue
+            
+            card_data = {
+                'Número': card.card_number,
+                'Saldo': f"${getattr(card, 'balance', 0):.2f}",
+                'Estado': 'Activa' if card.is_active else 'Inactiva',
+                'PIN': getattr(card, 'card_pin', 'N/A'),
+                'Creada': getattr(card, 'created_at', 'N/A'),
+                'Última Actualización': getattr(card, 'updated_at', 'N/A')
+            }
+            data.append(card_data)
         
-        if options:
-            try:
-                # Aquí se implementaría la lógica de exportación
-                # según las opciones seleccionadas (PDF, Excel, CSV, etc.)
-                messagebox.showinfo("Exportación", 
-                                  f"Reporte exportado con éxito.\n"
-                                  f"Formato: {options['format']}\n"
-                                  f"Ubicación: {options.get('path', 'N/A')}")
-            except Exception as e:
-                messagebox.showerror("Error", f"Error al exportar: {str(e)}")
-    
-    # =========================================================================
-    # MÉTODOS AUXILIARES
-    # =========================================================================
-    
-    def _select_report_type(self, report_type):
-        """Selecciona un tipo de reporte y actualiza la UI"""
-        self.current_report_type = report_type
-        self._update_specific_configuration()
-        self._update_button_states()
-    
-    def _update_specific_configuration(self):
-        """Actualiza el panel de configuración específica según el tipo de reporte"""
-        if not self.current_report_type:
-            self.specific_config_label.config(
-                text="Seleccione un tipo de reporte para configurar"
+        # Ordenar datos
+        sort_key = self.sort_var.get()
+        if sort_key == "Número":
+            data.sort(key=lambda x: x['Número'])
+        elif sort_key == "Saldo":
+            data.sort(key=lambda x: float(x['Saldo'].replace('$', '').replace(',', '')), reverse=True)
+        
+        return data
+
+    def _get_request_user_data(self, report_type: str) -> List[Dict[str, Any]]:
+        """Obtiene datos para reportes de solicitantes"""
+        request_users = self.request_service.get_all_request_users()
+        data = []
+        
+        for user in request_users:
+            # Aplicar filtro por departamento
+            dept_filter = self.dept_filter_var.get()
+            if dept_filter != "Todos" and hasattr(user, 'department'):
+                if user.department.name != dept_filter:
+                    continue
+            
+            user_data = {
+                'Nombre': user.fullname,
+                'CI': user.ci,
+                'Departamento': user.department.name if hasattr(user, 'department') else 'N/A',
+                'Email': getattr(user, 'email', 'N/A'),
+                'Teléfono': getattr(user, 'phone', 'N/A'),
+                'Fecha Registro': getattr(user, 'created_at', 'N/A')
+            }
+            data.append(user_data)
+        
+        return data
+
+    def _get_department_data(self, report_type: str) -> List[Dict[str, Any]]:
+        """Obtiene datos para reportes de departamentos"""
+        departments = self.department_service.get_all_departments()
+        data = []
+        
+        for dept in departments:
+            dept_data = {
+                'Nombre': dept.name,
+                'ID': dept.id,
+                'Fecha Creación': getattr(dept, 'created_at', 'N/A')
+            }
+            
+            if self.include_count_var.get():
+                # Contar solicitantes en este departamento
+                count = 0
+                try:
+                    request_users = self.request_service.get_all_request_users()
+                    count = sum(1 for user in request_users 
+                              if hasattr(user, 'department') and user.department.id == dept.id)
+                except:
+                    pass
+                dept_data['Solicitantes'] = count
+            
+            data.append(dept_data)
+        
+        return data
+
+    def _get_statistics_data(self) -> Dict[str, Any]:
+        """Obtiene datos estadísticos del sistema"""
+        stats = {}
+        
+        try:
+            # Estadísticas de tarjetas
+            cards = self.card_service.get_all_cards()
+            stats['total_tarjetas'] = len(cards)
+            stats['tarjetas_activas'] = sum(1 for c in cards if c.is_active)
+            stats['tarjetas_inactivas'] = sum(1 for c in cards if not c.is_active)
+            stats['saldo_total'] = sum(getattr(c, 'balance', 0) for c in cards)
+            
+            # Estadísticas de solicitantes
+            request_users = self.request_service.get_all_request_users()
+            stats['total_solicitantes'] = len(request_users)
+            
+            # Estadísticas de departamentos
+            departments = self.department_service.get_all_departments()
+            stats['total_departamentos'] = len(departments)
+            
+            # Fecha de generación
+            stats['fecha_generacion'] = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+            
+        except Exception as e:
+            stats['error'] = str(e)
+        
+        return stats
+
+    def _generate_pdf(self, data: Any, report_type: str, default_name: str):
+        """Genera un reporte en formato PDF"""
+        # Solicitar ubicación para guardar
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
+            initialfile=f"{default_name}.pdf",
+            title="Guardar Reporte PDF"
+        )
+        
+        if not file_path:
+            return  # Usuario canceló
+        
+        try:
+            doc = SimpleDocTemplate(file_path, pagesize=A4, 
+                                   rightMargin=72, leftMargin=72,
+                                   topMargin=72, bottomMargin=72)
+            
+            elements = []
+            styles = getSampleStyleSheet()
+            
+            # Estilo para título
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=16,
+                spaceAfter=30,
+                alignment=1  # Centrado
             )
+            
+            # Título del reporte
+            elements.append(Paragraph(report_type, title_style))
+            
+            # Información de generación
+            date_str = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+            elements.append(Paragraph(f"Generado: {date_str}", styles['Normal']))
+            elements.append(Spacer(1, 20))
+            
+            # Contenido según tipo de datos
+            if isinstance(data, list) and data:
+                # Crear tabla para datos tabulares
+                if data and isinstance(data[0], dict):
+                    headers = list(data[0].keys())
+                    table_data = [headers]
+                    
+                    for row in data:
+                        table_data.append([str(row.get(h, '')) for h in headers])
+                    
+                    # Crear tabla
+                    table = Table(table_data, repeatRows=1)
+                    table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                        ('WORDWRAP', (0, 0), (-1, -1), True),
+                    ]))
+                    
+                    elements.append(table)
+            
+            elif isinstance(data, dict):
+                # Mostrar estadísticas como lista
+                for key, value in data.items():
+                    if key != 'error':
+                        elements.append(Paragraph(f"<b>{key.replace('_', ' ').title()}:</b> {value}", styles['Normal']))
+                        elements.append(Spacer(1, 5))
+            
+            # Generar PDF
+            doc.build(elements)
+            messagebox.showinfo("Éxito", f"Reporte PDF generado exitosamente:\n{file_path}")
+            
+            # Abrir el archivo si es posible
+            if messagebox.askyesno("Abrir Reporte", "¿Desea abrir el reporte generado?"):
+                os.startfile(file_path)
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo generar el PDF: {str(e)}")
+
+    def _generate_excel(self, data: Any, report_type: str, default_name: str):
+        """Genera un reporte en formato Excel"""
+        # Solicitar ubicación para guardar
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+            initialfile=f"{default_name}.xlsx",
+            title="Guardar Reporte Excel"
+        )
+        
+        if not file_path:
+            return  # Usuario canceló
+        
+        try:
+            if isinstance(data, list) and data:
+                # Datos tabulares
+                df = pd.DataFrame(data)
+                df.to_excel(file_path, index=False, sheet_name=report_type[:31])
+                
+            elif isinstance(data, dict):
+                # Datos de estadísticas
+                df = pd.DataFrame([data])
+                df.to_excel(file_path, index=False, sheet_name="Estadísticas")
+            
+            messagebox.showinfo("Éxito", f"Reporte Excel generado exitosamente:\n{file_path}")
+            
+            # Abrir el archivo si es posible
+            if messagebox.askyesno("Abrir Reporte", "¿Desea abrir el reporte generado?"):
+                os.startfile(file_path)
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo generar el Excel: {str(e)}")
+
+    def _preview_report(self):
+        """Muestra una vista previa del reporte (solo para PDF)"""
+        report_type = self.report_combo.get()
+        
+        if "Excel" in self.format_combo.get():
+            messagebox.showinfo("Información", "Vista previa no disponible para formato Excel")
             return
         
-        definition = self.report_definitions.get(self.current_report_type, {})
-        
-        # Actualizar etiqueta con información del reporte
-        config_text = f"Reporte: {definition.get('name', self.current_report_type)}\n"
-        config_text += f"Descripción: {definition.get('description', 'Sin descripción')}\n\n"
-        config_text += f"Filtros requeridos: {', '.join(definition.get('required_filters', []))}"
-        
-        self.specific_config_label.config(text=config_text)
-    
-    def _update_button_states(self):
-        """Actualiza el estado de los botones según la configuración actual"""
-        has_report_type = bool(self.current_report_type)
-        has_required_filters = self._check_required_filters()
-        
-        # Habilitar/deshabilitar botones según las condiciones
-        if has_report_type and has_required_filters:
-            self.preview_btn.config(state='normal')
-            self.generate_btn.config(state='normal')
-        else:
-            self.preview_btn.config(state='disabled')
-            self.generate_btn.config(state='disabled')
-        
-        # Solo habilitar exportación si hay datos
-        if has_report_type and self.current_data:
-            self.export_btn.config(state='normal')
-        else:
-            self.export_btn.config(state='disabled')
-    
-    def _check_required_filters(self):
-        """Verifica que se hayan configurados los filtros requeridos"""
-        if not self.current_report_type:
-            return False
-        
-        definition = self.report_definitions.get(self.current_report_type, {})
-        required_filters = definition.get('required_filters', [])
-        
-        for filter_name in required_filters:
-            if filter_name not in self.current_filters:
-                return False
-        
-        return True
-    
-    def _validate_report_configuration(self):
-        """Valida que la configuración del reporte sea correcta"""
-        if not self.current_report_type:
-            messagebox.showwarning("Advertencia", "Seleccione un tipo de reporte")
-            return False
-        
-        if not self._check_required_filters():
-            missing = self._get_missing_filters()
-            messagebox.showwarning("Advertencia", 
-                                 f"Faltan filtros requeridos: {', '.join(missing)}")
-            return False
-        
-        return True
-    
-    def _get_missing_filters(self):
-        """Obtiene la lista de filtros requeridos que faltan"""
-        if not self.current_report_type:
-            return []
-        
-        definition = self.report_definitions.get(self.current_report_type, {})
-        required_filters = definition.get('required_filters', [])
-        
-        missing = []
-        for filter_name in required_filters:
-            if filter_name not in self.current_filters:
-                missing.append(filter_name)
-        
-        return missing
-    
-    def _generate_report_data(self, preview=False):
-        """
-        Genera los datos del reporte.
-        
-        Args:
-            preview: Si es True, genera datos limitados para previsualización
-        
-        Returns:
-            Lista de datos del reporte
-        """
-        # Este método debe ser implementado según el tipo de reporte
-        # Por ahora, retorna datos de ejemplo
-        if preview:
-            return [{"ejemplo": "datos de previsualización"}]
-        else:
-            return [{"campo1": "valor1", "campo2": "valor2"}]
-    
-    def _handle_export_options(self, options):
-        """Maneja las opciones de exportación seleccionadas"""
-        # Implementar lógica según las opciones
-        print(f"Opciones de exportación: {options}")
-    
-    def _clear_configuration(self):
-        """Limpia toda la configuración del reporte"""
-        self.current_report_type = None
-        self.current_filters = {}
-        self.current_data = []
-        
-        # Resetear UI
-        self.date_range_label.config(text="No seleccionado")
-        self._update_specific_configuration()
-        self._update_button_states()
-        
-        messagebox.showinfo("Información", "Configuración limpiada exitosamente")
-    
-    def _show_help(self):
-        """Muestra la guía de uso del módulo de reportes"""
-        help_text = """
-        GUÍA DE USO - MÓDULO DE REPORTES
-        
-        1. SELECCIÓN DE REPORTE:
-           - Elija un tipo de reporte de la lista izquierda
-           - Use la barra de desplazamiento si hay muchos reportes
-        
-        2. CONFIGURACIÓN DE FILTROS:
-           - Configure el rango de fechas requerido
-           - Use 'Gestionar Filtros' para opciones avanzadas
-           - Desplácese hacia abajo para ver todas las opciones
-        
-        3. GENERACIÓN:
-           - Use 'Previsualizar' para ver una vista previa
-           - Use 'Generar Reporte' para crear el reporte completo
-        
-        4. EXPORTACIÓN:
-           - Una vez generado, puede exportar el reporte
-           - Opciones: PDF, Excel, CSV, o enviar por email
-        
-        TIP: Cada tipo de reporte tiene requisitos específicos
-             que se mostrarán en el panel de configuración.
-        """
-        
-        messagebox.showinfo("Guía de Uso - Reportes", help_text)
+        # Aquí podríamos implementar una ventana de vista previa
+        # Por ahora, simplemente generamos un PDF temporal y lo mostramos
+        try:
+            temp_file = "temp_preview.pdf"
+            
+            # Similar a _generate_pdf pero con archivo temporal
+            # (implementación simplificada)
+            messagebox.showinfo("Vista Previa", 
+                              "La vista previa se abrirá en el visor de PDF predeterminado.\n"
+                              "Nota: Esta es una funcionalidad básica de demostración.")
+            
+            # Generar y abrir PDF temporal
+            # self._generate_pdf_temporary(temp_file)
+            # os.startfile(temp_file)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo generar la vista previa: {str(e)}")
 
-
-# Estilo personalizado para botones de reportes
-def configure_report_styles():
-    """Configura estilos personalizados para el módulo de reportes"""
-    style = ttk.Style()
-    
-    # Estilo para botones de reporte seleccionado
-    style.configure('Report.TButton', 
-                   font=('Arial', 10, 'bold'),
-                   foreground='blue',
-                   padding=5)
-
-
-# Si se ejecuta directamente (para pruebas)
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.title("Módulo de Reportes - Prueba")
-    root.geometry("900x700")
-    
-    # Configurar estilos
-    configure_report_styles()
-    
-    # Crear servicios mock para pruebas
-    class MockService:
-        def __init__(self, name):
-            self.name = name
-        
-        def dummy_method(self, *args, **kwargs):
-            return [{"test": "data"}]
-    
-    # Instanciar módulo con servicios mock
-    module = ReportModule(root,
-                          MockService("Card"),
-                          MockService("Diet"),
-                          MockService("Department"),
-                          MockService("User"),
-                          MockService("Request"))
-    module.pack(fill='both', expand=True, padx=20, pady=20)
-    
-    root.mainloop()
+    def refresh_data(self):
+        """Actualiza los datos del módulo"""
+        # Este método puede ser llamado desde el dashboard principal
+        # para refrescar comboboxes o datos en caché
+        pass

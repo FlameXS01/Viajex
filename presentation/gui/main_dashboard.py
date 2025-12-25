@@ -5,11 +5,14 @@ from presentation.gui.user_presentation.user_module import UserModule
 from presentation.gui.card_presentation.card_module import CardModule
 from presentation.gui.card_presentation.card_main_window import CardMainWindow
 from presentation.gui.reports_presentation.reports_module import ReportModule
+from presentation.gui.department_presentation.department_module import DepartmentModule
+from presentation.gui.request_user_presentation.request_user_module import RequestUserModule
+from presentation.gui.diet_presentation.diet_module import DietModule
 
 class MainDashboard:
     """Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA"""
     
-    def __init__(self, user, user_service, auth_service, department_service, request_user_service, card_service, diet_service ):
+    def __init__(self, user, user_service, auth_service, department_service, request_user_service, card_service, diet_service):
         self.user = user
         self.user_service = user_service
         self.auth_service = auth_service
@@ -179,16 +182,6 @@ class MainDashboard:
                   style='Sidebar.TButton',
                   command=self._on_close).pack(fill=tk.X, pady=5)
         
-    def show_reports_module(self):
-        """Muestra el módulo de reportes"""
-        self.switch_frame(ReportsModule, {
-            'card_service': self.card_service,
-            'diet_service': self.diet_service,
-            'department_service': self.department_service,
-            'user_service': self.user_service,
-            'request_service': self.request_service
-        })    
-
     def _create_content_area(self, parent):
         """Crea el área de contenido principal"""
         self.content_frame = ttk.Frame(parent, style='Content.TFrame')
@@ -290,7 +283,6 @@ class MainDashboard:
             
             elif module_name == 'request_users':
                 self.module_title.config(text="Gestión de Solicitantes")
-                from presentation.gui.request_user_presentation.request_user_module import RequestUserModule
                 self.current_module_instance = RequestUserModule(
                     self.module_container, 
                     self.request_user_service,
@@ -300,7 +292,7 @@ class MainDashboard:
                 
             elif module_name == 'diets': 
                 self.module_title.config(text="Gestión de Dietas")
-                from presentation.gui.diet_presentation.diet_module import DietModule
+                
                 self.current_module_instance = DietModule(
                     self.module_container,
                     self.diet_service, 
@@ -311,20 +303,18 @@ class MainDashboard:
                 
             elif module_name == 'reports':
                 self.module_title.config(text="Reportes y Estadísticas")
-                from presentation.gui.reports_presentation.reports_module import ReportModule
+                # Usando la importación ya existente al principio del archivo
                 self.current_module_instance = ReportModule(
                     self.module_container,
-                    self.card_service, 
-                    self.diet_service, 
-                    self.department_service, 
-                    self.user_service, 
-                    self.request_user_service
-                ) 
+                    self.card_service,
+                    self.diet_service,
+                    self.request_user_service,
+                    self.department_service
+                )
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
 
             elif module_name == 'departments':
                 self.module_title.config(text="Gestión de Departamentos")
-                from presentation.gui.department_presentation.department_module import DepartmentModule
                 self.current_module_instance = DepartmentModule(self.module_container, self.department_service)
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
                                         
