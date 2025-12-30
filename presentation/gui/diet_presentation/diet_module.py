@@ -86,6 +86,14 @@ class DietModule(ttk.Frame):
         self.liquidations_list.pack(fill=tk.BOTH, expand=True)
         self.liquidations_list.bind_selection(self.on_liquidation_selected)
 
+        self.export_liquidation_btn = TreeviewExporter.create_export_button(
+            self.liquidations_frame,
+            self.liquidations_list.tree,
+            title="Reporte de Liquidaciones",
+            button_text="📤 Exportar Liquidaciones",
+            pack_options={'side': tk.RIGHT, 'padx': 5, 'pady': 5}
+        )
+
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
         self.advances_list.tree.bind("<Double-1>", lambda e: self.on_double_click())
         self.liquidations_list.tree.bind("<Double-1>", lambda e: self.on_double_click())

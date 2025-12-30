@@ -284,7 +284,7 @@ class TreeviewExporter:
             # Estilo de la tabla
             table.setStyle(TableStyle([
                 # Encabezados
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#366092')),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#DB1B1B")),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
