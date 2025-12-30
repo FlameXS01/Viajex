@@ -8,6 +8,7 @@ from .widgets.diet_list import DietList
 from .widgets.diet_actions import DietActions
 from .dialogs.diet_dialog import DietDialog
 from .dialogs.diet_liquidation_dialog import DietLiquidationDialog
+from presentation.gui.utils.data_exporter import TreeviewExporter, create_export_button
 
 
 class DietModule(ttk.Frame):
@@ -71,6 +72,14 @@ class DietModule(ttk.Frame):
         self.advances_list = DietList(self.advances_frame, "advances", self.request_user_service, self.diet_service)
         self.advances_list.pack(fill=tk.BOTH, expand=True)
         self.advances_list.bind_selection(self.on_diet_selected)
+        
+        self.export_advances_btn = TreeviewExporter.create_export_button(
+            self.advances_frame,
+            self.advances_list.tree,
+            title="Reporte de Anticipos de Dietas",
+            button_text="📤 Exportar Anticipos",
+            pack_options={'side': tk.RIGHT, 'padx': 5, 'pady': 5}
+        )
         
         # Lista de liquidaciones
         self.liquidations_list = DietList(self.liquidations_frame, "liquidations", self.request_user_service, self.diet_service)
