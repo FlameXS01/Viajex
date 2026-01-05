@@ -18,7 +18,7 @@ class DietModule(ttk.Frame):
     def __init__(self, parent, diet_service: DietAppService, request_user_service, card_service, **kwargs):
         super().__init__(parent, **kwargs)
         self.diet_service = diet_service
-        self.current_diet: Optional[DietResponseDTO] = None
+        self.current_item: Optional[DietResponseDTO | DietLiquidationResponseDTO] = None
         self.request_user_service = request_user_service
         self.card_service = card_service
         self.create_widgets()
@@ -99,7 +99,7 @@ class DietModule(ttk.Frame):
 
     def on_tab_changed(self, event=None):
         """Se ejecuta cuando el usuario cambia de pestaña """
-        self.current_diet = None
+        self.current_item = None
         self.actions_widget.update_buttons_state(None)
         
         # Limpiar selecciones visuales en todas las listas
@@ -164,12 +164,12 @@ class DietModule(ttk.Frame):
     
     def on_diet_selected(self, diet: DietResponseDTO):
         """Maneja la selección de una dieta"""
-        self.current_diet = diet
+        self.current_item = diet
         self.actions_widget.update_buttons_state(diet)
     
-    def on_liquidation_selected(self, liquidation: DietLiquidationResponseDTO):
+    def on_liquidation_selected(self, liquidation: DietLiquidationResponseDTO):     
         """Maneja la selección de una liquidación"""
-        self.current_diet = None
+        self.current_item = liquidation
         self.actions_widget.update_buttons_state(liquidation)
     
     def create_diet(self):
@@ -179,20 +179,59 @@ class DietModule(ttk.Frame):
         if dialog.result:
             self.refresh_diets()
     
-    def edit_diet(self):
-        """Abre diálogo para editar dieta seleccionada"""
-        if not self.current_diet:
+    def edit_item(self):
+        """Abre diálogo para editar seleccionada"""
+        if not self.current_item:
             messagebox.showwarning("Advertencia", "Seleccione una dieta para editar")
             return
         
-        dialog = DietDialog(self, self.diet_service, self.request_user_service, self.card_service, self.current_diet)
+        if hasattr(self.current_item, 'liquidation_number'):
+            self.edit_liquidation()
+        else:
+            self.edit_diet()
+    
+    def edit_diet(self):
+        """Abre diálogo para editar dieta seleccionada"""
+        if not self.current_item or hasattr(self.current_item, 'liquidation_number'):
+            messagebox.showwarning("Advertencia", "Seleccione una dieta para editar")
+            return
+        
+        dialog = DietDialog(self, self.diet_service, self.request_user_service, self.card_service, self.current_item)
         self.wait_window(dialog)
         if dialog.result:
             self.refresh_diets()
-            self.current_diet = None
+            self.current_item = None
             self.actions_widget.update_buttons_state(None)
             self.advances_list.clear_selection()
-    
+
+    def edit_liquidation(self):
+        """Abre diálogo para editar liquidación seleccionada"""
+        if not self.current_item or not hasattr(self.current_item, 'liquidation_number'):
+            messagebox.showwarning("Advertencia", "Seleccione una liquidación para editar")
+            return
+        
+        # Obtener la dieta original asociada a la liquidación
+        try:
+            diet = self.diet_service.get_diet(self.current_item.id)
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo obtener la dieta asociada: {str(e)}")
+            return
+        
+        dialog = DietLiquidationDialog(
+            self, 
+            self.diet_service, 
+            diet,
+            self.card_service, 
+            self.diet_service
+        )
+        self.wait_window(dialog)
+        
+        if dialog.result:
+            self.refresh_diets()
+            self.current_item = None
+            self.actions_widget.update_buttons_state(None)
+            self.liquidations_list.clear_selection()
+
     def _manage_services(self):
         """Abre la gestión de servicios de dieta"""
         try:
