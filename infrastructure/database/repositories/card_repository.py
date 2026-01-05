@@ -153,7 +153,7 @@ class CardRepositoryImpl(CardRepository):
             db_card = self.db.query(CardModel).filter(CardModel.card_id == card_id).first()  
             if db_card:
                 if not db_card.is_active:
-                    raise Exception("No se puede recargar una tarjeta inactiva")
+                    raise Exception("No se puede recargar una tarjeta inactiva. Puede que necesite liquidar dietas pendientes asociadas a esta tarjeta")
                 
                 if amount <= 0:
                     raise Exception("El monto a recargar debe ser mayor a cero")

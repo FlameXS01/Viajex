@@ -159,7 +159,6 @@ class DietLiquidationRepositoryImpl(DietLiquidationRepository):
                 model.diet_service_id = diet_liquidation.diet_service_id
                 model.accommodation_card_id = diet_liquidation.accommodation_card_id
                 model.total_pay = diet_liquidation.total_pay
-                model.id = diet_liquidation.id
                 self.session.commit()
                 self.session.refresh(model)
 

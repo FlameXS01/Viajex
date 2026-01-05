@@ -227,7 +227,8 @@ class DietAppService:
             'dinner_count_liquidated': create_dto.dinner_count_liquidated,
             'accommodation_count_liquidated': create_dto.accommodation_count_liquidated,
             'accommodation_payment_method': create_dto.accommodation_payment_method,
-            'accommodation_card_id': create_dto.accommodation_card_id
+            'accommodation_card_id': create_dto.accommodation_card_id,
+            'total_pay':create_dto.total_pay
         }
         
         liquidation = use_case.execute(create_dto.diet_id, liquidation_data)
@@ -510,5 +511,6 @@ class DietAppService:
             accommodation_payment_method=liquidation.accommodation_payment_method,
             diet_service_id=liquidation.diet_service_id,
             accommodation_card_id=liquidation.accommodation_card_id,
-            liquidated_amount=liquidated_amount
+            liquidated_amount=liquidated_amount, 
+            total_pay=liquidation.total_pay
         )

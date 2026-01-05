@@ -124,6 +124,7 @@ class DietLiquidationResponseDTO:
     accommodation_count_liquidated: int
     accommodation_payment_method: str
     diet_service_id: int
+    total_pay: Optional[float] 
     accommodation_card_id: Optional[int]
     liquidated_amount: Optional[Decimal] = None
 
