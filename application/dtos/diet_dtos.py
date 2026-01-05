@@ -98,6 +98,7 @@ class DietLiquidationCreateDTO:
     accommodation_payment_method: str
     diet_service_id: int
     accommodation_card_id: Optional[int] = None
+    total_pay: Optional[float] = 0
 
 @dataclass
 class DietLiquidationUpdateDTO:
@@ -108,6 +109,7 @@ class DietLiquidationUpdateDTO:
     accommodation_count_liquidated: Optional[int] = None
     accommodation_payment_method: Optional[str] = None
     accommodation_card_id: Optional[int] = None
+    total_pay: Optional[float] = 0
 
 @dataclass
 class DietLiquidationResponseDTO:

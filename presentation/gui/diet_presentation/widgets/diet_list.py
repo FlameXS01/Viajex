@@ -252,7 +252,6 @@ class DietList(ttk.Frame):
                         monto                         
                     ))
 
-    
     def bind_selection(self, callback: Callable):
         """Establece el callback para cuando se selecciona un item"""
         self.selection_callback = callback

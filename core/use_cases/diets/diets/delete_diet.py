@@ -19,4 +19,4 @@ class DeleteDietUseCase:
             raise ValueError("No se puede eliminar una dieta que ya tiene liquidación")
         
         # Eliminar la dieta
-        return self.diet_repository.delete(diet_id)
+        return self.diet_repository.delete(diet_id) 

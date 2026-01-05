@@ -30,7 +30,7 @@ class DietActions(ttk.Frame):
         self.edit_btn.pack(side=tk.LEFT, padx=(0, 5))
         
         self.delete_btn = ttk.Button(main_buttons_frame, text="Eliminar Dieta", 
-                                    command=self.module.delete_diet)
+                                    command=self.module.delete_item)
         self.delete_btn.pack(side=tk.LEFT, padx=(0, 5))
         
         self.liquidate_btn = ttk.Button(main_buttons_frame, text="Liquidar Dieta", 

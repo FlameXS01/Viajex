@@ -151,6 +151,7 @@ class DietLiquidationModel(Base):
     dinner_count_liquidated = Column(Integer, default=0)
     accommodation_count_liquidated = Column(Integer, default=0)
     accommodation_payment_method = Column(Enum(PaymentMethod))
+    total_pay = Column(Float, default=0)
     
     # Foreign Keys
     diet_id = Column(Integer, ForeignKey("diets.id"), nullable=False)
@@ -161,6 +162,7 @@ class DietLiquidationModel(Base):
     diet = relationship("DietModel", back_populates="liquidations")
     diet_service = relationship("DietServiceModel", back_populates="diet_liquidations")
     accommodation_card = relationship("CardModel")
+
 
 
 class RequestUserModel(Base):
@@ -235,7 +237,6 @@ class CardModel(Base):
     def __repr__(self):  
         return f"<CardModel(card_id={self.card_id}, card_number='{self.card_number}')>"
 
-    
 class UserModel(Base):
     """
     Modelo de SQLAlchemy para la tabla users del sistema.
@@ -263,7 +264,6 @@ class UserModel(Base):
 
     def __repr__(self):
         return f"<UserModel(id={self.id}, username='{self.username}')>"
-
 
 class AccountModel(Base):
     """

@@ -21,8 +21,8 @@ class DeleteDietLiquidationUseCase:
         # Obtener la dieta asociada y cambiar su estado a REQUESTED
         diet = self.diet_repository.get_by_id(liquidation.diet_id)
         if diet:
-            diet.status = DietStatus.REQUESTED
-            self.diet_repository.update(diet)
+            status = DietStatus.REQUESTED.value
+            self.diet_repository.update_status(liquidation.diet_id, status)
         
         # Eliminar la liquidación
         return self.diet_liquidation_repository.delete(liquidation_id)

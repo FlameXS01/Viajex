@@ -1,3 +1,5 @@
+from traceback import print_exc
+import traceback
 from typing import List, Optional
 from datetime import date
 from sqlalchemy.orm import Session
@@ -49,7 +51,8 @@ class DietLiquidationRepositoryImpl(DietLiquidationRepository):
                 accommodation_count_liquidated=diet_liquidation.accommodation_count_liquidated,
                 accommodation_payment_method=diet_liquidation.accommodation_payment_method,
                 diet_service_id=diet_liquidation.diet_service_id,
-                accommodation_card_id=diet_liquidation.accommodation_card_id
+                accommodation_card_id=diet_liquidation.accommodation_card_id,
+                total_pay=diet_liquidation.total_pay
             )
             self.session.add(model)
             self.session.commit()
@@ -155,8 +158,11 @@ class DietLiquidationRepositoryImpl(DietLiquidationRepository):
                 model.accommodation_payment_method = diet_liquidation.accommodation_payment_method
                 model.diet_service_id = diet_liquidation.diet_service_id
                 model.accommodation_card_id = diet_liquidation.accommodation_card_id
+                model.total_pay = diet_liquidation.total_pay
+                model.id = diet_liquidation.id
                 self.session.commit()
                 self.session.refresh(model)
+
             return self._to_entity(model)
         
         except IntegrityError as e:
@@ -176,6 +182,7 @@ class DietLiquidationRepositoryImpl(DietLiquidationRepository):
             self.session.rollback()
             if any(msg in str(e) for msg in ["No se puede cambiar", "Ya existe"]):
                 raise
+            traceback.print_exc()
             raise Exception(f"Error al actualizar liquidación: {str(e)}")
     
     def delete(self, liquidation_id: int) -> bool:
@@ -227,7 +234,6 @@ class DietLiquidationRepositoryImpl(DietLiquidationRepository):
             raise Exception(f"Error al obtener el último número de liquidación: {str(e)}")
       
     def _to_entity(self, model: DietLiquidationModel) -> DietLiquidation:
-        from core.entities.diet_liquidation import PaymentMethod
         
         return DietLiquidation(
             id=model.id,
@@ -240,5 +246,6 @@ class DietLiquidationRepositoryImpl(DietLiquidationRepository):
             accommodation_count_liquidated=model.accommodation_count_liquidated,
             accommodation_payment_method=model.accommodation_payment_method.value,
             diet_service_id=model.diet_service_id,
-            accommodation_card_id=model.accommodation_card_id
+            accommodation_card_id=model.accommodation_card_id,
+            total_pay=model.total_pay
         )

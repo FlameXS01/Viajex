@@ -192,7 +192,7 @@ class DietDialog(tk.Toplevel):
             
             return True
         except Exception as e:
-            messagebox.showerror("Error", f"Error en validación: {str(e)}")
+            messagebox.showerror("Error", f"Error en validación: Todos los campos de servicio deben tener valores, incluidos los que puedan ser 0")
             return False
 
     def on_create(self):

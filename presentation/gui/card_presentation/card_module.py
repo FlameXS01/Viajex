@@ -187,6 +187,7 @@ class CardModule(ttk.Frame):
     
     def _recharge_card(self):
         """Recarga tarjeta seleccionada"""
+
         if not self.selected_card_id:
             messagebox.showwarning("Advertencia", "Selecciona una tarjeta")
             return
@@ -201,7 +202,7 @@ class CardModule(ttk.Frame):
             amount = dialog.show()
             
             if amount:
-                success = self.card_service.recharge_card(self.selected_card_id, amount)
+                success = self.card_service.recharge_card(self.selected_card_id, amount, is_refound = False)
                 if success:
                     messagebox.showinfo("Éxito", f"Recarga exitosa: ${amount:.2f}")
                     self._load_cards()
