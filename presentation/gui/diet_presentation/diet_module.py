@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 from typing import Optional
 from application.dtos.diet_dtos import DietResponseDTO, DietLiquidationResponseDTO
 from application.services.card_service import CardService
+from application.services.department_service import DepartmentService
 from application.services.diet_service import DietAppService
 from core.entities.enums import DietStatus
 from .widgets.diet_list import DietList
@@ -16,12 +17,13 @@ class DietModule(ttk.Frame):
     Módulo principal de gestión de dietas
     """
     
-    def __init__(self, parent, diet_service: DietAppService, request_user_service, card_service: CardService, **kwargs):
+    def __init__(self, parent, diet_service: DietAppService, request_user_service, card_service: CardService, departament_service: DepartmentService, **kwargs):
         super().__init__(parent, **kwargs)
         self.diet_service = diet_service
         self.current_item: Optional[DietResponseDTO | DietLiquidationResponseDTO] = None
         self.request_user_service = request_user_service
         self.card_service = card_service
+        self.departament_service = departament_service
         self.create_widgets()
         self.refresh_diets()
     
@@ -69,12 +71,12 @@ class DietModule(ttk.Frame):
         self.notebook.add(self.liquidations_frame, text="Liquidaciones")
         
         # Lista de anticipos
-        self.advances_list = DietList(self.advances_frame, "advances", self.request_user_service, self.diet_service)
+        self.advances_list = DietList(self.advances_frame, "advances", self.request_user_service, self.diet_service, self.departament_service)
         self.advances_list.pack(fill=tk.BOTH, expand=True)
         self.advances_list.bind_selection(self.on_diet_selected)
         
         # Lista de liquidaciones
-        self.liquidations_list = DietList(self.liquidations_frame, "liquidations", self.request_user_service, self.diet_service)
+        self.liquidations_list = DietList(self.liquidations_frame, "liquidations", self.request_user_service, self.diet_service, self.departament_service)
         self.liquidations_list.pack(fill=tk.BOTH, expand=True)
         self.liquidations_list.bind_selection(self.on_liquidation_selected)
 
@@ -86,7 +88,7 @@ class DietModule(ttk.Frame):
        
         try:
             # Lista de liquidaciones
-            self.all_list = DietList(self.all_diets_frame, "all", self.request_user_service, self.diet_service)
+            self.all_list = DietList(self.all_diets_frame, "all", self.request_user_service, self.diet_service, self.departament_service)
             self.all_list.pack(fill=tk.BOTH, expand=True)
 
         except Exception as e:

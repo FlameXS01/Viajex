@@ -9,5 +9,5 @@ class ListAllLiquidationsUseCase:
     def __init__(self, diet_liquidation_repository: DietLiquidationRepository,):
         self.diet_liquidation_repository = diet_liquidation_repository
     
-    def execute(self) -> Optional[List[DietLiquidation]]:
+    def execute(self) -> Optional[list[DietLiquidation]]:
         return self.diet_liquidation_repository.list_all() 
