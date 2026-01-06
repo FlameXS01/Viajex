@@ -11,6 +11,11 @@ from presentation.gui.card_presentation.card_module import CardModule
 from tkinter import filedialog, messagebox
 import pandas as pd
 from presentation.gui.utils.progress_dialog import show_progress_dialog, ProgressDialog
+from presentation.gui.card_presentation.card_main_window import CardMainWindow
+from presentation.gui.reports_presentation.reports_module import ReportModule
+from presentation.gui.department_presentation.department_module import DepartmentModule
+from presentation.gui.request_user_presentation.request_user_module import RequestUserModule
+from presentation.gui.diet_presentation.diet_module import DietModule
 
 class MainDashboard:
     """Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA"""
@@ -200,7 +205,7 @@ class MainDashboard:
         ttk.Button(action_frame, text="⛌ Salir", 
                   style='Sidebar.TButton',
                   command=self._on_close).pack(fill=tk.X, pady=5)
-
+        
     def _create_content_area(self, parent):
         """Crea el área de contenido principal"""
         self.content_frame = ttk.Frame(parent, style='Content.TFrame')
@@ -288,7 +293,6 @@ class MainDashboard:
             
             elif module_name == 'request_users':
                 self.module_title.config(text="Gestión de Solicitantes")
-                from presentation.gui.request_user_presentation.request_user_module import RequestUserModule
                 self.current_module_instance = RequestUserModule(
                     self.module_container, 
                     self.request_user_service,
@@ -298,7 +302,7 @@ class MainDashboard:
                 
             elif module_name == 'diets': 
                 self.module_title.config(text="Gestión de Dietas")
-                from presentation.gui.diet_presentation.diet_module import DietModule
+                
                 self.current_module_instance = DietModule(
                     self.module_container,
                     self.diet_service, 
@@ -310,14 +314,18 @@ class MainDashboard:
                 
             elif module_name == 'reports':
                 self.module_title.config(text="Reportes y Estadísticas")
-                placeholder = ttk.Frame(self.module_container, style='Content.TFrame')
-                placeholder.pack(fill=tk.BOTH, expand=True)
-                ttk.Label(placeholder, text="Módulo de Reportes - En desarrollo", 
-                         font=('Arial', 16), style='Content.TLabel').pack(expand=True)
-                
+                # Usando la importación ya existente al principio del archivo
+                self.current_module_instance = ReportModule(
+                    self.module_container,
+                    self.card_service,
+                    self.diet_service,
+                    self.request_user_service,
+                    self.department_service
+                )
+                self.current_module_instance.pack(fill=tk.BOTH, expand=True)
+
             elif module_name == 'departments':
                 self.module_title.config(text="Gestión de Departamentos")
-                from presentation.gui.department_presentation.department_module import DepartmentModule
                 self.current_module_instance = DepartmentModule(self.module_container, self.department_service)
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
                                         
