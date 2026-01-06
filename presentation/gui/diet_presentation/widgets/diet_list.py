@@ -299,20 +299,20 @@ class DietList(ttk.Frame):
         self.selection_callback = callback
     
     def _get_row_color_based_on_age(self, item):
-        """Determina el color de la fila basado en la antigüedad de la solicitud"""
+        """Determina el color de la fila basado en el tiempo transcurrido desde la fecha de finalización"""
         bg_color = ""
-        if hasattr(item, 'start_date') and item.start_date:
+        if hasattr(item, 'end_date') and item.end_date:
             from datetime import datetime, date
             
             try:
-                # Convertir start_date a datetime si es date
-                if isinstance(item.start_date, date):
-                    start_datetime = datetime.combine(item.start_date, datetime.min.time())
+                # Convertir end_date a datetime si es date
+                if isinstance(item.end_date, date):
+                    end_datetime = datetime.combine(item.end_date, datetime.min.time())
                 else:
-                    start_datetime = item.start_date
+                    end_datetime = item.end_date
                 
                 now = datetime.now()
-                hours_diff = (now - start_datetime).total_seconds() / 3600
+                hours_diff = (now - end_datetime).total_seconds() / 3600
                 
                 if hours_diff > 72:
                     bg_color = "#E24F4A"  # Rojo
