@@ -40,8 +40,8 @@ class CardService:
     def delete_card(self, card_id: int) -> bool:
         return self.delete_card_use_case.execute(card_id)
     
-    def recharge_card(self, card_id: int, amount: float) -> bool:
-        return self.recharge_card_use_case.execute(card_id, amount)
+    def recharge_card(self, card_id: int, amount: float, is_refound) -> bool:
+        return self.recharge_card_use_case.execute(card_id, amount, is_refound)
     
     def discount_card(self, card_id: int, amount: float) -> bool:
         return self.discount_card_use_case.execute(card_id, amount)

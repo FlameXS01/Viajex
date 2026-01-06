@@ -216,8 +216,38 @@ class DietForm(ttk.Frame):
         frame = ttk.Frame(self.selection_container)
         frame.columnconfigure(0, weight=1)
         
+        # FRAME PARA BÚSQUEDA (NUEVO)
+        search_frame = ttk.Frame(frame)
+        search_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        search_frame.columnconfigure(0, weight=1)
+        
+        ttk.Label(search_frame, text="Buscar usuario:", font=('Arial', 9)).grid(
+            row=0, column=0, sticky=tk.W, padx=(0, 10)
+        )
+        
+        self.search_var = tk.StringVar()
+        search_entry = ttk.Entry(
+            search_frame,
+            textvariable=self.search_var,
+            width=30,
+            font=('Arial', 9)
+        )
+        search_entry.grid(row=0, column=1, sticky=(tk.W, tk.E))
+        
+        # Botón para buscar (opcional)
+        search_btn = ttk.Button(
+            search_frame,
+            text="🔍",
+            command=self._filter_users,
+            width=4
+        )
+        search_btn.grid(row=0, column=2, sticky=tk.W, padx=(5, 0))
+        
+        # Búsqueda en tiempo real (descomentar si lo prefieres)
+        self.search_var.trace_add("write", lambda *args: self._filter_users())
+        
         lists_frame = ttk.Frame(frame)
-        lists_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        lists_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         lists_frame.columnconfigure(0, weight=1)
         lists_frame.columnconfigure(1, weight=0)
         lists_frame.columnconfigure(2, weight=1)
@@ -303,10 +333,36 @@ class DietForm(ttk.Frame):
         selected_scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
         self.selected_listbox.configure(yscrollcommand=selected_scrollbar.set)
 
+        # Guardar la lista completa de usuarios para filtrar
+        self.all_users_strings = []
         for user in self.users:
-            self.available_listbox.insert(tk.END, f"{user.fullname} ({user.ci})")
-            
+            user_text = f"{user.fullname} ({user.ci})"
+            self.all_users_strings.append(user_text)
+            self.available_listbox.insert(tk.END, user_text)
+        
+        # Guardar lista completa de objetos usuarios
+        self.all_users = self.users
+        
         return frame
+
+    def _filter_users(self):
+        """Filtra la lista de usuarios disponibles por nombre o CI"""
+        search_text = self.search_var.get().lower().strip()
+        
+        # Obtener usuarios ya seleccionados
+        selected_users = set()
+        for i in range(self.selected_listbox.size()):
+            selected_users.add(self.selected_listbox.get(i))
+        
+        # Limpiar la lista actual
+        self.available_listbox.delete(0, tk.END)
+        
+        # Filtrar y mostrar usuarios
+        for user_text in self.all_users_strings:
+            # Si el usuario no está seleccionado y coincide con la búsqueda
+            if user_text not in selected_users:
+                if not search_text or search_text in user_text.lower():
+                    self.available_listbox.insert(tk.END, user_text)
 
     def _create_diet_details_section(self, parent):
         details_frame = ttk.LabelFrame(
@@ -513,16 +569,25 @@ class DietForm(ttk.Frame):
             self.available_listbox.delete(selection[0])
             self.selected_listbox.insert(tk.END, user_text)
             self._on_price_change()
+            # Actualizar filtro si hay búsqueda activa
+            if self.search_var.get():
+                self._filter_users()
 
     def _remove_selected_user(self):
         selection = self.selected_listbox.curselection()
         if selection:
             user_text = self.selected_listbox.get(selection[0])
             self.selected_listbox.delete(selection[0])
-            self.available_listbox.insert(tk.END, user_text)
+            # Solo agregar de vuelta si pasa el filtro
+            if not self.search_var.get() or self.search_var.get().lower() in user_text.lower():
+                self.available_listbox.insert(tk.END, user_text)
             self._on_price_change()
+            # Reaplicar filtro si hay búsqueda
+            if self.search_var.get():
+                self._filter_users()
 
     def _add_all_users(self):
+        # Obtener todos los usuarios disponibles (ya filtrados)
         available_users = list(self.available_listbox.get(0, tk.END))
         for user in available_users:
             self.selected_listbox.insert(tk.END, user)
@@ -532,9 +597,14 @@ class DietForm(ttk.Frame):
     def _remove_all_users(self):
         selected_users = list(self.selected_listbox.get(0, tk.END))
         for user in selected_users:
-            self.available_listbox.insert(tk.END, user)
+            # Solo agregar de vuelta si pasa el filtro
+            if not self.search_var.get() or self.search_var.get().lower() in user.lower():
+                self.available_listbox.insert(tk.END, user)
         self.selected_listbox.delete(0, tk.END)
         self._on_price_change()
+        # Reaplicar filtro si hay búsqueda
+        if self.search_var.get():
+            self._filter_users()
 
     def _validate_dates(self, event=None):
         try:

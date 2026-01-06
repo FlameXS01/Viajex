@@ -19,7 +19,7 @@ class DietDialog(tk.Toplevel):
         self.title(title)
         
         # Configurar dimensiones fijas adecuadas
-        self.geometry("900x875")  
+        self.geometry("900x895")  
         self.minsize(900, 875)   
         self.resizable(True, True)
         
@@ -192,7 +192,7 @@ class DietDialog(tk.Toplevel):
             
             return True
         except Exception as e:
-            messagebox.showerror("Error", f"Error en validación: {str(e)}")
+            messagebox.showerror("Error", f"Error en validación: Todos los campos de servicio deben tener valores, incluidos los que puedan ser 0")
             return False
 
     def on_create(self):

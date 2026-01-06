@@ -14,7 +14,7 @@ class AppSettings:
     auto_save: bool = True
     auto_save_interval: int = 5
     notifications_enabled: bool = True
-    default_currency: str = "USD"
+    default_currency: str = "CUP"
     date_format: str = "%d/%m/%Y"
     current_database: str = "dietas_app.db"
 
@@ -106,7 +106,7 @@ class SettingsWindow(tk.Toplevel):
         ttk.Label(content, text="Moneda:").grid(row=1, column=0, sticky=tk.W, pady=5)
         self.currency_var = tk.StringVar(value=self.settings.default_currency)
         ttk.Combobox(content, textvariable=self.currency_var,
-                    values=["USD", "EUR", "COP", "MXN"], 
+                    values=["CUP", "EUR", "COP", "MXN"], 
                     width=15, state="readonly").grid(row=1, column=1, sticky=tk.W, pady=5, padx=(10, 0))
         
         # Formato de fecha

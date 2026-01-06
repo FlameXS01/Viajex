@@ -1,3 +1,4 @@
+import json
 import tkinter as tk
 from tkinter import ttk, messagebox
 
@@ -20,26 +21,22 @@ class DietActions(ttk.Frame):
         main_buttons_frame.pack(fill=tk.X, pady=(0, 10))
         
         # Botones principales de acciones de dieta
-        self.create_btn = ttk.Button(main_buttons_frame, text="➕ Crear Dieta", 
+        self.create_btn = ttk.Button(main_buttons_frame, text="Crear Dieta", 
                                     command=self.module.create_diet)
         self.create_btn.pack(side=tk.LEFT, padx=(0, 5))
         
         self.edit_btn = ttk.Button(main_buttons_frame, text="Editar Dieta", 
-                                    command=self.module.edit_diet)
+                                    command=self.module.edit_item)
         self.edit_btn.pack(side=tk.LEFT, padx=(0, 5))
         
         self.delete_btn = ttk.Button(main_buttons_frame, text="Eliminar Dieta", 
-                                    command=self.module.delete_diet)
+                                    command=self.module.delete_item)
         self.delete_btn.pack(side=tk.LEFT, padx=(0, 5))
         
         self.liquidate_btn = ttk.Button(main_buttons_frame, text="Liquidar Dieta", 
                                     command=self.module.liquidate_diet)
         self.liquidate_btn.pack(side=tk.LEFT, padx=(0, 5))
         
-        self.info_btn = ttk.Button(main_buttons_frame, text="Ver Información", 
-                                command=self.module.show_selected_details)
-        self.info_btn.pack(side=tk.LEFT, padx=(0, 5))
-
         # Frame para el buscador
         search_frame = ttk.Frame(self)
         search_frame.pack(fill=tk.X, pady=(0, 10))
@@ -76,7 +73,7 @@ class DietActions(ttk.Frame):
         
         self.services_btn = ttk.Button(
             main_buttons_frame,
-            text="⚙️ Gestionar Servicios",
+            text="Gestionar Servicios",
             command=self.module._manage_services,  # Debe apuntar al método en DietModule
             width=18
                                     )
@@ -152,24 +149,28 @@ class DietActions(ttk.Frame):
         # Re-aplicar la búsqueda después de refrescar
         self._on_search()
     
-    def update_buttons_state(self, selected_diet):
+    def update_buttons_state(self, selected_item ):
         """Actualiza el estado de los botones según la dieta seleccionada"""
-        if selected_diet is None:
+        if selected_item  is None:
             self.edit_btn.config(state=tk.DISABLED)
             self.delete_btn.config(state=tk.DISABLED)
             self.liquidate_btn.config(state=tk.DISABLED)
-            self.info_btn.config(state=tk.DISABLED)  
-        else:
-            self.edit_btn.config(state=tk.NORMAL)
+            return  
+        
+        if hasattr(selected_item, 'liquidation_number'):
+            self.edit_btn.config(text="Editar Liquidación", state=tk.NORMAL)
+            self.liquidate_btn.config(state=tk.DISABLED)
             self.delete_btn.config(state=tk.NORMAL)
-            self.info_btn.config(state=tk.NORMAL)  
-            
-            
-            if selected_diet.status == "requested": 
-                self.liquidate_btn.config(state=tk.NORMAL)
-            else:
-                self.liquidate_btn.config(state=tk.DISABLED)
-    
+            self.edit_btn.config(command=self.module.edit_liquidation)
+        else:
+            self.edit_btn.config(text="Editar Dieta", state=tk.NORMAL)
+        self.delete_btn.config(state=tk.NORMAL)
+        if hasattr(selected_item, 'status') and selected_item.status == "requested":
+            self.liquidate_btn.config(state=tk.NORMAL)
+        else:
+            self.liquidate_btn.config(state=tk.DISABLED)
+        self.edit_btn.config(command=self.module.edit_item)
+
     def refresh_counters(self):
         """Actualiza los contadores en la interfaz"""
         try:

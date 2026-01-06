@@ -24,12 +24,7 @@ class CreateDietLiquidationUseCase:
         if not diet:
             raise ValueError("La dieta no existe")
         
-        # Validar que no esté ya liquidada
-        if diet.status != 'requested':
-            print(diet.status)
-            raise ValueError("La dieta ya ha sido liquidada")
-        
-        
+
         liquidation_date = liquidation_data['liquidation_date']
         max_liquidation_date = diet.end_date + timedelta(days=3)
         
@@ -56,17 +51,16 @@ class CreateDietLiquidationUseCase:
             accommodation_count_liquidated=liquidation_data['accommodation_count_liquidated'],
             accommodation_payment_method=liquidation_data['accommodation_payment_method'].upper(),
             diet_service_id=diet.diet_service_id,
-            accommodation_card_id=liquidation_data.get('accommodation_card_id')
+            accommodation_card_id=liquidation_data.get('accommodation_card_id'),
+            total_pay=liquidation_data.get('total_pay') if liquidation_data.get('total_pay') else 0
         )
         
-        # Crear la liquidación
-        liquidation = self.diet_liquidation_repository.create(diet_liquidation)
-        
-        # Actualizar estado de la dieta
-        # diet.status = DietStatus.LIQUIDATED.value # type: ignore
-        # self.diet_repository.update(diet)
-
-        # Actualizar solo el Status solamente ya que se necesita tener control de lo q se liquido y de lo q se solicito
-        self.diet_repository.update_status(diet.id,  DietStatus.LIQUIDATED.value)  # type: ignore
+        # Crear la liquidación o editarla
+        if self.diet_repository.get_by_id(diet_liquidation.diet_id).status == 'liquidated':
+            liquidation = self.diet_liquidation_repository.update(diet_liquidation)
+        else:
+            liquidation = self.diet_liquidation_repository.create(diet_liquidation)
+            # Actualizar solo el Status solamente ya que se necesita tener control de lo q se liquido y de lo q se solicito
+            self.diet_repository.update_status(diet.id,  DietStatus.LIQUIDATED.value)  # type: ignore
         
         return liquidation

@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import Optional
 from application.dtos.diet_dtos import DietResponseDTO, DietLiquidationResponseDTO
+from application.services.card_service import CardService
+from application.services.department_service import DepartmentService
 from application.services.diet_service import DietAppService
 from core.entities.enums import DietStatus
 from .widgets.diet_list import DietList
@@ -16,12 +18,13 @@ class DietModule(ttk.Frame):
     Módulo principal de gestión de dietas
     """
     
-    def __init__(self, parent, diet_service: DietAppService, request_user_service, card_service, **kwargs):
+    def __init__(self, parent, diet_service: DietAppService, request_user_service, card_service: CardService, departament_service: DepartmentService, **kwargs):
         super().__init__(parent, **kwargs)
         self.diet_service = diet_service
-        self.current_diet: Optional[DietResponseDTO] = None
+        self.current_item: Optional[DietResponseDTO | DietLiquidationResponseDTO] = None
         self.request_user_service = request_user_service
         self.card_service = card_service
+        self.departament_service = departament_service
         self.create_widgets()
         self.refresh_diets()
     
@@ -69,7 +72,7 @@ class DietModule(ttk.Frame):
         self.notebook.add(self.liquidations_frame, text="Liquidaciones")
         
         # Lista de anticipos
-        self.advances_list = DietList(self.advances_frame, "advances", self.request_user_service, self.diet_service)
+        self.advances_list = DietList(self.advances_frame, "advances", self.request_user_service, self.diet_service, self.departament_service)
         self.advances_list.pack(fill=tk.BOTH, expand=True)
         self.advances_list.bind_selection(self.on_diet_selected)
         
@@ -82,7 +85,7 @@ class DietModule(ttk.Frame):
         )
         
         # Lista de liquidaciones
-        self.liquidations_list = DietList(self.liquidations_frame, "liquidations", self.request_user_service, self.diet_service)
+        self.liquidations_list = DietList(self.liquidations_frame, "liquidations", self.request_user_service, self.diet_service, self.departament_service)
         self.liquidations_list.pack(fill=tk.BOTH, expand=True)
         self.liquidations_list.bind_selection(self.on_liquidation_selected)
 
@@ -102,9 +105,8 @@ class DietModule(ttk.Frame):
        
         try:
             # Lista de liquidaciones
-            self.all_list = DietList(self.all_diets_frame, "all", self.request_user_service, self.diet_service)
+            self.all_list = DietList(self.all_diets_frame, "all", self.request_user_service, self.diet_service, self.departament_service)
             self.all_list.pack(fill=tk.BOTH, expand=True)
-            #self.liquidations_list.bind_selection(self.on_liquidation_selected)
 
         except Exception as e:
             import traceback
@@ -116,7 +118,7 @@ class DietModule(ttk.Frame):
 
     def on_tab_changed(self, event=None):
         """Se ejecuta cuando el usuario cambia de pestaña """
-        self.current_diet = None
+        self.current_item = None
         self.actions_widget.update_buttons_state(None)
         
         # Limpiar selecciones visuales en todas las listas
@@ -181,12 +183,12 @@ class DietModule(ttk.Frame):
     
     def on_diet_selected(self, diet: DietResponseDTO):
         """Maneja la selección de una dieta"""
-        self.current_diet = diet
+        self.current_item = diet
         self.actions_widget.update_buttons_state(diet)
     
-    def on_liquidation_selected(self, liquidation: DietLiquidationResponseDTO):
+    def on_liquidation_selected(self, liquidation: DietLiquidationResponseDTO):     
         """Maneja la selección de una liquidación"""
-        self.current_diet = None
+        self.current_item = liquidation
         self.actions_widget.update_buttons_state(liquidation)
     
     def create_diet(self):
@@ -196,20 +198,60 @@ class DietModule(ttk.Frame):
         if dialog.result:
             self.refresh_diets()
     
-    def edit_diet(self):
-        """Abre diálogo para editar dieta seleccionada"""
-        if not self.current_diet:
+    def edit_item(self):
+        """Abre diálogo para editar seleccionada"""
+        if not self.current_item:
             messagebox.showwarning("Advertencia", "Seleccione una dieta para editar")
             return
         
-        dialog = DietDialog(self, self.diet_service, self.request_user_service, self.card_service, self.current_diet)
+        if hasattr(self.current_item, 'liquidation_number'):
+            self.edit_liquidation()
+        else:
+            self.edit_diet()
+    
+    def edit_diet(self):
+        """Abre diálogo para editar dieta seleccionada"""
+        if not self.current_item or hasattr(self.current_item, 'liquidation_number'):
+            messagebox.showwarning("Advertencia", "Seleccione una dieta para editar")
+            return
+        
+        dialog = DietDialog(self, self.diet_service, self.request_user_service, self.card_service, self.current_item)
         self.wait_window(dialog)
         if dialog.result:
             self.refresh_diets()
-            self.current_diet = None
+            self.current_item = None
             self.actions_widget.update_buttons_state(None)
             self.advances_list.clear_selection()
-    
+
+    def edit_liquidation(self):
+        """Abre diálogo para editar liquidación seleccionada"""
+        if not self.current_item or not hasattr(self.current_item, 'liquidation_number'):
+            messagebox.showwarning("Advertencia", "Seleccione una liquidación para editar")
+            return
+        
+        # Obtener la dieta original asociada a la liquidación
+        try:
+            diet = self.diet_service.get_diet(self.current_item.id)  
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo obtener la dieta asociada: {str(e)}")
+            return
+        
+        dialog = DietLiquidationDialog(
+            self, 
+            self.diet_service, 
+            diet,
+            self.card_service, 
+            self.diet_service,
+            liquidation=self.current_item  
+        )
+        self.wait_window(dialog)
+        
+        if dialog.result:
+            self.refresh_diets()
+            self.current_item = None
+            self.actions_widget.update_buttons_state(None)
+            self.liquidations_list.clear_selection()
+
     def _manage_services(self):
         """Abre la gestión de servicios de dieta"""
         try:
@@ -227,33 +269,110 @@ class DietModule(ttk.Frame):
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo abrir la gestión de servicios: {str(e)}")
 
+    def delete_item(self):
+        """Elimina el elemento seleccionado (dieta o liquidación)"""
+        if not self.current_item:
+            messagebox.showwarning("Advertencia", "Seleccione un elemento para eliminar")
+            return
+        
+        if hasattr(self.current_item, 'liquidation_number'):
+            self.delete_liquidation()
+        else:
+            self.delete_diet()
+    
     def delete_diet(self):
         """Elimina la dieta seleccionada"""
-        if not self.current_diet:
+        if not self.current_item or hasattr(self.current_item, 'liquidation_number'):
             messagebox.showwarning("Advertencia", "Seleccione una dieta para eliminar")
             return
         
-        if messagebox.askyesno("Confirmar", "¿Está seguro de eliminar esta dieta?"):
+        # Confirmar eliminación
+        confirmation = messagebox.askyesno(
+            "Confirmar eliminación", 
+            "¿Está seguro de que desea eliminar esta dieta?\n\n"
+            "Esta acción no se puede deshacer."
+        )
+        
+        if not confirmation:
+            return
+        
+        try:
+            success = self.diet_service.delete_diet(self.current_item.id)
+            if success:
+                messagebox.showinfo("Éxito", "Dieta eliminada correctamente")
+                self.refresh_diets()
+                self.current_item = None
+                self.actions_widget.update_buttons_state(None)
+                # Limpiar selección en la lista correspondiente
+                self.advances_list.clear_selection()
+                if hasattr(self, 'all_list'):
+                    self.all_list.clear_selection()
+            else:
+                messagebox.showerror("Error", "No se pudo eliminar la dieta")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al eliminar la dieta: {str(e)}")
+
+    def delete_liquidation(self):
+        """Elimina la liquidación seleccionada"""
+        if not self.current_item or not hasattr(self.current_item, 'liquidation_number'):
+            messagebox.showwarning("Advertencia", "Seleccione una liquidación para eliminar")
+            return
+        
+        # Confirmar eliminación (puedes personalizar el mensaje para liquidaciones)
+        confirmation = messagebox.askyesno(
+            "Confirmar eliminación", 
+            "¿Está seguro de que desea eliminar esta liquidación?\n\n"
+            "Esta acción eliminará todos los registros de liquidación asociados.\n"
+            "Esta acción no se puede deshacer."
+        )
+        
+        if not confirmation:
+            return
+        
+        try:
+            # Asumiendo que el servicio tiene un método delete_liquidation
+            success = self.diet_service.delete_diet_liquidation(self.current_item.id)
+            if success:
+                # if self.current_item.accommodation_payment_method=='card': 
+                #     self.card_service.recharge_card(,)
+                    
+                messagebox.showinfo("Éxito", "Liquidación eliminada correctamente")
+                self.refresh_diets()
+                self.current_item = None
+                self.actions_widget.update_buttons_state(None)
+                # Limpiar selección en la lista correspondiente
+                self.liquidations_list.clear_selection()
+                if hasattr(self, 'all_list'):
+                    self.all_list.clear_selection()
+            else:
+                messagebox.showerror("Error", "No se pudo eliminar la liquidación")
+        except AttributeError:
+            # Si el servicio no tiene método específico para liquidaciones
             try:
-                success = self.diet_service.delete_diet(self.current_diet.id)
+                # Alternativa: usar un método genérico o eliminar la dieta asociada
+                success = self.diet_service.delete_diet(self.current_item.id)
                 if success:
-                    messagebox.showinfo("Éxito", "Dieta eliminada correctamente")
+                    messagebox.showinfo("Éxito", "Liquidación eliminada correctamente")
                     self.refresh_diets()
-                    self.current_diet = None
+                    self.current_item = None
                     self.actions_widget.update_buttons_state(None)
-                    self.advances_list.clear_selection()
+                    self.liquidations_list.clear_selection()
+                    if hasattr(self, 'all_list'):
+                        self.all_list.clear_selection()
                 else:
-                    messagebox.showerror("Error", "No se pudo eliminar la dieta")
+                    messagebox.showerror("Error", "No se pudo eliminar la liquidación")
             except Exception as e:
-                messagebox.showerror("Error", f"Error al eliminar: {str(e)}")
+                messagebox.showerror("Error", f"Error al eliminar la liquidación: {str(e)}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al eliminar la liquidación: {str(e)}")
     
     def liquidate_diet(self):
         """Abre diálogo para liquidar dieta seleccionada"""
-        if not self.current_diet:
+        if not self.current_item:
             messagebox.showwarning("Advertencia", "Seleccione una dieta para liquidar")
             return
         
-        dialog = DietLiquidationDialog(self, self.diet_service, self.current_diet, self.card_service, self.diet_service)
+        dialog = DietLiquidationDialog(self, self.diet_service, self.current_item, self.card_service, self.diet_service)
         self.wait_window(dialog)
         if dialog.result:
             self.refresh_diets()

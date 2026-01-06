@@ -303,7 +303,8 @@ class MainDashboard:
                     self.module_container,
                     self.diet_service, 
                     self.request_user_service,
-                    self.card_service
+                    self.card_service,
+                    self.department_service
                 )
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
                 

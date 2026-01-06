@@ -61,7 +61,7 @@ class RechargeDialog:
             width=15
         )
         self.amount_entry.pack(side=tk.LEFT, padx=(5, 2))
-        ttk.Label(amount_frame, text="USD").pack(side=tk.LEFT)
+        ttk.Label(amount_frame, text="CUP").pack(side=tk.LEFT)
         
         # Botones predefinidos
         quick_frame = ttk.Frame(main_frame)

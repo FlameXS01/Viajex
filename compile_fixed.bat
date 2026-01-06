@@ -1,14 +1,30 @@
 @echo off
 chcp 65001 >nul
-echo Compilando Dietas App (versión corregida)...
+echo Compilando Dietas App...
 echo.
 
 :: Verificar Python
 python --version >nul 2>&1
 if errorlevel 1 (
     echo ERROR: Python no está instalado o no está en el PATH.
+    echo Por favor, instala Python 3.8+ desde https://www.python.org/
     pause
     exit /b 1
+)
+
+:: Verificar estructura básica
+if not exist "main.py" (
+    echo ERROR: No se encuentra main.py
+    pause
+    exit /b 1
+)
+
+:: Verificar dependencias
+echo Verificando dependencias...
+pip install -r requirements.txt >nul 2>&1
+if errorlevel 1 (
+    echo Advertencia: No se pudo instalar dependencias automáticamente.
+    echo Por favor, ejecuta manualmente: pip install -r requirements.txt
 )
 
 :: Limpiar compilaciones anteriores
@@ -16,7 +32,8 @@ if exist "build" rmdir /s /q "build"
 if exist "dist" rmdir /s /q "dist"
 if exist "DietasApp.spec" del "DietasApp.spec"
 
-:: Compilar directamente
+:: Compilar
+echo Compilando aplicación...
 pyinstaller --onefile --windowed --name "DietasApp" ^
 --add-data "core;core" ^
 --add-data "infrastructure;infrastructure" ^
@@ -35,14 +52,16 @@ pyinstaller --onefile --windowed --name "DietasApp" ^
 --hidden-import=pandas ^
 --hidden-import=openpyxl ^
 --hidden-import=numpy ^
+--clean ^
+--noconfirm ^
 main.py
 
 if exist "dist\DietasApp.exe" (
     echo.
     echo ¡COMPILACIÓN EXITOSA!
-    echo Ejecutable creado: dist\DietasApp.exe
-    echo Tamaño: 
-    for %%F in (dist\DietasApp.exe) do echo   %%~zF bytes
+    echo Ejecutable creado en: dist\DietasApp.exe
+    echo.
+    echo Para ejecutar: dist\DietasApp.exe
 ) else (
     echo.
     echo ERROR: No se pudo crear el ejecutable

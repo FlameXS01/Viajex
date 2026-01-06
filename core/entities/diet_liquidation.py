@@ -20,6 +20,7 @@ class DietLiquidation:
     accommodation_count_liquidated: int
     accommodation_payment_method: PaymentMethod
     diet_service_id: int
+    total_pay: Optional[float]
     id: Optional[int] = None
     accommodation_card_id: Optional[int] = None
 
