@@ -16,6 +16,8 @@ from presentation.gui.reports_presentation.reports_module import ReportModule
 from presentation.gui.department_presentation.department_module import DepartmentModule
 from presentation.gui.request_user_presentation.request_user_module import RequestUserModule
 from presentation.gui.diet_presentation.diet_module import DietModule
+from PIL import Image, ImageTk
+
 
 class MainDashboard:
     """Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA"""
@@ -47,8 +49,11 @@ class MainDashboard:
             self.database_service = database_service
 
         self.root = tk.Tk()
-        self.root.title(f"Sistema de Gestión de Dietas - {user.username}")
-        
+        self.root.iconbitmap('presentation/gui/icons/icon.ico')
+        self.root.title(f"Sistema de Gestión de Dietas VIAJEX")
+
+        self.root.withdraw()
+        self._load_icons()
         self.root.state('zoomed')
         self.root.minsize(1000, 600)
         
@@ -58,6 +63,92 @@ class MainDashboard:
         self._setup_styles()
         self._create_widgets()
         self._show_welcome_screen()
+
+        self.root.update_idletasks()
+    
+       
+        self.root.deiconify()
+
+    def _set_window_icon(self):
+        """Establece el icono de la ventana principal usando Pillow"""
+        try:
+            from PIL import Image, ImageTk
+            
+            # Abre la imagen con Pillow
+            icon_image = Image.open("icon.png")  # Cambia por tu archivo
+            
+            # Convierte a PhotoImage para tkinter
+            icon_photo = ImageTk.PhotoImage(icon_image)
+            
+            # Establece el icono (True = también para ventanas hijas)
+            self.root.iconphoto(True, icon_photo)
+            
+            # IMPORTANTE: Guarda referencia para que no sea eliminada por el garbage collector
+            self.window_icon = icon_photo
+            
+        except Exception as e:
+            print(f"⚠️ No se pudo cargar el icono: {e}")
+            # Puedes intentar con .ico como fallback
+            try:
+                self.root.iconbitmap('icon.ico')
+            except:
+                print("⚠️ También falló el icono .ico")
+
+
+
+    def _load_icons(self):
+        """Carga y redimensiona iconos usando Pillow"""
+        self.icons = {}
+        sidebar_icon_size = (20, 20)  # Tamaño para botones del sidebar
+        app_icon_size = (32, 32)      # Tamaño MÁS GRANDE para el icono de la app
+        
+        # Mapeo de nombres de iconos
+        icon_files = {
+            'app': 'app.png',
+            'users': 'users.png',
+            'departments': 'departments.png',
+            'request_users': 'request_users.png',
+            'cards': 'cards.png',
+            'diets': 'diets.png',
+            'reports': 'reports.png',
+            'logout': 'logout.png',
+            'exit': 'exit.png',
+            'user': 'user.png',
+            'role': 'role.png'
+        }
+        
+        # Crear carpeta icons si no existe
+        icons_dir = Path("presentation/gui/icons")
+        if not icons_dir.exists():
+            icons_dir.mkdir()
+            messagebox.showwarning("Iconos", 
+                                "Crea una carpeta 'icons' con los archivos PNG necesarios")
+            return
+        
+        for key, filename in icon_files.items():
+            try:
+                icon_path = icons_dir / filename
+                if icon_path.exists():
+                    # Cargar imagen
+                    img = Image.open(icon_path)
+                    
+                    # Redimensionar según el tipo de icono
+                    if key == 'app':
+                        # Icono de la app MÁS GRANDE
+                        img = img.resize(app_icon_size, Image.Resampling.LANCZOS)
+                    else:
+                        # Iconos normales del sidebar
+                        img = img.resize(sidebar_icon_size, Image.Resampling.LANCZOS)
+                    
+                    # Convertir a PhotoImage para tkinter
+                    photo = ImageTk.PhotoImage(img)
+                    self.icons[key] = photo
+                else:
+                    # Usar fallback si no existe el archivo
+                    self.icons[key] = None
+            except Exception as e:
+                print(f"❌ Error cargando icono {filename}: {e}")
+                self.icons[key] = None
 
     def _setup_styles(self):
         """Configura estilos modernos para la aplicación - VERSIÓN MEJORADA"""
@@ -70,6 +161,11 @@ class MainDashboard:
         style.configure('Sidebar.TFrame', background='#2c3e50')
         style.configure('Sidebar.TLabel', background='#2c3e50', foreground='white', font=('Arial', 12))
         
+        style.configure('RedTitle.TLabel',
+                   foreground='red',
+                   background="#e70e0e",
+                   font=('Segoe UI', 16, 'bold'))
+
         # Botones del sidebar - ESTILOS CORREGIDOS
         style.configure('Sidebar.TButton', 
                        background='#34495e', 
@@ -115,81 +211,136 @@ class MainDashboard:
         self._create_content_area(main_frame)
 
     def _create_sidebar(self, parent):
-        """Crea la barra lateral de navegación - VERSIÓN MEJORADA"""
+        """Crea la barra lateral de navegación - CON ICONOS PILLOW"""
         sidebar_frame = ttk.Frame(parent, style='Sidebar.TFrame', width=250)
         sidebar_frame.pack(side=tk.LEFT, fill=tk.Y)
         sidebar_frame.pack_propagate(False)
         
-        # Logo/Título de la app
+        # Logo/Título de la app CON ICONO
         title_frame = ttk.Frame(sidebar_frame, style='Sidebar.TFrame')
         title_frame.pack(fill=tk.X, pady=(20, 10), padx=10)
         
-        ttk.Label(title_frame, text="🥗 Dietas App", 
-                 style='Sidebar.TLabel', font=('Arial', 16, 'bold')).pack()
+        # Crear label con icono
+        title_label = ttk.Label(title_frame, style='Sidebar.TLabel', 
+                               font=('Segoe UI', 16, 'bold'))
         
-        # Información del usuario
+        title_label.configure(text="Viajex", foreground='red')
+        
+        title_label.pack()
+        
+        # Información del usuario CON ICONOS
         user_frame = ttk.Frame(sidebar_frame, style='Sidebar.TFrame')
         user_frame.pack(fill=tk.X, pady=(0, 20), padx=15)
         
-        ttk.Label(user_frame, text=f"👤 {self.user.username}", 
-                 style='Sidebar.TLabel').pack(anchor='w')
-        ttk.Label(user_frame, text=f"🎭 {self.user.role.value}", 
-                 style='Sidebar.TLabel', font=('Arial', 10)).pack(anchor='w')
+        # Nombre de usuario
+        user_name_label = ttk.Label(user_frame, style='Sidebar.TLabel')
+        if self.icons.get('user'):
+            user_name_label.configure(image=self.icons['user'],
+                                     text=f" {self.user.username}",
+                                     compound=tk.LEFT)
+        else:
+            user_name_label.configure(text=f"▶ {self.user.username}")
+        user_name_label.pack(anchor='w')
+        
+        # Rol de usuario
+        user_role_label = ttk.Label(user_frame, style='Sidebar.TLabel',
+                                   font=('Segoe UI', 10))
+        if self.icons.get('role'):
+            user_role_label.configure(image=self.icons['role'],
+                                     text=f" {self.user.role.value}",
+                                     compound=tk.LEFT)
+        else:
+            user_role_label.configure(text=f"● {self.user.role.value}")
+        user_role_label.pack(anchor='w')
         
         # Separador
         separator = ttk.Separator(sidebar_frame, orient=tk.HORIZONTAL)
         separator.pack(fill=tk.X, pady=10, padx=15)
         
-        # Botones de navegación (Módulos)
+        # Botones de navegación CON ICONOS
         nav_frame = ttk.Frame(sidebar_frame, style='Sidebar.TFrame')
         nav_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Diccionario para mantener referencia a los botones
         self.nav_buttons = {}
         
-        # Módulo de Usuarios (solo para admin/manager)
-        if self.user.role.value in ['admin', 'manager']:
-            btn = ttk.Button(nav_frame, text="👥 Gestión de Usuarios", 
-                           style='Sidebar.TButton',
-                           command=lambda: self._show_module('users'))
+        # Función auxiliar para crear botones con iconos
+        def create_nav_button(parent, module_name, text, icon_key, command):
+            """Crea un botón de navegación con icono"""
+            btn = ttk.Button(parent, style='Sidebar.TButton', command=command)
+            
+            # Configurar texto e icono
+            if self.icons.get(icon_key):
+                btn.configure(image=self.icons[icon_key],
+                            text=f" {text}",
+                            compound=tk.LEFT)
+            else:
+                btn.configure(text=text)
+            
             btn.pack(fill=tk.X, pady=5)
+            return btn
+        
+        # Módulo de Usuarios
+        if self.user.role.value in ['admin', 'manager']:
+            btn = create_nav_button(
+                nav_frame, 
+                'users',
+                'Gestión de Usuarios',
+                'users',
+                lambda: self._show_module('users')
+            )
             self.nav_buttons['users'] = btn
         
-        # Módulo de Departments (solo para admin/manager)
+        # Módulo de Departments
         if self.user.role.value in ['admin', 'manager', 'user']:
-            dept_btn = ttk.Button(nav_frame, text="🏢 Gestión de Departamentos", 
-                                style='Sidebar.TButton',
-                                command=lambda: self._show_module('departments'))
-            dept_btn.pack(fill=tk.X, pady=5)
-            self.nav_buttons['departments'] = dept_btn
+            btn = create_nav_button(
+                nav_frame,
+                'departments',
+                'Gestión de Departamentos',
+                'departments',
+                lambda: self._show_module('departments')
+            )
+            self.nav_buttons['departments'] = btn
 
         # Módulo de Solicitantes
-        request_btn = ttk.Button(nav_frame, text="👥 Gestión de Solicitantes", 
-                            style='Sidebar.TButton',
-                            command=lambda: self._show_module('request_users'))
-        request_btn.pack(fill=tk.X, pady=5)
-        self.nav_buttons['request_users'] = request_btn
+        btn = create_nav_button(
+            nav_frame,
+            'request_users',
+            'Gestión de Solicitantes',
+            'request_users',
+            lambda: self._show_module('request_users')
+        )
+        self.nav_buttons['request_users'] = btn
         
         # Módulo de Tarjetas
-        btn = ttk.Button(nav_frame, text="💳 Gestión de Tarjetas", 
-                        style='Sidebar.TButton',
-                        command=lambda: self._show_module('cards'))
-        btn.pack(fill=tk.X, pady=5)
+        btn = create_nav_button(
+            nav_frame,
+            'cards',
+            'Gestión de Tarjetas',
+            'cards',
+            lambda: self._show_module('cards')
+        )
         self.nav_buttons['cards'] = btn
         
         # Módulo de Dietas
-        btn = ttk.Button(nav_frame, text="🥦 Gestión de Dietas", 
-                       style='Sidebar.TButton',
-                       command=lambda: self._show_module('diets'))
-        btn.pack(fill=tk.X, pady=5)
+        btn = create_nav_button(
+            nav_frame,
+            'diets',
+            'Gestión de Dietas',
+            'diets',
+            lambda: self._show_module('diets')
+        )
         self.nav_buttons['diets'] = btn
         
-        # Módulo de Reportes (solo para admin/manager)
+        # Módulo de Reportes
         if self.user.role.value in ['admin', 'manager']:
-            btn = ttk.Button(nav_frame, text="📊 Reportes y Estadísticas", 
-                           style='Sidebar.TButton',
-                           command=lambda: self._show_module('reports'))
-            btn.pack(fill=tk.X, pady=5)
+            btn = create_nav_button(
+                nav_frame,
+                'reports',
+                'Reportes y Estadísticas',
+                'reports',
+                lambda: self._show_module('reports')
+            )
             self.nav_buttons['reports'] = btn
         
         # Espacio flexible
@@ -199,13 +350,28 @@ class MainDashboard:
         action_frame = ttk.Frame(sidebar_frame, style='Sidebar.TFrame')
         action_frame.pack(fill=tk.X, side=tk.BOTTOM, pady=20, padx=10)
         
-        ttk.Button(action_frame, text="🚪 Cerrar Sesión", 
-                  style='Sidebar.TButton',
-                  command=self._logout).pack(fill=tk.X, pady=5)
-        ttk.Button(action_frame, text="⛌ Salir", 
-                  style='Sidebar.TButton',
-                  command=self._on_close).pack(fill=tk.X, pady=5)
+        # Botón Cerrar Sesión
+        logout_btn = ttk.Button(action_frame, style='Sidebar.TButton',
+                               command=self._logout)
+        if self.icons.get('logout'):
+            logout_btn.configure(image=self.icons['logout'],
+                               text=" Cerrar Sesión",
+                               compound=tk.LEFT)
+        else:
+            logout_btn.configure(text="← Cerrar Sesión")
+        logout_btn.pack(fill=tk.X, pady=5)
         
+        # Botón Salir
+        exit_btn = ttk.Button(action_frame, style='Sidebar.TButton',
+                             command=self._on_close)
+        if self.icons.get('exit'):
+            exit_btn.configure(image=self.icons['exit'],
+                             text=" Salir",
+                             compound=tk.LEFT)
+        else:
+            exit_btn.configure(text="✗ Salir")
+        exit_btn.pack(fill=tk.X, pady=5)
+
     def _create_content_area(self, parent):
         """Crea el área de contenido principal"""
         self.content_frame = ttk.Frame(parent, style='Content.TFrame')

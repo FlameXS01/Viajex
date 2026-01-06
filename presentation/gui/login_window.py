@@ -10,6 +10,7 @@ class LoginWindow:
         self.on_login_success = on_login_success
         
         self.root = tk.Tk()
+        self.root.iconbitmap('presentation/gui/icons/icon.ico')
         self.root.title("Login - Sistema de Dietas")
         self.root.geometry("400x300")
         self.root.resizable(False, False)
