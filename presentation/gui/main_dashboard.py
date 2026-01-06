@@ -215,16 +215,6 @@ class MainDashboard:
         self.navbar_frame = ttk.Frame(self.content_frame, style='Content.TFrame', height=35)
         self.navbar_frame.pack(fill=tk.X)
         self.navbar_frame.pack_propagate(False)
-
-        # Header del contenido
-        self.header_frame = ttk.Frame(self.content_frame, style='Content.TFrame', height=80)
-        self.header_frame.pack(fill=tk.X)
-        self.header_frame.pack_propagate(False)
-        
-        # Título del módulo actual
-        self.module_title = ttk.Label(self.header_frame, text="Bienvenido", 
-                                     style='Title.TLabel')
-        self.module_title.pack(side=tk.LEFT, padx=30, pady=20)
         
         # Área donde se renderizarán los módulos
         self.module_container = ttk.Frame(self.content_frame, style='Content.TFrame')
@@ -241,7 +231,6 @@ class MainDashboard:
     def _show_welcome_screen(self):
         """Muestra la pantalla de bienvenida"""
         self._clear_module_container()
-        self.module_title.config(text="Bienvenido")
         self._update_nav_buttons(None)  # Ningún botón activo
         
         welcome_frame = ttk.Frame(self.module_container, style='Content.TFrame')
@@ -281,18 +270,15 @@ class MainDashboard:
         # Cargar y mostrar el módulo solicitado
         try:
             if module_name == 'users':
-                self.module_title.config(text="Gestión de Usuarios")
                 self.current_module_instance = UserModule(self.module_container, self.user_service)
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
             
             elif module_name == 'cards':  
-                self.module_title.config(text="Gestión de Tarjetas")
                 self.current_module_instance = CardModule(self.module_container, self.card_service, self.card_transaction_service)
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
                 
             
             elif module_name == 'request_users':
-                self.module_title.config(text="Gestión de Solicitantes")
                 self.current_module_instance = RequestUserModule(
                     self.module_container, 
                     self.request_user_service,
@@ -301,7 +287,6 @@ class MainDashboard:
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
                 
             elif module_name == 'diets': 
-                self.module_title.config(text="Gestión de Dietas")
                 
                 self.current_module_instance = DietModule(
                     self.module_container,
@@ -313,7 +298,6 @@ class MainDashboard:
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
                 
             elif module_name == 'reports':
-                self.module_title.config(text="Reportes y Estadísticas")
                 # Usando la importación ya existente al principio del archivo
                 self.current_module_instance = ReportModule(
                     self.module_container,
@@ -325,7 +309,6 @@ class MainDashboard:
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
 
             elif module_name == 'departments':
-                self.module_title.config(text="Gestión de Departamentos")
                 self.current_module_instance = DepartmentModule(self.module_container, self.department_service)
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
                                         
