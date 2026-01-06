@@ -49,7 +49,7 @@ class MainDashboard:
             self.database_service = database_service
 
         self.root = tk.Tk()
-        self.root.iconbitmap('presentation/gui/icons/icon.ico')
+        self.root.iconbitmap('icon.ico')
         self.root.title(f"Sistema de Gestión de Dietas VIAJEX")
 
         self.root.withdraw()
@@ -68,33 +68,6 @@ class MainDashboard:
     
        
         self.root.deiconify()
-
-    def _set_window_icon(self):
-        """Establece el icono de la ventana principal usando Pillow"""
-        try:
-            from PIL import Image, ImageTk
-            
-            # Abre la imagen con Pillow
-            icon_image = Image.open("icon.png")  # Cambia por tu archivo
-            
-            # Convierte a PhotoImage para tkinter
-            icon_photo = ImageTk.PhotoImage(icon_image)
-            
-            # Establece el icono (True = también para ventanas hijas)
-            self.root.iconphoto(True, icon_photo)
-            
-            # IMPORTANTE: Guarda referencia para que no sea eliminada por el garbage collector
-            self.window_icon = icon_photo
-            
-        except Exception as e:
-            print(f"⚠️ No se pudo cargar el icono: {e}")
-            # Puedes intentar con .ico como fallback
-            try:
-                self.root.iconbitmap('icon.ico')
-            except:
-                print("⚠️ También falló el icono .ico")
-
-
 
     def _load_icons(self):
         """Carga y redimensiona iconos usando Pillow"""

@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+import traceback
 from presentation.gui.utils.windows_utils import WindowUtils
 
 class LoginWindow:
@@ -10,8 +11,8 @@ class LoginWindow:
         self.on_login_success = on_login_success
         
         self.root = tk.Tk()
-        self.root.iconbitmap('presentation/gui/icons/icon.ico')
-        self.root.title("Login - Sistema de Dietas")
+        self.root.iconbitmap('icon.ico')
+        self.root.title("Bienvenido - Sistema de Dietas - VIAJEX")
         self.root.geometry("400x300")
         self.root.resizable(False, False)
         
@@ -72,6 +73,7 @@ class LoginWindow:
             self.on_login_success(session.user)
         except Exception as e:
             messagebox.showerror("Error de Autenticación", str(e))
+            traceback.print_exc()
 
     def _on_close(self):
         """Maneja el cierre de la ventana"""

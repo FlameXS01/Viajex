@@ -4,7 +4,7 @@ echo Compilando Dietas App...
 echo.
 
 :: Verificar Python
-python --version >nul 2>&1
+C:\Users\jailerpc\AppData\Local\Programs\Python\Python312-32\python.exe --version >nul 2>&1
 if errorlevel 1 (
     echo ERROR: Python no está instalado o no está en el PATH.
     echo Por favor, instala Python 3.8+ desde https://www.python.org/
@@ -21,7 +21,7 @@ if not exist "main.py" (
 
 :: Verificar dependencias
 echo Verificando dependencias...
-pip install -r requirements.txt >nul 2>&1
+C:\Users\jailerpc\AppData\Local\Programs\Python\Python312-32\Scripts\pip.exe install -r requirements.txt >nul 2>&1
 if errorlevel 1 (
     echo Advertencia: No se pudo instalar dependencias automáticamente.
     echo Por favor, ejecuta manualmente: pip install -r requirements.txt
@@ -39,7 +39,7 @@ if exist "VIAJEX.spec" del "VIAJEX.spec"
 
 :: Compilar
 echo Compilando aplicación...
-pyinstaller --onefile --windowed --name "VIAJEX" ^
+C:\Users\jailerpc\AppData\Local\Programs\Python\Python312-32\Scripts\pyinstaller.exe --onefile --windowed --name "VIAJEX" ^
 --icon "icon.ico" ^
 --add-data "core;core" ^
 --add-data "infrastructure;infrastructure" ^

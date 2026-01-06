@@ -41,7 +41,7 @@ class BaseReportDialog(tk.Toplevel):
         
         # Establecer ícono (si está disponible)
         try:
-            self.iconbitmap('assets/icon.ico')
+            self.iconbitmap('icon.ico')
         except:
             pass
         
