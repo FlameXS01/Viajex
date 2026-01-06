@@ -35,6 +35,7 @@ if exist "DietasApp.spec" del "DietasApp.spec"
 :: Compilar
 echo Compilando aplicación...
 pyinstaller --onefile --windowed --name "DietasApp" ^
+--icon "icon.ico" ^
 --add-data "core;core" ^
 --add-data "infrastructure;infrastructure" ^
 --add-data "presentation;presentation" ^
@@ -52,6 +53,7 @@ pyinstaller --onefile --windowed --name "DietasApp" ^
 --hidden-import=pandas ^
 --hidden-import=openpyxl ^
 --hidden-import=numpy ^
+--hidden-import=scipy ^
 --clean ^
 --noconfirm ^
 main.py
