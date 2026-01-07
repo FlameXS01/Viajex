@@ -9,7 +9,7 @@ from application.services.diet_service import DietAppService
 
 class DietForm(ttk.Frame):
     """
-    Formulario para crear y editar dietas
+    Formulario compacto para crear y editar dietas
     """
     
     def __init__(self, parent, user_service, card_service, diet_service: DietAppService, diet=None, **kwargs):
@@ -55,16 +55,17 @@ class DietForm(ttk.Frame):
         
         self.payment_method_var = tk.StringVar(value="CASH")
         self.selected_card_var = tk.StringVar()
+        self.search_var = tk.StringVar()
 
     def _create_widgets(self):
-        """Crea todos los widgets del formulario"""
-        main_frame = ttk.Frame(self, padding=15)
+        """Crea todos los widgets del formulario de forma compacta"""
+        main_frame = ttk.Frame(self, padding=5)
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         main_frame.columnconfigure(1, weight=1)
         
+        # Configurar filas compactas
         for i in range(6):
             main_frame.rowconfigure(i, weight=0)
-        main_frame.rowconfigure(5, weight=1)
         
         self._create_basic_info_section(main_frame)
         self._create_user_selection_section(main_frame)
@@ -77,49 +78,49 @@ class DietForm(ttk.Frame):
         basic_info_frame = ttk.LabelFrame(
             parent, 
             text="📋 Información Básica", 
-            padding=15
+            padding=8
         )
-        basic_info_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 15))
+        basic_info_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 5))
         basic_info_frame.columnconfigure(1, weight=1)
 
-        ttk.Label(basic_info_frame, text="Descripción:", font=('Arial', 10, 'bold')).grid(
-            row=0, column=0, sticky=tk.W, pady=(0, 10)
+        ttk.Label(basic_info_frame, text="Descripción:").grid(
+            row=0, column=0, sticky=tk.W, pady=(0, 3)
         )
         
         self.description_entry = ttk.Entry(
             basic_info_frame, 
             textvariable=self.description_var,
-            width=60,
-            font=('Arial', 10)
+            width=45,
+            font=('Arial', 9)
         )
-        self.description_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=(0, 10))
+        self.description_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=(0, 3), padx=(5, 0))
         
         type_frame = ttk.Frame(basic_info_frame)
-        type_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E))
+        type_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(3, 0))
         
-        ttk.Label(type_frame, text="Tipo de Dieta:", font=('Arial', 10, 'bold')).grid(
-            row=0, column=0, sticky=tk.W, padx=(0, 20)
+        ttk.Label(type_frame, text="Tipo:").grid(
+            row=0, column=0, sticky=tk.W, padx=(0, 5)
         )
 
         self.local_check = ttk.Checkbutton(
             type_frame, 
-            text="🏠 Local", 
+            text="Local", 
             variable=self.is_local_var
         )
-        self.local_check.grid(row=0, column=1, sticky=tk.W, padx=(0, 30))
+        self.local_check.grid(row=0, column=1, sticky=tk.W, padx=(0, 15))
 
         self.individual_radio = ttk.Radiobutton(
             type_frame, 
-            text="👤 Individual", 
+            text="Individual", 
             variable=self.diet_type_var, 
             value="INDIVIDUAL", 
             command=self._on_diet_type_change
         )
-        self.individual_radio.grid(row=0, column=2, sticky=tk.W, padx=(0, 20))
+        self.individual_radio.grid(row=0, column=2, sticky=tk.W, padx=(0, 10))
 
         self.group_radio = ttk.Radiobutton(
             type_frame, 
-            text="👥 Grupal", 
+            text="Grupal", 
             variable=self.diet_type_var, 
             value="GROUP", 
             command=self._on_diet_type_change
@@ -134,32 +135,35 @@ class DietForm(ttk.Frame):
     def _create_user_selection_section(self, parent):
         self.users_frame = ttk.LabelFrame(
             parent, 
-            text="👥 Selección de Usuarios", 
-            padding=15
+            text="👥 Usuarios", 
+            padding=8
         )
-        self.users_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 15))
+        self.users_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 5))
         self.users_frame.columnconfigure(0, weight=1)
+        self.users_frame.rowconfigure(0, weight=1)
 
         self.view_only_container = ttk.Frame(self.users_frame)
-        self.view_only_container.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        self.view_only_container.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         self.view_only_container.columnconfigure(0, weight=1)
+        self.view_only_container.rowconfigure(1, weight=1)
         
-        ttk.Label(self.view_only_container, text="Usuarios de la dieta:", 
-                font=('Arial', 10, 'bold')).grid(row=0, column=0, sticky=tk.W, pady=(0, 8))
+        ttk.Label(self.view_only_container, text="Usuarios:").grid(
+            row=0, column=0, sticky=tk.W, pady=(0, 3)
+        )
         
         columns = ("nombre", "ci")
         self.users_treeview = ttk.Treeview(
             self.view_only_container, 
             columns=columns, 
             show="headings", 
-            height=6,
+            height=3,
             selectmode="none"
         )
         
-        self.users_treeview.heading("nombre", text="Nombre Completo")
+        self.users_treeview.heading("nombre", text="Nombre")
         self.users_treeview.heading("ci", text="Cédula")
-        self.users_treeview.column("nombre", width=300)
-        self.users_treeview.column("ci", width=150)
+        self.users_treeview.column("nombre", width=180, minwidth=180)
+        self.users_treeview.column("ci", width=100, minwidth=100)
         
         self.users_treeview.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
@@ -172,14 +176,15 @@ class DietForm(ttk.Frame):
         self.users_treeview.configure(yscrollcommand=tree_scrollbar.set)
 
         self.selection_container = ttk.Frame(self.users_frame)
-        self.selection_container.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        self.selection_container.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         self.selection_container.columnconfigure(0, weight=1)
+        self.selection_container.rowconfigure(1, weight=1)
 
         self.individual_frame = self._create_individual_selection()
-        self.individual_frame.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        self.individual_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
         self.group_frame = self._create_group_selection()
-        self.group_frame.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        self.group_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
         if self.is_edit_mode:
             self.selection_container.grid_remove()
@@ -192,8 +197,8 @@ class DietForm(ttk.Frame):
         frame = ttk.Frame(self.selection_container)
         frame.columnconfigure(0, weight=1)
         
-        ttk.Label(frame, text="Seleccionar Usuario:", font=('Arial', 10, 'bold')).grid(
-            row=0, column=0, sticky=tk.W, pady=(0, 8)
+        ttk.Label(frame, text="Usuario:").grid(
+            row=0, column=0, sticky=tk.W, pady=(0, 3)
         )
         
         user_values = [f"{user.fullname} ({user.ci})" for user in self.users]
@@ -202,8 +207,8 @@ class DietForm(ttk.Frame):
             values=user_values, 
             state="readonly",
             textvariable=tk.StringVar(),
-            height=8,
-            font=('Arial', 10)
+            height=6,
+            font=('Arial', 9)
         )
         self.user_combo.grid(row=1, column=0, sticky=(tk.W, tk.E))
         
@@ -215,151 +220,139 @@ class DietForm(ttk.Frame):
     def _create_group_selection(self):
         frame = ttk.Frame(self.selection_container)
         frame.columnconfigure(0, weight=1)
+        frame.rowconfigure(1, weight=1)
         
-        # FRAME PARA BÚSQUEDA (NUEVO)
+        # Búsqueda
         search_frame = ttk.Frame(frame)
-        search_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
-        search_frame.columnconfigure(0, weight=1)
+        search_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 3))
+        search_frame.columnconfigure(1, weight=1)
         
-        ttk.Label(search_frame, text="Buscar usuario:", font=('Arial', 9)).grid(
-            row=0, column=0, sticky=tk.W, padx=(0, 10)
+        ttk.Label(search_frame, text="Buscar:").grid(
+            row=0, column=0, sticky=tk.W, padx=(0, 5)
         )
         
-        self.search_var = tk.StringVar()
         search_entry = ttk.Entry(
             search_frame,
             textvariable=self.search_var,
-            width=30,
+            width=25,
             font=('Arial', 9)
         )
-        search_entry.grid(row=0, column=1, sticky=(tk.W, tk.E))
+        search_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 5))
         
-        # Botón para buscar (opcional)
-        search_btn = ttk.Button(
-            search_frame,
-            text="🔍",
-            command=self._filter_users,
-            width=4
-        )
-        search_btn.grid(row=0, column=2, sticky=tk.W, padx=(5, 0))
-        
-        # Búsqueda en tiempo real (descomentar si lo prefieres)
-        self.search_var.trace_add("write", lambda *args: self._filter_users())
-        
+        # Listas y botones
         lists_frame = ttk.Frame(frame)
-        lists_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        lists_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(3, 0))
         lists_frame.columnconfigure(0, weight=1)
-        lists_frame.columnconfigure(1, weight=0)
         lists_frame.columnconfigure(2, weight=1)
+        lists_frame.rowconfigure(0, weight=1)
 
-        ttk.Label(lists_frame, text="Usuarios Disponibles:", font=('Arial', 9, 'bold')).grid(
-            row=0, column=0, sticky=tk.W, pady=(0, 5)
-        )
-        
+        # Lista de disponibles
         available_frame = ttk.Frame(lists_frame)
-        available_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 10))
+        available_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 2))
         available_frame.columnconfigure(0, weight=1)
-        available_frame.rowconfigure(0, weight=1)
+        available_frame.rowconfigure(1, weight=1)
+        
+        ttk.Label(available_frame, text="Disponibles:").grid(
+            row=0, column=0, sticky=tk.W, pady=(0, 2)
+        )
         
         self.available_listbox = tk.Listbox(
             available_frame, 
-            height=8, 
+            height=5, 
             selectmode=tk.SINGLE,
             font=('Arial', 9)
         )
-        self.available_listbox.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.available_listbox.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
         available_scrollbar = ttk.Scrollbar(
             available_frame, 
             orient=tk.VERTICAL, 
             command=self.available_listbox.yview
         )
-        available_scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        available_scrollbar.grid(row=1, column=1, sticky=(tk.N, tk.S))
         self.available_listbox.configure(yscrollcommand=available_scrollbar.set)
 
+        # Botones de transferencia
         buttons_frame = ttk.Frame(lists_frame)
-        buttons_frame.grid(row=1, column=1, sticky=(tk.N, tk.S), padx=10)
+        buttons_frame.grid(row=0, column=1, sticky=(tk.N, tk.S), padx=2)
         
         ttk.Button(
             buttons_frame, 
-            text="➡️", 
+            text=">", 
             command=self._add_selected_user,
-            width=4
-        ).pack(pady=5)
+            width=3
+        ).pack(pady=1)
         
         ttk.Button(
             buttons_frame, 
-            text="⬅️", 
+            text="<", 
             command=self._remove_selected_user,
-            width=4
-        ).pack(pady=5)
+            width=3
+        ).pack(pady=1)
         
         ttk.Button(
             buttons_frame, 
-            text="⏩ Todos", 
+            text=">>", 
             command=self._add_all_users,
-            width=8
-        ).pack(pady=5)
+            width=3
+        ).pack(pady=1)
         
         ttk.Button(
             buttons_frame, 
-            text="⏪ Todos", 
+            text="<<", 
             command=self._remove_all_users,
-            width=8
-        ).pack(pady=5)
+            width=3
+        ).pack(pady=1)
 
-        ttk.Label(lists_frame, text="Usuarios Seleccionados:", font=('Arial', 9, 'bold')).grid(
-            row=0, column=2, sticky=tk.W, pady=(0, 5)
-        )
-        
+        # Lista de seleccionados
         selected_frame = ttk.Frame(lists_frame)
-        selected_frame.grid(row=1, column=2, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(10, 0))
+        selected_frame.grid(row=0, column=2, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(2, 0))
         selected_frame.columnconfigure(0, weight=1)
-        selected_frame.rowconfigure(0, weight=1)
+        selected_frame.rowconfigure(1, weight=1)
+        
+        ttk.Label(selected_frame, text="Seleccionados:").grid(
+            row=0, column=0, sticky=tk.W, pady=(0, 2)
+        )
         
         self.selected_listbox = tk.Listbox(
             selected_frame, 
-            height=8, 
+            height=5, 
             selectmode=tk.SINGLE,
             font=('Arial', 9)
         )
-        self.selected_listbox.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.selected_listbox.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
         selected_scrollbar = ttk.Scrollbar(
             selected_frame, 
             orient=tk.VERTICAL, 
             command=self.selected_listbox.yview
         )
-        selected_scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        selected_scrollbar.grid(row=1, column=1, sticky=(tk.N, tk.S))
         self.selected_listbox.configure(yscrollcommand=selected_scrollbar.set)
 
-        # Guardar la lista completa de usuarios para filtrar
+        # Guardar la lista completa de usuarios
         self.all_users_strings = []
         for user in self.users:
             user_text = f"{user.fullname} ({user.ci})"
             self.all_users_strings.append(user_text)
             self.available_listbox.insert(tk.END, user_text)
         
-        # Guardar lista completa de objetos usuarios
         self.all_users = self.users
+        
+        # Configurar búsqueda en tiempo real
+        self.search_var.trace_add("write", lambda *args: self._filter_users())
         
         return frame
 
     def _filter_users(self):
-        """Filtra la lista de usuarios disponibles por nombre o CI"""
+        """Filtra la lista de usuarios disponibles"""
         search_text = self.search_var.get().lower().strip()
         
-        # Obtener usuarios ya seleccionados
-        selected_users = set()
-        for i in range(self.selected_listbox.size()):
-            selected_users.add(self.selected_listbox.get(i))
+        selected_users = set(self.selected_listbox.get(0, tk.END))
         
-        # Limpiar la lista actual
         self.available_listbox.delete(0, tk.END)
         
-        # Filtrar y mostrar usuarios
         for user_text in self.all_users_strings:
-            # Si el usuario no está seleccionado y coincide con la búsqueda
             if user_text not in selected_users:
                 if not search_text or search_text in user_text.lower():
                     self.available_listbox.insert(tk.END, user_text)
@@ -367,63 +360,65 @@ class DietForm(ttk.Frame):
     def _create_diet_details_section(self, parent):
         details_frame = ttk.LabelFrame(
             parent, 
-            text="📅 Detalles de la Dieta", 
-            padding=15
+            text="📅 Detalles", 
+            padding=8
         )
-        details_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 15))
+        details_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 5))
         details_frame.columnconfigure(1, weight=1)
 
+        # Fechas
         dates_frame = ttk.Frame(details_frame)
-        dates_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 15))
-        dates_frame.columnconfigure(1, weight=1)
-        dates_frame.columnconfigure(3, weight=1)
+        dates_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 5))
+        dates_frame.columnconfigure(1, weight=0)
+        dates_frame.columnconfigure(3, weight=0)
 
-        ttk.Label(dates_frame, text="Fecha Inicio:", font=('Arial', 10, 'bold')).grid(
-            row=0, column=0, sticky=tk.W, padx=(0, 10)
+        ttk.Label(dates_frame, text="Inicio:").grid(
+            row=0, column=0, sticky=tk.W, padx=(0, 3)
         )
         
         self.start_date_entry = ttk.Entry(
             dates_frame, 
             textvariable=self.start_date_var,
-            width=15,
-            font=('Arial', 10)
+            width=12,
+            font=('Arial', 9)
         )
-        self.start_date_entry.grid(row=0, column=1, sticky=tk.W, padx=(0, 30))
+        self.start_date_entry.grid(row=0, column=1, sticky=tk.W, padx=(0, 15))
         
         default_start = datetime.now().strftime("%d/%m/%Y")
         self.start_date_var.set(default_start)
 
-        ttk.Label(dates_frame, text="Fecha Fin:", font=('Arial', 10, 'bold')).grid(
-            row=0, column=2, sticky=tk.W, padx=(0, 10)
+        ttk.Label(dates_frame, text="Fin:").grid(
+            row=0, column=2, sticky=tk.W, padx=(0, 3)
         )
         
         self.end_date_entry = ttk.Entry(
             dates_frame, 
             textvariable=self.end_date_var,
-            width=15,
-            font=('Arial', 10)
+            width=12,
+            font=('Arial', 9)
         )
         self.end_date_entry.grid(row=0, column=3, sticky=tk.W)
         
         default_end = (datetime.now() + timedelta(days=1)).strftime("%d/%m/%Y")
         self.end_date_var.set(default_end)
 
+        # Servicios
         services_frame = ttk.Frame(details_frame)
         services_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E))
         
         services_config = [
-            ("🍳 Desayunos:", "breakfast_count"),
-            ("🍲 Almuerzos:", "lunch_count"), 
-            ("🍽️ Comidas:", "dinner_count"),
-            ("🏨 Alojamientos:", "accommodation_count")
+            ("Desayunos:", "breakfast_count"),
+            ("Almuerzos:", "lunch_count"), 
+            ("Comidas:", "dinner_count"),
+            ("Alojamientos:", "accommodation_count")
         ]
         
         for i, (label, var_name) in enumerate(services_config):
             row = i // 2
             col = (i % 2) * 2
             
-            ttk.Label(services_frame, text=label, font=('Arial', 10)).grid(
-                row=row, column=col, sticky=tk.W, pady=8, padx=(0, 10)
+            ttk.Label(services_frame, text=label).grid(
+                row=row, column=col, sticky=tk.W, pady=2, padx=(0, 3)
             )
             
             spinbox = ttk.Spinbox(
@@ -431,40 +426,40 @@ class DietForm(ttk.Frame):
                 from_=0, 
                 to=999,
                 textvariable=self.service_vars[var_name],
-                width=8,
-                font=('Arial', 10)
+                width=6,
+                font=('Arial', 9)
             )
-            spinbox.grid(row=row, column=col + 1, sticky=tk.W, pady=8, padx=(0, 30))
+            spinbox.grid(row=row, column=col + 1, sticky=tk.W, pady=2, padx=(0, 10))
 
     def _create_payment_section(self, parent):
         payment_frame = ttk.LabelFrame(
             parent, 
-            text=" Método de Pago", 
-            padding=15
+            text="💳 Pago", 
+            padding=8
         )
-        payment_frame.grid(row=4, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 15))
+        payment_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 5))
         payment_frame.columnconfigure(1, weight=1)
 
         method_frame = ttk.Frame(payment_frame)
         method_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E))
-        method_frame.columnconfigure(1, weight=1)
+        method_frame.columnconfigure(2, weight=1)
 
-        ttk.Label(method_frame, text="Método de Pago:", font=('Arial', 10, 'bold')).grid(
-            row=0, column=0, sticky=tk.W, padx=(0, 15)
+        ttk.Label(method_frame, text="Método:").grid(
+            row=0, column=0, sticky=tk.W, padx=(0, 5)
         )
 
         cash_radio = ttk.Radiobutton(
             method_frame, 
-            text="💵 Efectivo", 
+            text="Efectivo", 
             variable=self.payment_method_var, 
             value="CASH", 
             command=self._on_payment_method_change
         )
-        cash_radio.grid(row=0, column=1, sticky=tk.W, padx=(0, 20))
+        cash_radio.grid(row=0, column=1, sticky=tk.W, padx=(0, 10))
 
         card_radio = ttk.Radiobutton(
             method_frame, 
-            text="💳 Tarjeta", 
+            text="Tarjeta", 
             variable=self.payment_method_var, 
             value="CARD", 
             command=self._on_payment_method_change
@@ -478,10 +473,10 @@ class DietForm(ttk.Frame):
             values=card_values,
             textvariable=self.selected_card_var,
             state="readonly",
-            width=25,
-            font=('Arial', 10)
+            width=20,
+            font=('Arial', 9)
         )
-        self.card_combo.grid(row=0, column=3, sticky=(tk.W, tk.E), padx=(20, 0))
+        self.card_combo.grid(row=0, column=3, sticky=tk.W, padx=(10, 0))
 
         if card_values:
             self.card_combo.set(card_values[0])
@@ -552,7 +547,7 @@ class DietForm(ttk.Frame):
         
         self._on_price_change()
         
-        new_title = "👤 Selección de Usuario" if self.diet_type_var.get() == "INDIVIDUAL" else "👥 Selección de Usuarios"
+        new_title = "👤 Usuario" if self.diet_type_var.get() == "INDIVIDUAL" else "👥 Usuarios"
         self.users_frame.configure(text=new_title)
 
     def _on_payment_method_change(self):
@@ -569,7 +564,6 @@ class DietForm(ttk.Frame):
             self.available_listbox.delete(selection[0])
             self.selected_listbox.insert(tk.END, user_text)
             self._on_price_change()
-            # Actualizar filtro si hay búsqueda activa
             if self.search_var.get():
                 self._filter_users()
 
@@ -578,16 +572,13 @@ class DietForm(ttk.Frame):
         if selection:
             user_text = self.selected_listbox.get(selection[0])
             self.selected_listbox.delete(selection[0])
-            # Solo agregar de vuelta si pasa el filtro
             if not self.search_var.get() or self.search_var.get().lower() in user_text.lower():
                 self.available_listbox.insert(tk.END, user_text)
             self._on_price_change()
-            # Reaplicar filtro si hay búsqueda
             if self.search_var.get():
                 self._filter_users()
 
     def _add_all_users(self):
-        # Obtener todos los usuarios disponibles (ya filtrados)
         available_users = list(self.available_listbox.get(0, tk.END))
         for user in available_users:
             self.selected_listbox.insert(tk.END, user)
@@ -597,12 +588,10 @@ class DietForm(ttk.Frame):
     def _remove_all_users(self):
         selected_users = list(self.selected_listbox.get(0, tk.END))
         for user in selected_users:
-            # Solo agregar de vuelta si pasa el filtro
             if not self.search_var.get() or self.search_var.get().lower() in user.lower():
                 self.available_listbox.insert(tk.END, user)
         self.selected_listbox.delete(0, tk.END)
         self._on_price_change()
-        # Reaplicar filtro si hay búsqueda
         if self.search_var.get():
             self._filter_users()
 
@@ -653,7 +642,7 @@ class DietForm(ttk.Frame):
             
             user_count = len(user_ids)
             title_suffix = "Usuario" if user_count == 1 else "Usuarios"
-            self.users_frame.configure(text=f"👥 {user_count} {title_suffix} de la Dieta")
+            self.users_frame.configure(text=f"👥 {user_count} {title_suffix}")
             
         else:
             if user_ids:

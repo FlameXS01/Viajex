@@ -19,9 +19,9 @@ class DietDialog(tk.Toplevel):
         self.title(title)
         
         # Configurar dimensiones fijas adecuadas
-        self.geometry("900x895")  
-        self.minsize(900, 875)   
-        self.resizable(True, True)
+        self.geometry("900x700")  
+        self.minsize(900, 650)   
+        self.resizable(False, False)
         
         self.transient(parent)
         self.grab_set()
