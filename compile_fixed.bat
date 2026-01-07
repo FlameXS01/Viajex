@@ -58,7 +58,6 @@ pyinstaller --onefile --windowed --name "VIAJEX" ^
 --hidden-import=pandas ^
 --hidden-import=openpyxl ^
 --hidden-import=numpy ^
---hidden-import=scipy ^
 --clean ^
 --noconfirm ^
 main.py

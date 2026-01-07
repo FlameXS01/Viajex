@@ -21,7 +21,7 @@ if not exist "main.py" (
 
 :: Verificar dependencias
 echo Verificando dependencias...
-C:\Users\jailerpc\AppData\Local\Programs\Python\Python312-32\Scripts\pip.exe install -r requirements.txt >nul 2>&1
+C:\Users\jailerpc\AppData\Local\Programs\Python\Python312-32\Scripts\pip.exe install -r req2.txt >nul 2>&1
 if errorlevel 1 (
     echo Advertencia: No se pudo instalar dependencias automáticamente.
     echo Por favor, ejecuta manualmente: pip install -r requirements.txt
@@ -58,6 +58,11 @@ C:\Users\jailerpc\AppData\Local\Programs\Python\Python312-32\Scripts\pyinstaller
 --hidden-import=pandas ^
 --hidden-import=openpyxl ^
 --hidden-import=numpy ^
+--hidden-import=numpy.core._multiarray_umath ^
+--hidden-import=numpy.core._multiarray_umath ^
+--hidden-import=numpy.core._multiarray_umath ^
+--hidden-import=numpy.core._umath ^
+--hidden-import=numpy.lib.format ^
 --hidden-import=scipy ^
 --clean ^
 --noconfirm ^

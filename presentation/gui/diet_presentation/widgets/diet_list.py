@@ -5,7 +5,6 @@ from traceback import print_exc
 import traceback
 from typing import List, Optional, Callable
 
-from scipy.fftpack import cc_diff
 from application.dtos.diet_dtos import DietResponseDTO, DietLiquidationResponseDTO
 from application.services import user_service
 from application.services.department_service import DepartmentService
