@@ -116,8 +116,6 @@ class DietModel(Base):
     accommodation_card = relationship("CardModel")
     liquidations = relationship("DietLiquidationModel", back_populates="diet")
 
-    
-
 class DietLiquidationModel(Base):
     """
     Modelo de SQLAlchemy para la tabla diet_liquidations.
@@ -162,8 +160,6 @@ class DietLiquidationModel(Base):
     diet = relationship("DietModel", back_populates="liquidations")
     diet_service = relationship("DietServiceModel", back_populates="diet_liquidations")
     accommodation_card = relationship("CardModel")
-
-
 
 class RequestUserModel(Base):
     """

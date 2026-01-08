@@ -45,11 +45,7 @@ class DietModule(ttk.Frame):
         # Botones principales
         self.actions_widget = DietActions(controls_frame, self)
         self.actions_widget.pack(fill=tk.X)
-        """
-        # AGREGAR BOTÓN GESTIONAR SERVICIOS aquí
-        services_button = ttk.Button(controls_frame, text="⚙️ Gestionar Servicios", command=self._manage_services, width=18)
-        services_button.pack(side=tk.RIGHT, padx=(10, 0))
-        """
+        
         
         # Frame de contenido
         content_frame = ttk.Frame(main_frame)
@@ -81,7 +77,8 @@ class DietModule(ttk.Frame):
             self.advances_list.tree,
             title="Reporte de Anticipos de Dietas",
             button_text="📤 Exportar Anticipos",
-            pack_options={'side': tk.RIGHT, 'padx': 5, 'pady': 5}
+            pack_options={'side': tk.RIGHT, 'padx': 5, 'pady': 5}, 
+            include_print=True
         )
         
         # Lista de liquidaciones
@@ -94,7 +91,8 @@ class DietModule(ttk.Frame):
             self.liquidations_list.tree,
             title="Reporte de Liquidaciones",
             button_text="📤 Exportar Liquidaciones",
-            pack_options={'side': tk.RIGHT, 'padx': 5, 'pady': 5}
+            pack_options={'side': tk.RIGHT, 'padx': 5, 'pady': 5},
+            include_print=True
         )
 
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
@@ -108,10 +106,19 @@ class DietModule(ttk.Frame):
             self.all_list = DietList(self.all_diets_frame, "all", self.request_user_service, self.diet_service, self.departament_service)
             self.all_list.pack(fill=tk.BOTH, expand=True)
 
+            self.export_all_btn = TreeviewExporter.create_export_button(
+                self.all_diets_frame,
+                self.all_list.tree,
+                title="Reporte de General",
+                button_text="📤 Exportar ",
+                pack_options={'side': tk.RIGHT, 'padx': 5, 'pady': 5},
+                include_print=True
+            )
+
         except Exception as e:
             import traceback
             traceback.print_exc()
-
+ 
     def on_double_click(self):
         """Maneja el doble clic en cualquier lista"""
         self.show_selected_details()

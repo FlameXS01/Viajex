@@ -2,6 +2,9 @@
 """
 Módulo para exportar datos de Treeview a diferentes formatos.
 """
+import platform
+import subprocess
+import tempfile
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from typing import Optional, List, Any
@@ -383,8 +386,9 @@ class TreeviewExporter:
     
     @staticmethod
     def create_export_button(parent, tree: ttk.Treeview, title: str, 
-                           button_text: str = "📤 Exportar", 
-                           pack_options: dict = None) -> ttk.Button:
+                        button_text: str = "📤 Exportar", 
+                        pack_options: dict = None,
+                        include_print: bool = True) -> ttk.Button:
         """
         Crea un botón de exportación con menú desplegable
         
@@ -394,9 +398,7 @@ class TreeviewExporter:
             title: Título del reporte
             button_text: Texto del botón
             pack_options: Opciones para pack() del botón
-            
-        Returns:
-            ttk.Button: Botón creado
+            include_print: Incluir opción de impresión
         """
         from tkinter import Menu
         
@@ -409,27 +411,39 @@ class TreeviewExporter:
             
             if HAS_EXCEL:
                 menu.add_command(
-                    label="Exportar a Excel (.xlsx)",
+                    label="📊 Exportar a Excel (.xlsx)",
                     command=lambda: TreeviewExporter.export_to_excel(tree, title)
                 )
                 available_formats.append("Excel")
             
             if HAS_WORD:
                 menu.add_command(
-                    label="Exportar a Word (.docx)",
+                    label="📝 Exportar a Word (.docx)",
                     command=lambda: TreeviewExporter.export_to_word(tree, title)
                 )
                 available_formats.append("Word")
             
             if HAS_PDF:
                 menu.add_command(
-                    label="Exportar a PDF (.pdf)",
+                    label="📄 Exportar a PDF (.pdf)",
                     command=lambda: TreeviewExporter.export_to_pdf(tree, title)
                 )
                 available_formats.append("PDF")
+                
+                # Agregar opción de impresión si está habilitado
+                if include_print:
+                    menu.add_separator()
+                    menu.add_command(
+                        label="🖨️ Imprimir directamente",
+                        command=lambda: TreeviewExporter.print_directly(tree, title)
+                    )
+                    menu.add_command(
+                        label="👁️ Vista previa e imprimir",
+                        command=lambda: TreeviewExporter.print_with_preview(tree, title)
+                    )
             
             menu.add_command(
-                label="Exportar a CSV (.csv)",
+                label="📋 Exportar a CSV (.csv)",
                 command=lambda: TreeviewExporter.export_to_csv(tree, title)
             )
             available_formats.append("CSV")
@@ -439,7 +453,7 @@ class TreeviewExporter:
             
             if len(available_formats) < 4:
                 menu.add_command(
-                    label="Instalar dependencias faltantes",
+                    label="⚙️ Instalar dependencias faltantes",
                     command=TreeviewExporter.show_dependency_help
                 )
             
@@ -488,7 +502,145 @@ pip install openpyxl python-docx reportlab
         """
         messagebox.showinfo("Dependencias requeridas", help_text)
 
+    @staticmethod
+    def print_directly(tree: ttk.Treeview, title: str) -> bool:
+        """
+        Imprime directamente los datos del Treeview usando una impresora predefinida
+        o creando un PDF temporal y abriendo el diálogo de impresión.
+        """
+        try:
+            headers, data = TreeviewExporter.get_treeview_data(tree)
+            
+            if not headers or not data:
+                messagebox.showwarning("Sin datos", "No hay datos para imprimir")
+                return False
+            
+            # Crear archivo PDF temporal
+            temp_dir = tempfile.gettempdir()
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            temp_filename = os.path.join(temp_dir, f"impresion_{timestamp}.pdf")
+            
+            # Generar el PDF
+            result = TreeviewExporter.export_to_pdf(tree, title, temp_filename)
+            
+            if result:
+                # Abrir el PDF con el visor predeterminado para imprimir
+                system = platform.system()
+                
+                if system == "Windows":
+                    # En Windows, usamos el diálogo de impresión de Adobe Reader si está disponible
+                    try:
+                        # Primero intentamos con Adobe Reader
+                        acroread_path = r"C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe"
+                        if os.path.exists(acroread_path):
+                            subprocess.run([acroread_path, "/t", temp_filename])
+                        else:
+                            # Si no hay Adobe Reader, abrimos con el programa predeterminado
+                            os.startfile(temp_filename)
+                    except:
+                        os.startfile(temp_filename)
+                        
+                elif system == "Darwin":  # macOS
+                    subprocess.run(["open", temp_filename])
+                else:  # Linux
+                    subprocess.run(["xdg-open", temp_filename])
+                
+                messagebox.showinfo("Impresión", 
+                                f"Se ha abierto el diálogo de impresión.\n"
+                                f"El archivo temporal se encuentra en:\n{temp_filename}\n\n"
+                                f"El archivo será eliminado automáticamente al reiniciar el sistema.")
+                return True
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo preparar la impresión:\n{str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False
 
+    @staticmethod
+    def print_with_preview(tree: ttk.Treeview, title: str) -> bool:
+        """
+        Muestra una vista previa de impresión antes de enviar a la impresora.
+        """
+        try:
+            headers, data = TreeviewExporter.get_treeview_data(tree)
+            
+            if not headers or not data:
+                messagebox.showwarning("Sin datos", "No hay datos para imprimir")
+                return False
+            
+            # Crear una ventana de vista previa
+            preview_window = tk.Toplevel()
+            preview_window.title(f"Vista Previa: {title}")
+            preview_window.geometry("800x600")
+            
+            # Frame principal
+            main_frame = ttk.Frame(preview_window)
+            main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            
+            # Título
+            title_label = ttk.Label(main_frame, text=title, font=("Arial", 14, "bold"))
+            title_label.pack(pady=(0, 10))
+            
+            # Frame para la tabla
+            table_frame = ttk.Frame(main_frame)
+            table_frame.pack(fill=tk.BOTH, expand=True)
+            
+            # Crear Treeview para vista previa
+            preview_tree = ttk.Treeview(table_frame, columns=headers, show="headings")
+            
+            # Configurar encabezados
+            for i, header in enumerate(headers):
+                preview_tree.heading(f"#{i+1}", text=header)
+                preview_tree.column(f"#{i+1}", width=150)
+            
+            # Insertar datos
+            for row in data:
+                preview_tree.insert("", tk.END, values=row)
+            
+            # Scrollbars
+            vsb = ttk.Scrollbar(table_frame, orient="vertical", command=preview_tree.yview)
+            hsb = ttk.Scrollbar(table_frame, orient="horizontal", command=preview_tree.xview)
+            preview_tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+            
+            preview_tree.grid(row=0, column=0, sticky="nsew")
+            vsb.grid(row=0, column=1, sticky="ns")
+            hsb.grid(row=1, column=0, sticky="ew")
+            
+            table_frame.grid_rowconfigure(0, weight=1)
+            table_frame.grid_columnconfigure(0, weight=1)
+            
+            # Frame para botones
+            button_frame = ttk.Frame(main_frame)
+            button_frame.pack(fill=tk.X, pady=(10, 0))
+            
+            # Botón para imprimir
+            print_btn = ttk.Button(button_frame, text="🖨️ Imprimir",
+                                command=lambda: TreeviewExporter.print_directly(tree, title))
+            print_btn.pack(side=tk.LEFT, padx=5)
+            
+            # Botón para exportar a PDF primero
+            pdf_btn = ttk.Button(button_frame, text="📄 Guardar PDF",
+                                command=lambda: TreeviewExporter.export_to_pdf(tree, title))
+            pdf_btn.pack(side=tk.LEFT, padx=5)
+            
+            # Botón para cerrar
+            close_btn = ttk.Button(button_frame, text="Cerrar",
+                                command=preview_window.destroy)
+            close_btn.pack(side=tk.RIGHT, padx=5)
+            
+            # Información
+            info_label = ttk.Label(main_frame, 
+                                text=f"Total de registros: {len(data)} | Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+                                font=("Arial", 9))
+            info_label.pack(pady=(10, 0))
+            
+            return True
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo mostrar la vista previa:\n{str(e)}")
+            return False
+        
 # Función de conveniencia para uso rápido
 def create_export_button(parent, tree: ttk.Treeview, title: str, **kwargs) -> ttk.Button:
     """Crea un botón de exportación (alias para TreeviewExporter.create_export_button)"""

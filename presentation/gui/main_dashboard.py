@@ -19,6 +19,7 @@ from presentation.gui.diet_presentation.diet_module import DietModule
 from PIL import Image, ImageTk
 
 
+
 class MainDashboard:
     """Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA"""
     
@@ -508,53 +509,54 @@ class MainDashboard:
         self._bind_menu_to_label(file_btn, file_menu)
         
         # Menú Configuración
-        config_btn = self._create_navbar_label("⚙️ Configuración")
-        config_menu = tk.Menu(self.root, tearoff=0)
+        if self.user.role.value in ['admin', 'manager']:
+            config_btn = self._create_navbar_label("⚙️ Configuración")
+            config_menu = tk.Menu(self.root, tearoff=0)
 
-        # INICIAR CICLO
-        config_menu.add_command(label="🔄 Iniciar Nuevo Ciclo", 
-                        command=self._start_new_cycle,
-                        foreground='#e74c3c',  
-                        font=('Arial', 10, 'bold'))
+            # INICIAR CICLO
+            config_menu.add_command(label="🔄 Iniciar Nuevo Ciclo", 
+                            command=self._start_new_cycle,
+                            foreground='#e74c3c',  
+                            font=('Arial', 10, 'bold'))
 
-        config_menu.add_separator()
+            config_menu.add_separator()
 
-        # Menú Ajustes Generales
-        config_menu.add_command(label="Ajustes Generales", command=self._show_general_settings)
-        config_menu.add_command(label="Parámetros del Sistema", command=self._show_system_params)
-        config_menu.add_separator()
+            # Menú Ajustes Generales
+            config_menu.add_command(label="Ajustes Generales", command=self._show_general_settings)
+            config_menu.add_command(label="Parámetros del Sistema", command=self._show_system_params)
+            config_menu.add_separator()
 
-        # Submenú de Inicialización 
-        init_menu = tk.Menu(config_menu, tearoff=0)
-        init_menu.add_command(label="📂 Departamentos desde Excel", 
-                            command=self._initialize_departments_from_file,
-                            font=('Arial', 9))
-        init_menu.add_command(label="👥 Solicitantes desde Excel", 
-                            command=self._initialize_request_users_from_file,
-                            font=('Arial', 9))
-        init_menu.add_command(label="💳 Tarjetas desde Excel", 
-                            command=self._initialize_cards_from_file,
-                            font=('Arial', 9))
-        init_menu.add_separator()
-        init_menu.add_command(label="🍽️ Servicios de Dieta", 
-                            command=self._initialize_diet_services,
-                            font=('Arial', 9))
-        init_menu.add_command(label="👨‍💼 Usuario Admin", 
-                            command=self._initialize_admin_user,
-                            font=('Arial', 9))
-        init_menu.add_separator()
-        init_menu.add_command(label="⚡ Inicializar Todo", 
-                            command=self._initialize_all_from_files,
-                            font=('Arial', 9, 'bold'),
-                            foreground='#27ae60')
-        config_menu.add_cascade(label="🔄 Inicialización", menu=init_menu)
-        
-        config_menu.add_separator()
-        config_menu.add_command(label="💾 Backup Base de Datos", command=self._backup_database)
-        config_menu.add_command(label="📥 Restaurar Backup", command=self._restore_backup)
-        config_menu.add_command(label="📋 Logs del Sistema", command=self._show_system_logs)
-        
-        self._bind_menu_to_label(config_btn, config_menu)
+            # Submenú de Inicialización 
+            init_menu = tk.Menu(config_menu, tearoff=0)
+            init_menu.add_command(label="📂 Departamentos desde Excel", 
+                                command=self._initialize_departments_from_file,
+                                font=('Arial', 9))
+            init_menu.add_command(label="👥 Solicitantes desde Excel", 
+                                command=self._initialize_request_users_from_file,
+                                font=('Arial', 9))
+            init_menu.add_command(label="💳 Tarjetas desde Excel", 
+                                command=self._initialize_cards_from_file,
+                                font=('Arial', 9))
+            init_menu.add_separator()
+            init_menu.add_command(label="🍽️ Servicios de Dieta", 
+                                command=self._initialize_diet_services,
+                                font=('Arial', 9))
+            init_menu.add_command(label="👨‍💼 Usuario Admin", 
+                                command=self._initialize_admin_user,
+                                font=('Arial', 9))
+            init_menu.add_separator()
+            init_menu.add_command(label="⚡ Inicializar Todo", 
+                                command=self._initialize_all_from_files,
+                                font=('Arial', 9, 'bold'),
+                                foreground='#27ae60')
+            config_menu.add_cascade(label="🔄 Inicialización", menu=init_menu)
+            
+            config_menu.add_separator()
+            config_menu.add_command(label="💾 Backup Base de Datos", command=self._backup_database)
+            config_menu.add_command(label="📥 Restaurar Backup", command=self._restore_backup)
+            config_menu.add_command(label="📋 Logs del Sistema", command=self._show_system_logs)
+            
+            self._bind_menu_to_label(config_btn, config_menu)
 
         help_btn = self._create_navbar_label("❓ Ayuda")
         help_menu = tk.Menu(self.root, tearoff=0)

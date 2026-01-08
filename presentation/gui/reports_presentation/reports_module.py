@@ -1,7 +1,7 @@
 import os
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-from datetime import datetime
+from datetime import date, datetime
 from typing import List, Dict, Any
 import pandas as pd
 from reportlab.lib.pagesizes import A4
@@ -9,10 +9,14 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
+from application.dtos.diet_dtos import DietServiceResponseDTO
 from application.services.card_service import CardService
 from application.services.diet_service import DietAppService
 from application.services.request_service import UserRequestService
 from application.services.department_service import DepartmentService
+from core.entities import department
+from core.entities.diet_service import DietService
+from core.entities.enums import PaymentMethod
 
 
 class ReportModule(ttk.Frame):
@@ -551,19 +555,16 @@ class ReportModule(ttk.Frame):
         
         for dept in departments:
             dept_data = {
-                'Nombre': dept.name,
-                'ID': dept.id,
-                'Fecha Creación': getattr(dept, 'created_at', 'N/A').strftime('%d/%m/%Y') 
-                               if hasattr(dept, 'created_at') and dept.created_at else 'N/A'
+                'Nombre': dept.name
             }
             
             if self.include_count_var.get():
                 # Contar solicitantes en este departamento
                 count = 0
                 try:
-                    request_users = self.request_service.get_all_request_users()
+                    request_users = self.request_service.get_all_users()
                     count = sum(1 for user in request_users 
-                              if hasattr(user, 'department') and user.department.id == dept.id)
+                              if hasattr(user, 'department_id') and user.department_id == dept.id)
                 except:
                     pass
                 dept_data['Solicitantes'] = count
@@ -571,6 +572,49 @@ class ReportModule(ttk.Frame):
             data.append(dept_data)
         
         return data
+    
+    def _get_department_debits_in_range(self, report_type: str, date_in: datetime, date_end: datetime) -> list[dict[str, Any]]:
+        """Obtiene datos para reportes de departamentos"""
+        try:
+            diets_in_range = self.diet_service.list_diets_in_range(date_in, date_end)
+            dept_data = { }
+            for diet in diets_in_range:
+                request = self.request_service.get_user_by_id(diet.request_user_id)
+                department = self.department_service.get_department_by_id(request.department_id)
+
+                service = self.diet_service.get_diet_service_by_local(diet.is_local)
+
+                dept_name = department.name
+
+                if dept_name not in dept_data:
+                    dept_data[dept_name] = {}
+               
+                if request.fullname not in dept_data[dept_name]:
+                    dept_data[dept_name][request.fullname] = {
+                        'Id_Departamento': request.department_id,
+                        'Id_Usuario': request.id,  
+                        'Solicitante': request.fullname,
+                        'Gasto': self._calculate_total(service, diet.breakfast_count, diet.lunch_count, diet.dinner_count, diet.accommodation_count, diet.accommodation_payment_method)
+                    }
+                else:
+                    dept_data[dept_name][request.fullname]['Gasto'] += self._calculate_total(service, diet.breakfast_count, diet.lunch_count, diet.dinner_count, diet.accommodation_count, diet.accommodation_payment_method)
+
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudieron obtener los departamentos: {str(e)}")
+            return []
+        
+        
+    def _calculate_total_in_request(self, service:DietServiceResponseDTO , breakfast_count, lunch_count, dinner_count, accommodation_count, accommodation_payment_method) -> float:
+        suma = breakfast_count * service.breakfast_price + lunch_count * service.lunch_price + dinner_count * service.dinner_price 
+
+        if accommodation_payment_method == PaymentMethod.CARD.value.upper():
+            suma += accommodation_count * service.accommodation_card_price
+        else:
+            suma += accommodation_count * service.accommodation_cash_price
+
+        return suma
+
+        
 
     def _generate_pdf(self, data: Any, report_type: str, default_name: str):
         """Genera un reporte en formato PDF"""
@@ -609,12 +653,6 @@ class ReportModule(ttk.Frame):
             date_str = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
             elements.append(Paragraph(f"Generado: {date_str}", styles['Normal']))
             
-            # Información de parámetros
-            if "Tarjeta" in report_type:
-                params_text = f"Parámetros: Estado={self.status_var.get()}, "
-                params_text += f"Saldo mínimo=${self.min_balance_var.get():.2f}, "
-                params_text += f"Orden={self.sort_var.get()}"
-                elements.append(Paragraph(params_text, styles['Normal']))
             
             elements.append(Spacer(1, 20))
             
@@ -647,6 +685,8 @@ class ReportModule(ttk.Frame):
                     # Total de registros
                     elements.append(Spacer(1, 20))
                     elements.append(Paragraph(f"Total de registros: {len(data)}", styles['Normal']))
+                    elements.append(Paragraph(f"Subtotal: {sum (card['Saldo'].replace('$', '').replace(',', '') for card in data)}", styles['Normal']))
+                    print(data, '<><><><><><><><><>')
             
             elif isinstance(data, dict):
                 # Mostrar estadísticas como lista

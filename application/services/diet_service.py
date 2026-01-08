@@ -34,6 +34,7 @@ from core.use_cases.diets.diet_liquidations.delete_diet_liquidation import Delet
 from core.use_cases.diets.diet_liquidations.get_last_liquidation_number import GetLastLiquidationNumberUseCase
 from core.use_cases.diets.diet_liquidations.reset_liquidation_numbers import ResetLiquidationNumbersUseCase
 from core.use_cases.diets.calculate_diet_amount import CalculateDietAmountUseCase
+from core.use_cases.diets.diets_in_range import DietsInRangeUseCase
 from core.use_cases.diets.list_diets import ListDietsUseCase
 from core.use_cases.diets.diet_services.edit_service import EditDietServiceUseCase
 from core.use_cases.diets.reset_counters import ResetCountersUseCase
@@ -210,6 +211,11 @@ class DietAppService:
         diets = use_case.execute()
         return [self._to_diet_response_dto(diet) for diet in diets]
         
+    def list_diets_in_range(self, date_in: date, date_end: date) -> list[DietResponseDTO]: 
+        use_case = DietsInRangeUseCase(self.diet_repository)
+        diets = use_case.execute(date_in, date_end)
+        return [self._to_diet_response_dto(diet) for diet in diets]
+    
     # ===== LIQUIDACIONES =====
     
     def create_diet_liquidation(self, create_dto: DietLiquidationCreateDTO) -> DietLiquidationResponseDTO:
