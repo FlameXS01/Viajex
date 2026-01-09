@@ -72,7 +72,7 @@ class DietModule(ttk.Frame):
         self.advances_list.pack(fill=tk.BOTH, expand=True)
         self.advances_list.bind_selection(self.on_diet_selected)
         
-        self.export_advances_btn = TreeviewExporter.create_export_button(
+        self.export_advances_btn = create_export_button(
             self.advances_frame,
             self.advances_list.tree,
             title="Reporte de Anticipos de Dietas",
@@ -86,7 +86,7 @@ class DietModule(ttk.Frame):
         self.liquidations_list.pack(fill=tk.BOTH, expand=True)
         self.liquidations_list.bind_selection(self.on_liquidation_selected)
 
-        self.export_liquidation_btn = TreeviewExporter.create_export_button(
+        self.export_liquidation_btn = create_export_button(
             self.liquidations_frame,
             self.liquidations_list.tree,
             title="Reporte de Liquidaciones",
@@ -106,7 +106,7 @@ class DietModule(ttk.Frame):
             self.all_list = DietList(self.all_diets_frame, "all", self.request_user_service, self.diet_service, self.departament_service)
             self.all_list.pack(fill=tk.BOTH, expand=True)
 
-            self.export_all_btn = TreeviewExporter.create_export_button(
+            self.export_all_btn = create_export_button(
                 self.all_diets_frame,
                 self.all_list.tree,
                 title="Reporte de General",

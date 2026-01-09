@@ -16,6 +16,8 @@ from openpyxl.utils import get_column_letter
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -23,20 +25,194 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 
+
 HAS_EXCEL = True
 HAS_WORD = True
 HAS_PDF = True
 
+# Agregar al inicio de data_exporter.py, después de las importaciones
+class DataHierarchyTransformer:
+    """Transformador de datos planos a estructura jerárquica"""
+    
+    @staticmethod
+    def detect_key_columns(headers):
+        """
+        Detecta las columnas clave en los headers
+        
+        Returns:
+            dict: Índices de columnas importantes
+        """
+        indices = {
+            'department': None,
+            'employee': None,
+            'amount': None
+        }
+        
+        # Mapeo de posibles nombres para cada columna
+        department_keywords = ['departamento', 'depto', 'unidad', 'area', 'direccion', 'gerencia', 'Departamento']
+        employee_keywords = ['solicitante', 'empleado', 'nombre', 'fullname', 'colaborador', 'trabajador', 'persona', 'Solicitante']
+        amount_keywords = ['gasto', 'monto', 'total', 'importe', 'cantidad', 'costo', 'precio', 'valor', 'saldo', 'monto liquidado', 'Monto Liquidado', 'Monto']
+        
+        for i, header in enumerate(headers):
+            header_lower = str(header).lower()
+            
+            # Buscar departamento
+            if indices['department'] is None:
+                for keyword in department_keywords:
+                    if keyword in header_lower:
+                        indices['department'] = i
+                        break
+            
+            # Buscar empleado/solicitante
+            if indices['employee'] is None:
+                for keyword in employee_keywords:
+                    if keyword in header_lower:
+                        indices['employee'] = i
+                        break
+            
+            # Buscar monto/gasto
+            if indices['amount'] is None:
+                for keyword in amount_keywords:
+                    if keyword in header_lower:
+                        indices['amount'] = i
+                        break
+        
+        return indices
+    
+    @staticmethod
+    def transform_to_hierarchical(headers, data):
+        """
+        Transforma datos planos a estructura jerárquica
+        
+        Returns:
+            dict: {
+                'headers': headers originales,
+                'hierarchical_data': datos transformados con jerarquía,
+                'summary': resumen por departamento,
+                'total_general': total general
+            }
+        """
+        if not headers or not data:
+            return None
+        
+        # Detectar columnas clave
+        indices = DataHierarchyTransformer.detect_key_columns(headers)
+        
+        # Si no hay columna de departamento, no podemos hacer jerarquía
+        if indices['department'] is None:
+            return None
+        
+        # Agrupar por departamento
+        departments = {}
+        for row in data:
+            dept = str(row[indices['department']]) if indices['department'] < len(row) else "SIN DEPARTAMENTO"
+            if dept not in departments:
+                departments[dept] = {
+                    'rows': [],
+                    'subtotal': 0
+                }
+            
+            departments[dept]['rows'].append(row)
+            
+            # Calcular subtotal si hay columna de monto
+            if indices['amount'] is not None and indices['amount'] < len(row):
+                try:
+                    amount_str = str(row[indices['amount']]).replace('$', '').replace(',', '').replace(' ', '')
+                    if amount_str.replace('.', '', 1).isdigit():
+                        amount = float(amount_str)
+                        departments[dept]['subtotal'] += amount
+                except (ValueError, AttributeError):
+                    pass
+        
+        # Construir estructura jerárquica
+        hierarchical_data = []
+        total_general = 0
+        summary = {}
+        
+        # Ordenar departamentos alfabéticamente
+        sorted_depts = sorted(departments.keys())
+        
+        for dept in sorted_depts:
+            dept_info = departments[dept]
+            
+            # 1. Fila de encabezado del departamento
+            dept_header = [''] * len(headers)
+            dept_header[indices['department']] = f"📊 DEPARTAMENTO: {dept.upper()}"
+            
+            # Agregar subtotal si existe
+            if indices['amount'] is not None and dept_info['subtotal'] > 0:
+                # Buscar la columna de monto para poner el subtotal
+                subtotal_text = f"SUBTOTAL: ${dept_info['subtotal']:,.2f}"
+                dept_header[indices['amount']] = subtotal_text
+            
+            hierarchical_data.append({
+                'type': 'department_header',
+                'data': dept_header,
+                'department': dept,
+                'subtotal': dept_info['subtotal']
+            })
+            
+            summary[dept] = dept_info['subtotal']
+            total_general += dept_info['subtotal']
+            
+            # 2. Filas de solicitantes (con numeración)
+            for idx, row in enumerate(dept_info['rows'], 1):
+                formatted_row = list(row)
+                
+                # Numerar solicitantes
+                if indices['employee'] is not None and indices['employee'] < len(formatted_row):
+                    employee_name = formatted_row[indices['employee']]
+                    formatted_row[indices['employee']] = f"{idx}. {employee_name}"
+                
+                hierarchical_data.append({
+                    'type': 'employee_row',
+                    'data': formatted_row,
+                    'department': dept,
+                    'employee_number': idx
+                })
+            
+            # 3. Separador entre departamentos
+            hierarchical_data.append({
+                'type': 'separator',
+                'data': [''] * len(headers),
+                'department': dept
+            })
+        
+        # 4. Fila de total general
+        if indices['amount'] is not None and total_general > 0:
+            total_row = [''] * len(headers)
+            total_row[indices['department']] = "✅ TOTAL GENERAL"
+            total_row[indices['amount']] = f"${total_general:,.2f}"
+            
+            hierarchical_data.append({
+                'type': 'total_row',
+                'data': total_row,
+                'total': total_general
+            })
+        
+        return {
+            'headers': headers,
+            'hierarchical_data': hierarchical_data,
+            'summary': summary,
+            'total_general': total_general,
+            'indices': indices
+        }
+
+
 class TreeviewExporter:
     """Exportador genérico para Treeview de tkinter"""
     
+    # Reemplazar la función existente get_treeview_data con esta versión mejorada
     @staticmethod
-    def get_treeview_data(tree: ttk.Treeview) -> tuple:
+    def get_treeview_data(tree: ttk.Treeview, hierarchical=True):
         """
-        Extrae todos los datos del Treeview
+        Extrae todos los datos del Treeview con transformación jerárquica automática
+        
+        Args:
+            hierarchical: Si True, intenta transformar a estructura jerárquica
         
         Returns:
-            tuple: (encabezados, datos)
+            tuple: (encabezados, datos, estructura_jerarquica)
         """
         # Obtener encabezados
         columns = tree['columns']
@@ -51,11 +227,16 @@ class TreeviewExporter:
             values = tree.item(item)['values']
             data.append(values)
         
-        return headers, data
+        # Aplicar transformación jerárquica si está habilitada y hay datos
+        hierarchical_structure = None
+        if hierarchical and headers and data:
+            hierarchical_structure = DataHierarchyTransformer.transform_to_hierarchical(headers, data)
+        
+        return headers, data, hierarchical_structure
     
     @staticmethod
     def export_to_excel(tree: ttk.Treeview, title: str, filename: str = None) -> Optional[str]:
-        """Exporta Treeview a Excel"""
+        """Exporta Treeview a Excel con tablas separadas por departamento"""
         if not HAS_EXCEL:
             messagebox.showerror("Error", "openpyxl no está instalado. Instálelo con: pip install openpyxl")
             return None
@@ -71,52 +252,252 @@ class TreeviewExporter:
             return None
         
         try:
-            headers, data = TreeviewExporter.get_treeview_data(tree)
+            # Obtener datos con transformación jerárquica automática
+            headers, _, hierarchical_structure = TreeviewExporter.get_treeview_data(tree, hierarchical=True)
             
-            if not headers or not data:
+            if not headers:
                 messagebox.showwarning("Sin datos", "No hay datos para exportar")
                 return None
+            
+            # Función para abreviar encabezados específicos
+            def abreviar_encabezado(header):
+                header_str = str(header)
+                abreviaciones = {
+                    'Desayunos': 'D',
+                    'Almuerzos': 'A', 
+                    'Cenas': 'C',
+                    'Alojamientos': 'H',
+                }
+                for key, value in abreviaciones.items():
+                    if key in header_str:
+                        return value
+                return header_str
             
             # Crear workbook
             wb = openpyxl.Workbook()
             ws = wb.active
             ws.title = "Reporte"
             
-            # Escribir título
+            # Escribir título principal
             ws.merge_cells(f'A1:{get_column_letter(len(headers))}1')
             title_cell = ws['A1']
             title_cell.value = title
-            title_cell.font = Font(size=14, bold=True)
+            title_cell.font = Font(size=14, bold=True, color="2c3e50")
             title_cell.alignment = Alignment(horizontal='center', vertical='center')
             
-            # Escribir encabezados
-            for col_idx, header in enumerate(headers, start=1):
-                cell = ws.cell(row=3, column=col_idx, value=header)
-                cell.font = Font(bold=True)
-                cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-                cell.font = Font(color="FFFFFF", bold=True)
-                cell.alignment = Alignment(horizontal='center')
+            # Subtítulo informativo si hay jerarquía
+            if hierarchical_structure:
+                ws.merge_cells(f'A2:{get_column_letter(len(headers))}2')
+                subtitle = "📊 REPORTE POR DEPARTAMENTOS"
+                subtitle_cell = ws['A2']
+                subtitle_cell.value = subtitle
+                subtitle_cell.font = Font(size=11, bold=True, color="27ae60")
+                subtitle_cell.alignment = Alignment(horizontal='center')
+                subtitle_cell.fill = PatternFill(start_color="e8f8f5", end_color="e8f8f5", fill_type="solid")
+            
+            # Fecha de exportación
+            ws.merge_cells(f'A3:{get_column_letter(len(headers))}3')
+            date_cell = ws['A3']
+            date_cell.value = f"Exportado: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            date_cell.font = Font(size=9, color="666666")
+            date_cell.alignment = Alignment(horizontal='center')
+            
+            # Espacio
+            current_row = 5
+            
+            if hierarchical_structure:
+                # PROCESAR POR DEPARTAMENTOS
+                departments_data = {}
+                current_dept = None
                 
-                # Ajustar ancho de columna
-                col_letter = get_column_letter(col_idx)
-                ws.column_dimensions[col_letter].width = max(len(str(header)) + 2, 12)
-            
-            # Escribir datos
-            for row_idx, row_data in enumerate(data, start=4):
-                for col_idx, cell_data in enumerate(row_data, start=1):
-                    cell = ws.cell(row=row_idx, column=col_idx, value=cell_data)
+                for item in hierarchical_structure['hierarchical_data']:
+                    if item['type'] == 'department_header':
+                        current_dept = item['department']
+                        departments_data[current_dept] = {
+                            'header': item,
+                            'employees': [],
+                            'subtotal': item.get('subtotal', 0)
+                        }
+                    elif item['type'] == 'employee_row' and current_dept:
+                        departments_data[current_dept]['employees'].append(item)
+                
+                # CREAR UNA SECCIÓN POR CADA DEPARTAMENTO
+                for dept_name, dept_info in departments_data.items():
+                    # Título del departamento con subtotal
+                    dept_cell = ws.cell(row=current_row, column=1)
+                    dept_text = f"📊 {dept_name}"
+                    if dept_info['subtotal'] > 0:
+                        dept_text += f" - Subtotal: ${dept_info['subtotal']:,.2f}"
                     
-                    # Formatear números/montos
-                    if isinstance(cell_data, str) and cell_data.startswith('$'):
-                        cell.alignment = Alignment(horizontal='right')
-                    elif isinstance(cell_data, (int, float)):
-                        cell.alignment = Alignment(horizontal='right')
+                    dept_cell.value = dept_text
+                    dept_cell.font = Font(bold=True, color="2c3e50", size=12)
+                    dept_cell.fill = PatternFill(start_color="e8f4f8", end_color="e8f4f8", fill_type="solid")
                     
-                    # Alternar colores de fila
-                    if row_idx % 2 == 0:
-                        cell.fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+                    # Fusionar celdas para el título del departamento
+                    ws.merge_cells(
+                        start_row=current_row,
+                        start_column=1,
+                        end_row=current_row,
+                        end_column=len(headers)
+                    )
+                    
+                    current_row += 1
+                    
+                    # Crear tabla para este departamento
+                    num_employees = len(dept_info['employees'])
+                    if num_employees > 0:
+                        # Identificar índices de columnas a excluir
+                        indices_a_excluir = []
+                        
+                        # 1. Columna de departamento (siempre)
+                        if hierarchical_structure['indices'].get('department') is not None:
+                            indices_a_excluir.append(hierarchical_structure['indices']['department'])
+                        
+                        # 2. Columna "N° Anticipo" y "N° Liquidación"
+                        for i, header in enumerate(headers):
+                            header_lower = str(header).lower()
+                            if any(keyword in header_lower for keyword in ['anticipo', 'n° anticipo', 'n anticipo', 'nº anticipo', 'numero anticipo',
+                                                                        'no. anticipo', 'liquidación', 'n° liquidación', 'n liquidación', 
+                                                                        'nº liquidación', 'numero liquidación', 'no. liquidación']):
+                                if i not in indices_a_excluir:
+                                    indices_a_excluir.append(i)
+                        
+                        # 3. Columna "Estado"
+                        for i, header in enumerate(headers):
+                            header_lower = str(header).lower()
+                            if any(keyword in header_lower for keyword in ['estado', 'status', 'situacion']):
+                                if i not in indices_a_excluir:
+                                    indices_a_excluir.append(i)
+                        
+                        indices_a_excluir.sort()
+                        
+                        # ENCABEZADOS DE LA TABLA (excluyendo columnas no deseadas)
+                        col_idx_destino = 1
+                        for i, header in enumerate(headers):
+                            if i in indices_a_excluir:
+                                continue
+                            
+                            header_cell = ws.cell(row=current_row, column=col_idx_destino)
+                            header_abreviado = abreviar_encabezado(header)
+                            header_cell.value = str(header_abreviado)
+                            header_cell.font = Font(bold=True, color="FFFFFF")
+                            header_cell.fill = PatternFill(start_color="2c3e50", end_color="2c3e50", fill_type="solid")
+                            header_cell.alignment = Alignment(horizontal='center', vertical='center')
+                            
+                            # Ajustar ancho de columna
+                            col_letter = get_column_letter(col_idx_destino)
+                            ws.column_dimensions[col_letter].width = max(len(str(header_abreviado)) + 4, 12)
+                            
+                            col_idx_destino += 1
+                        
+                        current_row += 1
+                        
+                        # DATOS DE LOS EMPLEADOS
+                        for idx, emp_item in enumerate(dept_info['employees']):
+                            row_data = emp_item['data']
+                            col_idx_destino = 1
+                            
+                            for i, cell_data in enumerate(row_data):
+                                if i in indices_a_excluir:
+                                    continue
+                                
+                                cell = ws.cell(row=current_row, column=col_idx_destino, value=cell_data)
+                                
+                                # Formatear nombre del empleado con numeración
+                                if i == hierarchical_structure['indices'].get('employee'):
+                                    employee_name = cell_data
+                                    clean_name = str(employee_name).replace('   ├── ', '').replace('├── ', '')
+                                    cell.value = f"{idx + 1}. {clean_name}"
+                                    cell.alignment = Alignment(horizontal='left')
+                                
+                                # Formatear montos
+                                cell_str = str(cell_data)
+                                if cell_str.startswith('$') or cell_str.replace('.', '', 1).replace(',', '').isdigit():
+                                    cell.alignment = Alignment(horizontal='right')
+                                    cell.number_format = '"$"#,##0.00'
+                                
+                                # Fondo alternado para filas
+                                if idx % 2 == 0:
+                                    cell.fill = PatternFill(start_color="F8F9FA", end_color="F8F9FA", fill_type="solid")
+                                
+                                col_idx_destino += 1
+                            
+                            current_row += 1
+                    
+                    # Espacio entre departamentos
+                    current_row += 1
+                
+                # TABLA DE RESUMEN FINAL
+                summary_row = current_row + 1
+                summary_title = ws.cell(row=summary_row, column=1, value="📊 RESUMEN DE DEPARTAMENTOS")
+                summary_title.font = Font(bold=True, color="2c3e50", size=12)
+                ws.merge_cells(
+                    start_row=summary_row,
+                    start_column=1,
+                    end_row=summary_row,
+                    end_column=2
+                )
+                
+                summary_row += 1
+                
+                # Encabezados del resumen
+                ws.cell(row=summary_row, column=1, value="DEPARTAMENTO").font = Font(bold=True)
+                ws.cell(row=summary_row, column=2, value="SUBTOTAL").font = Font(bold=True)
+                
+                summary_row += 1
+                
+                # Datos del resumen
+                total_general = 0
+                for dept_name, dept_info in departments_data.items():
+                    ws.cell(row=summary_row, column=1, value=dept_name)
+                    ws.cell(row=summary_row, column=2, value=f"${dept_info['subtotal']:,.2f}")
+                    ws.cell(row=summary_row, column=2).number_format = '"$"#,##0.00'
+                    total_general += dept_info['subtotal']
+                    summary_row += 1
+                
+                # Fila de total general
+                total_row = summary_row
+                ws.cell(row=total_row, column=1, value="TOTAL GENERAL").font = Font(bold=True, color="FFFFFF")
+                ws.cell(row=total_row, column=2, value=f"${total_general:,.2f}").font = Font(bold=True, color="FFFFFF")
+                ws.cell(row=total_row, column=2).number_format = '"$"#,##0.00'
+                
+                # Formato para celdas de total
+                for col in [1, 2]:
+                    cell = ws.cell(row=total_row, column=col)
+                    cell.fill = PatternFill(start_color="27ae60", end_color="27ae60", fill_type="solid")
+            else:
+                # FALLBACK: Tabla plana (sin jerarquía)
+                _, flat_data, _ = TreeviewExporter.get_treeview_data(tree, hierarchical=False)
+                
+                # Escribir encabezados
+                for col_idx, header in enumerate(headers, start=1):
+                    cell = ws.cell(row=current_row, column=col_idx, value=header)
+                    cell.font = Font(bold=True, color="FFFFFF")
+                    cell.fill = PatternFill(start_color="2c3e50", end_color="2c3e50", fill_type="solid")
+                    cell.alignment = Alignment(horizontal='center', vertical='center')
+                    
+                    col_letter = get_column_letter(col_idx)
+                    ws.column_dimensions[col_letter].width = max(len(str(header)) + 4, 15)
+                
+                current_row += 1
+                
+                # Escribir datos
+                for row_idx, row_data in enumerate(flat_data):
+                    for col_idx, cell_data in enumerate(row_data, start=1):
+                        cell = ws.cell(row=current_row, column=col_idx, value=cell_data)
+                        
+                        if isinstance(cell_data, str) and cell_data.startswith('$'):
+                            cell.alignment = Alignment(horizontal='right')
+                        elif isinstance(cell_data, (int, float)):
+                            cell.alignment = Alignment(horizontal='right')
+                            cell.number_format = '"$"#,##0.00'
+                        
+                        if row_idx % 2 == 0:
+                            cell.fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+                    
+                    current_row += 1
             
-            # Agregar bordes
+            # Agregar bordes a todas las celdas con datos
             thin_border = Border(
                 left=Side(style='thin'),
                 right=Side(style='thin'),
@@ -124,27 +505,60 @@ class TreeviewExporter:
                 bottom=Side(style='thin')
             )
             
-            for row in ws.iter_rows(min_row=3, max_row=len(data)+3, min_col=1, max_col=len(headers)):
-                for cell in row:
-                    cell.border = thin_border
+            # Aplicar bordes dinámicamente
+            max_row = ws.max_row
+            max_col = ws.max_column
             
-            # Agregar metadatos
-            ws['A' + str(len(data) + 5)] = f"Total de registros: {len(data)}"
-            ws['A' + str(len(data) + 5)].font = Font(italic=True)
-            ws['A' + str(len(data) + 6)] = f"Fecha de exportación: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
-            ws['A' + str(len(data) + 6)].font = Font(italic=True, size=9)
+            for row in ws.iter_rows(min_row=1, max_row=max_row, min_col=1, max_col=max_col):
+                for cell in row:
+                    if cell.value:
+                        cell.border = thin_border
+            
+            # Pie de página
+            footer_row = max_row + 2
+            ws.cell(row=footer_row, column=1, 
+                value=f"Sistema de Gestión de Dietas VIAJEX • Exportado el: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+            ws.cell(row=footer_row, column=1).font = Font(italic=True, size=9, color="666666")
+            
+            # Autoajustar columnas
+            for column in ws.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if cell.value and len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                ws.column_dimensions[column_letter].width = adjusted_width
             
             wb.save(filename)
-            messagebox.showinfo("Éxito", f"Archivo exportado exitosamente:\n{filename}")
+            
+            # Mensaje de éxito
+            if hierarchical_structure:
+                message = (
+                    f"✅ EXCEL con tablas separadas exportado:\n\n"
+                    f"📂 {filename}\n\n"
+                    f"• Tablas por departamento: {len(departments_data)}\n"
+                    f"• Total General: ${total_general:,.2f}\n"
+                    f"• Incluye resumen detallado"
+                )
+            else:
+                message = f"✅ Excel exportado exitosamente:\n\n{filename}"
+            
+            messagebox.showinfo("Exportación exitosa", message)
             return filename
             
         except Exception as e:
-            messagebox.showerror("Error", f"No se pudo exportar a Excel:\n{str(e)}")
+            messagebox.showerror("❌ Error", f"No se pudo exportar a Excel:\n\n{str(e)}")
+            import traceback
+            traceback.print_exc()
             return None
-    
+            
     @staticmethod
     def export_to_word(tree: ttk.Treeview, title: str, filename: str = None) -> Optional[str]:
-        """Exporta Treeview a Word"""
+        """Exporta Treeview a Word con tablas separadas por departamento"""
         if not HAS_WORD:
             messagebox.showerror("Error", "python-docx no está instalado. Instálelo con: pip install python-docx")
             return None
@@ -153,86 +567,375 @@ class TreeviewExporter:
             filename = filedialog.asksaveasfilename(
                 defaultextension=".docx",
                 filetypes=[("Word files", "*.docx"), ("All files", "*.*")],
-                title="Guardar como Word"
+                title="Guardar como Word (Tablas separadas)"
             )
             
         if not filename:
             return None
         
         try:
-            headers, data = TreeviewExporter.get_treeview_data(tree)
             
-            if not headers or not data:
+            # Obtener datos con transformación jerárquica automática
+            headers, _, hierarchical_structure = TreeviewExporter.get_treeview_data(tree, hierarchical=True)
+            
+            if not headers:
                 messagebox.showwarning("Sin datos", "No hay datos para exportar")
                 return None
             
             # Crear documento
             doc = Document()
+
+            def abreviar_encabezado(header):
+                """Abrevia encabezados específicos a su inicial"""
+                header_str = str(header)
+                
+                # Diccionario de abreviaciones
+                abreviaciones = {
+                    'Desayunos': 'D',
+                    'Almuerzos': 'A', 
+                    'Cenas': 'C',
+                    'Alojamientos': 'H',  # H para Hospedaje
+                }
+                
+                # Verificar si el encabezado está en el diccionario
+                for key, value in abreviaciones.items():
+                    if key in header_str:
+                        return value
+                
+                # Si no es un encabezado específico, devolver el original
+                return header_str
             
-            # Agregar título
+            # Configurar página
+            section = doc.sections[0]
+            section.left_margin = Inches(0.5)
+            section.right_margin = Inches(0.5)
+            section.top_margin = Inches(0.75)
+            section.bottom_margin = Inches(0.75)
+            
+            # Título principal
             title_para = doc.add_paragraph()
             title_run = title_para.add_run(title)
             title_run.font.size = Pt(14)
             title_run.font.bold = True
-            title_run.font.color.rgb = RGBColor(0, 51, 102)
+            title_run.font.color.rgb = RGBColor(44, 62, 80)
             title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
             
+            # Subtítulo informativo si hay jerarquía
+            if hierarchical_structure:
+                subtitle_para = doc.add_paragraph()
+                subtitle_run = subtitle_para.add_run("📊 REPORTE POR DEPARTAMENTOS")
+                subtitle_run.font.size = Pt(11)
+                subtitle_run.font.bold = True
+                subtitle_run.font.color.rgb = RGBColor(39, 174, 96)
+                subtitle_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # Fecha de exportación
+            date_para = doc.add_paragraph()
+            date_run = date_para.add_run(f"Exportado: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+            date_run.font.size = Pt(9)
+            date_run.font.color.rgb = RGBColor(102, 102, 102)
+            date_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
             doc.add_paragraph()  # Espacio
             
-            # Crear tabla
-            table = doc.add_table(rows=1, cols=len(headers))
-            table.style = 'Table Grid'
-            table.alignment = WD_TABLE_ALIGNMENT.CENTER
-            
-            # Agregar encabezados
-            header_cells = table.rows[0].cells
-            for i, header in enumerate(headers):
-                header_cells[i].text = str(header)
-                header_cells[i].paragraphs[0].runs[0].font.bold = True
-                header_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                header_cells[i].paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
+            if hierarchical_structure:
+                # PROCESAR POR DEPARTAMENTOS - TABLAS SEPARADAS
+                # Primero, agrupar los datos por departamento
+                departments_data = {}
                 
+                current_dept = None
+                for item in hierarchical_structure['hierarchical_data']:
+                    if item['type'] == 'department_header':
+                        current_dept = item['department']
+                        departments_data[current_dept] = {
+                            'header': item,
+                            'employees': [],
+                            'subtotal': item.get('subtotal', 0)
+                        }
+                    elif item['type'] == 'employee_row' and current_dept:
+                        departments_data[current_dept]['employees'].append(item)
+                    
                 
-            
-            # Agregar datos
-            for row_idx, row_data in enumerate(data):
-                row_cells = table.add_row().cells
-                for i, cell_data in enumerate(row_data):
-                    row_cells[i].text = str(cell_data)
+                # CREAR UNA TABLA POR CADA DEPARTAMENTO
+                for dept_name, dept_info in departments_data.items():
+                    # Título del departamento (como párrafo, no como fila de tabla)
+                    dept_title_para = doc.add_paragraph()
                     
-                    # Alinear números a la derecha
-                    cell_str = str(cell_data)
-                    if cell_str.startswith('$') or cell_str.replace('.', '', 1).isdigit():
-                        row_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                    # Formatear el texto del departamento con subtotal
+                    dept_header_text = dept_info['header']['data'][hierarchical_structure['indices']['department']]
+                    if dept_info['subtotal'] > 0:
+                        subtotal_text = f" - Subtotal: ${dept_info['subtotal']:,.2f}"
+                    else:
+                        subtotal_text = ""
                     
-                    # Color alternado para filas
-                    if row_idx % 2 == 1:
-                        shading = row_cells[i]._element.xpath('.//w:shd')
-                        if shading:
-                            shading[0].set('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}fill', 'F2F2F2')
+                    dept_title_run = dept_title_para.add_run(f"📊 {dept_header_text}{subtotal_text}")
+                    dept_title_run.font.size = Pt(12)
+                    dept_title_run.font.bold = True
+                    dept_title_run.font.color.rgb = RGBColor(44, 62, 80)
+    
+
+                    # Crear tabla para este departamento
+                    num_employees = len(dept_info['employees'])
+                    if num_employees > 0:
+                        # Identificar índices de columnas a excluir
+                        indices_a_excluir = []
+                        
+                        # 1. Columna de departamento (siempre)
+                        if hierarchical_structure['indices'].get('department') is not None:
+                            indices_a_excluir.append(hierarchical_structure['indices']['department'])
+                        
+                        # 2. Columna "N° Anticipo" - buscar por varios nombres posibles
+                        for i, header in enumerate(headers):
+                            header_lower = str(header).lower()
+                            if any(keyword in header_lower for keyword in ['anticipo', 'n° anticipo', 'n anticipo', 'nº anticipo', 'numero anticipo',
+                                                                        'no. anticipo', 'liquidación', 'n° liquidación', 'n liquidación', 
+                                                                        'nº liquidación', 'numero liquidación', 'no. liquidación']):
+                                if i not in indices_a_excluir:
+                                    indices_a_excluir.append(i)
+                        
+                        # 3. Columna "Estado" - buscar por varios nombres posibles
+                        for i, header in enumerate(headers):
+                            header_lower = str(header).lower()
+                            if any(keyword in header_lower for keyword in ['estado', 'status', 'situacion']):
+                                if i not in indices_a_excluir:
+                                    indices_a_excluir.append(i)
+                        
+                        # Ordenar los índices a excluir
+                        indices_a_excluir.sort()
+                        
+                        # Calcular número de columnas finales
+                        num_columnas_finales = len(headers) - len(indices_a_excluir)
+                        
+                        # Crear tabla con las columnas restantes
+                        table = doc.add_table(rows=num_employees + 1, cols=num_columnas_finales)
+                        table.style = 'Table Grid'
+                        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+                        table.autofit = False
+                        
+                        # Configurar anchos de columna proporcionales
+                        for i in range(num_columnas_finales):
+                            table.columns[i].width = Inches(1.8)  # Un poco más ancho porque hay menos columnas
+                        
+                        # ENCABEZADOS DE LA TABLA (excluyendo las columnas no deseadas)
+                        header_cells = table.rows[0].cells
+                        col_idx_destino = 0
+                        
+                        for i, header in enumerate(headers):
+                            # Saltar las columnas que están en la lista de exclusión
+                            if i in indices_a_excluir:
+                                continue
+                            
+                            # Abreviar encabezados específicos
+                            header_abreviado = abreviar_encabezado(header)
+                            header_cells[col_idx_destino].text = str(header_abreviado)
+                            
+                            header_cells[col_idx_destino].paragraphs[0].runs[0].font.bold = True
+                            header_cells[col_idx_destino].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                            header_cells[col_idx_destino].paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
+                            
+                            # Fondo azul oscuro
+                            tc = header_cells[col_idx_destino]._tc
+                            tcPr = tc.get_or_add_tcPr()
+                            shading = OxmlElement('w:shd')
+                            shading.set(qn('w:fill'), '2c3e50')
+                            tcPr.append(shading)
+                            
+                            col_idx_destino += 1
+                        
+                        # DATOS DE LOS EMPLEADOS (excluyendo las mismas columnas)
+                        for idx, emp_item in enumerate(dept_info['employees']):
+                            row_cells = table.rows[idx + 1].cells
+                            row_data = emp_item['data']
+                            
+                            col_idx_destino = 0
+                            for i, cell_data in enumerate(row_data):
+                                # Saltar las columnas que están en la lista de exclusión
+                                if i in indices_a_excluir:
+                                    continue
+                                    
+                                # Formatear el nombre del empleado con numeración
+                                if i == hierarchical_structure['indices'].get('employee'):
+                                    employee_name = cell_data
+                                    # Quitar cualquier prefijo existente y agregar numeración
+                                    clean_name = str(employee_name).replace('   ├── ', '').replace('├── ', '')
+                                    row_cells[col_idx_destino].text = f"{idx + 1}. {clean_name}"
+                                else:
+                                    row_cells[col_idx_destino].text = str(cell_data)
+                                
+                                # Formato para montos
+                                cell_str = str(cell_data)
+                                if cell_str.startswith('$') or cell_str.replace('.', '', 1).replace(',', '').isdigit():
+                                    row_cells[col_idx_destino].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                                
+                                # Fondo alternado para filas
+                                if idx % 2 == 0:
+                                    tc = row_cells[col_idx_destino]._tc
+                                    tcPr = tc.get_or_add_tcPr()
+                                    shading = OxmlElement('w:shd')
+                                    shading.set(qn('w:fill'), 'f8f9fa')
+                                    tcPr.append(shading)
+                                
+                                col_idx_destino += 1
+                        
+                        # Ajustar altura de filas
+                        for row in table.rows:
+                            tr = row._tr
+                            trPr = tr.get_or_add_trPr()
+                            trHeight = OxmlElement('w:trHeight')
+                            trHeight.set(qn('w:val'), "350")
+                            trPr.append(trHeight)
+
+                    # Espacio entre departamentos
+                    doc.add_paragraph()
+                
+                # TABLA DE RESUMEN FINAL (departamentos con subtotales)
+                summary_title = doc.add_paragraph()
+                summary_title_run = summary_title.add_run("📊 RESUMEN DE DEPARTAMENTOS")
+                summary_title_run.font.size = Pt(12)
+                summary_title_run.font.bold = True
+                summary_title_run.font.color.rgb = RGBColor(44, 62, 80)
+                
+                # Crear tabla de resumen (2 columnas: departamento, subtotal)
+                summary_table = doc.add_table(rows=len(departments_data) + 2, cols=2)
+                summary_table.style = 'Table Grid'
+                summary_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+                
+                # Encabezados del resumen
+                summary_header = summary_table.rows[0].cells
+                summary_header[0].text = "DEPARTAMENTO"
+                summary_header[1].text = "SUBTOTAL"
+                
+                for cell in summary_header:
+                    cell.paragraphs[0].runs[0].font.bold = True
+                    cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
+                    
+                    tc = cell._tc
+                    tcPr = tc.get_or_add_tcPr()
+                    shading = OxmlElement('w:shd')
+                    shading.set(qn('w:fill'), '2c3e50')
+                    tcPr.append(shading)
+                
+                # Datos del resumen
+                row_idx = 1
+                total_general = 0
+                
+                for dept_name, dept_info in departments_data.items():
+                    row_cells = summary_table.rows[row_idx].cells
+                    row_cells[0].text = dept_name
+                    row_cells[1].text = f"${dept_info['subtotal']:,.2f}"
+                    row_cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                    
+                    total_general += dept_info['subtotal']
+                    row_idx += 1
+                
+                # Fila de total general
+                total_cells = summary_table.rows[row_idx].cells
+                total_cells[0].text = "TOTAL GENERAL"
+                total_cells[1].text = f"${total_general:,.2f}"
+                
+                for cell in total_cells:
+                    cell.paragraphs[0].runs[0].font.bold = True
+                    cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
+                    
+                    tc = cell._tc
+                    tcPr = tc.get_or_add_tcPr()
+                    shading = OxmlElement('w:shd')
+                    shading.set(qn('w:fill'), '27ae60')
+                    tcPr.append(shading)
+                
+                total_cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            else:
+                # FALLBACK: Tabla plana (sin jerarquía)
+                _, flat_data, _ = TreeviewExporter.get_treeview_data(tree, hierarchical=False)
+                
+                table = doc.add_table(rows=1, cols=len(headers))
+                table.style = 'Table Grid'
+                table.alignment = WD_TABLE_ALIGNMENT.CENTER
+                
+                # Configurar anchos
+                for i in range(len(headers)):
+                    table.columns[i].width = Inches(1.5)
+                
+                # Encabezados
+                header_cells = table.rows[0].cells
+                for i, header in enumerate(headers):
+                    header_cells[i].text = str(header)
+                    header_cells[i].paragraphs[0].runs[0].font.bold = True
+                    header_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    header_cells[i].paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
+                    
+                    tc = header_cells[i]._tc
+                    tcPr = tc.get_or_add_tcPr()
+                    shading = OxmlElement('w:shd')
+                    shading.set(qn('w:fill'), '2c3e50')
+                    tcPr.append(shading)
+                
+                # Datos
+                for row_idx, row_data in enumerate(flat_data):
+                    row_cells = table.add_row().cells
+                    
+                    for i, cell_data in enumerate(row_data):
+                        row_cells[i].text = str(cell_data)
+                        
+                        # Fondo alternado
+                        if row_idx % 2 == 0:
+                            tc = row_cells[i]._tc
+                            tcPr = tc.get_or_add_tcPr()
+                            shading = OxmlElement('w:shd')
+                            shading.set(qn('w:fill'), 'f8f9fa')
+                            tcPr.append(shading)
             
-            # Agregar información
-            doc.add_paragraph()  # Espacio
-            total_para = doc.add_paragraph(f"Total de registros: {len(data)}")
-            total_para.runs[0].italic = True
+            # Ajustar altura de filas en todas las tablas
+            for table in doc.tables:
+                for row in table.rows:
+                    tr = row._tr
+                    trPr = tr.get_or_add_trPr()
+                    trHeight = OxmlElement('w:trHeight')
+                    trHeight.set(qn('w:val'), "350")
+                    trPr.append(trHeight)
             
-            date_para = doc.add_paragraph(f"Fecha de exportación: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
-            date_para.runs[0].font.size = Pt(9)
-            date_para.runs[0].italic = True
+            # Pie de documento
+            doc.add_paragraph()
+            footer_para = doc.add_paragraph()
             
+            footer_text = "Sistema de Gestión de Dietas VIAJEX"
+            if hierarchical_structure:
+                footer_text += f" • {len(departments_data)} departamentos procesados"
+            
+            footer_run = footer_para.add_run(footer_text)
+            footer_run.font.size = Pt(8)
+            footer_run.italic = True
+            footer_run.font.color.rgb = RGBColor(102, 102, 102)
+            footer_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # Guardar documento
             doc.save(filename)
-            messagebox.showinfo("Éxito", f"Archivo exportado exitosamente:\n{filename}")
+            
+            # Mensaje de éxito
+            if hierarchical_structure:
+                message = (
+                    f"✅ WORD con tablas separadas exportado:\n\n"
+                    f"📂 {filename}\n\n"
+                    f"• Tablas por departamento: {len(departments_data)}\n"
+                    f"• Total General: ${total_general:,.2f}\n"
+                    f"• Incluye resumen detallado"
+                )
+            else:
+                message = f"✅ Word exportado exitosamente:\n\n{filename}"
+            
+            messagebox.showinfo("Exportación exitosa", message)
             return filename
             
         except Exception as e:
-            messagebox.showerror("Error", f"No se pudo exportar a Word:\n{str(e)}")
+            messagebox.showerror("❌ Error", f"No se pudo exportar a Word:\n\n{str(e)}")
             import traceback
             traceback.print_exc()
-            return None
-    
+            return None        
+        
     @staticmethod
     def export_to_pdf(tree: ttk.Treeview, title: str, filename: str = None) -> Optional[str]:
-        """Exporta Treeview a PDF"""
+        """Exporta Treeview a PDF con tablas separadas por departamento"""
         if not HAS_PDF:
             messagebox.showerror("Error", "reportlab no está instalado. Instálelo con: pip install reportlab")
             return None
@@ -241,322 +944,482 @@ class TreeviewExporter:
             filename = filedialog.asksaveasfilename(
                 defaultextension=".pdf",
                 filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
-                title="Guardar como PDF"
+                title="Guardar como PDF (Tablas separadas)"
             )
             
         if not filename:
             return None
         
         try:
-            headers, data = TreeviewExporter.get_treeview_data(tree)
+            from reportlab.lib.pagesizes import A4
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib import colors
+            from reportlab.lib.units import inch
             
-            if not headers or not data:
+            # Obtener datos con transformación jerárquica automática
+            headers, _, hierarchical_structure = TreeviewExporter.get_treeview_data(tree, hierarchical=True)
+            
+            if not headers:
                 messagebox.showwarning("Sin datos", "No hay datos para exportar")
                 return None
             
+            # Función para abreviar encabezados específicos
+            def abreviar_encabezado(header):
+                header_str = str(header)
+                abreviaciones = {
+                    'Desayunos': 'D',
+                    'Almuerzos': 'A', 
+                    'Cenas': 'C',
+                    'Alojamientos': 'H',
+                }
+                for key, value in abreviaciones.items():
+                    if key in header_str:
+                        return value
+                return header_str
+            
             # Crear documento PDF
-            doc = SimpleDocTemplate(filename, pagesize=A4, 
-                                  topMargin=0.5*inch, bottomMargin=0.5*inch,
-                                  leftMargin=0.5*inch, rightMargin=0.5*inch)
+            doc = SimpleDocTemplate(
+                filename, 
+                pagesize=A4,
+                topMargin=0.5*inch, 
+                bottomMargin=0.5*inch,
+                leftMargin=0.5*inch, 
+                rightMargin=0.5*inch
+            )
             elements = []
             
             # Estilos
             styles = getSampleStyleSheet()
             
-            # Título
+            # Título principal
             title_style = ParagraphStyle(
-                'CustomTitle',
+                'MainTitle',
                 parent=styles['Heading1'],
                 fontSize=14,
-                spaceAfter=12,
+                textColor=colors.HexColor('#2c3e50'),
+                spaceAfter=10,
                 alignment=1,
-                textColor=colors.HexColor('#2c3e50')
+                fontName='Helvetica-Bold'
             )
             
-            title_para = Paragraph(title, title_style)
-            elements.append(title_para)
-            elements.append(Spacer(1, 0.2*inch))
+            main_title = Paragraph(title, title_style)
+            elements.append(main_title)
             
-            # Preparar datos para la tabla
-            table_data = [headers] + data
-            
-            # Crear tabla
-            col_widths = [doc.width/len(headers)] * len(headers)
-            table = Table(table_data, colWidths=col_widths, repeatRows=1)
-            
-            # Estilo de la tabla
-            table.setStyle(TableStyle([
-                # Encabezados
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#DB1B1B")),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            # Subtítulo informativo si hay jerarquía
+            if hierarchical_structure:
+                subtitle_style = ParagraphStyle(
+                    'Subtitle',
+                    parent=styles['Normal'],
+                    fontSize=11,
+                    textColor=colors.HexColor('#27ae60'),
+                    alignment=1,
+                    spaceAfter=15
+                )
                 
-                # Datos
-                ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-                ('ALIGN', (0, 1), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -1), 9),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                
-                # Alternar colores de fila
-                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f2f2f2')]),
-                
-                # Alinear montos a la derecha
-                ('ALIGN', (len(headers)-1, 1), (len(headers)-1, -1), 'RIGHT'),
-            ]))
+                subtitle = Paragraph("📊 REPORTE POR DEPARTAMENTOS", subtitle_style)
+                elements.append(subtitle)
             
-            elements.append(table)
-            
-            # Agregar información
-            elements.append(Spacer(1, 0.3*inch))
-            
-            total_text = f"<b>Total de registros:</b> {len(data)}"
-            total_style = ParagraphStyle(
-                'CustomBody',
-                parent=styles['BodyText'],
-                fontSize=10,
-                spaceAfter=6
-            )
-            total_para = Paragraph(total_text, total_style)
-            elements.append(total_para)
-            
-            date_text = f"<i>Fecha de exportación: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</i>"
+            # Fecha de exportación
             date_style = ParagraphStyle(
-                'CustomItalic',
-                parent=styles['Italic'],
-                fontSize=8,
-                textColor=colors.gray
+                'DateStyle',
+                parent=styles['Normal'],
+                fontSize=9,
+                textColor=colors.HexColor('#666666'),
+                alignment=1,
+                spaceAfter=15
             )
-            date_para = Paragraph(date_text, date_style)
+            
+            date_para = Paragraph(f"Exportado: {datetime.now().strftime('%d/%m/%Y %H:%M')}", date_style)
             elements.append(date_para)
             
-            doc.build(elements)
-            messagebox.showinfo("Éxito", f"Archivo exportado exitosamente:\n{filename}")
-            return filename
+            elements.append(Spacer(1, 0.2*inch))
             
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudo exportar a PDF:\n{str(e)}")
-            return None
-    
-    @staticmethod
-    def export_to_csv(tree: ttk.Treeview, title: str, filename: str = None) -> Optional[str]:
-        """Exporta Treeview a CSV"""
-        if not filename:
-            filename = filedialog.asksaveasfilename(
-                defaultextension=".csv",
-                filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
-                title="Guardar como CSV"
-            )
-            
-        if not filename:
-            return None
-        
-        try:
-            import csv
-            
-            headers, data = TreeviewExporter.get_treeview_data(tree)
-            
-            if not headers or not data:
-                messagebox.showwarning("Sin datos", "No hay datos para exportar")
-                return None
-            
-            with open(filename, 'w', newline='', encoding='utf-8-sig') as csvfile:
-                writer = csv.writer(csvfile, delimiter=';')
+            if hierarchical_structure:
+                # PROCESAR POR DEPARTAMENTOS
+                departments_data = {}
+                current_dept = None
                 
-                # Escribir título como comentario
-                csvfile.write(f"# {title}\n")
-                csvfile.write(f"# Fecha de exportación: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n")
-                csvfile.write(f"# Total de registros: {len(data)}\n")
+                for item in hierarchical_structure['hierarchical_data']:
+                    if item['type'] == 'department_header':
+                        current_dept = item['department']
+                        departments_data[current_dept] = {
+                            'header': item,
+                            'employees': [],
+                            'subtotal': item.get('subtotal', 0)
+                        }
+                    elif item['type'] == 'employee_row' and current_dept:
+                        departments_data[current_dept]['employees'].append(item)
                 
-                # Escribir encabezados
-                writer.writerow(headers)
-                
-                # Escribir datos
-                writer.writerows(data)
-            
-            messagebox.showinfo("Éxito", f"Archivo exportado exitosamente:\n{filename}")
-            return filename
-            
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudo exportar a CSV:\n{str(e)}")
-            return None
-    
-    @staticmethod
-    def create_export_button(parent, tree: ttk.Treeview, title: str, 
-                        button_text: str = "📤 Exportar", 
-                        pack_options: dict = None,
-                        include_print: bool = True) -> ttk.Button:
-        """
-        Crea un botón de exportación con menú desplegable
-        
-        Args:
-            parent: Widget padre
-            tree: Treeview a exportar
-            title: Título del reporte
-            button_text: Texto del botón
-            pack_options: Opciones para pack() del botón
-            include_print: Incluir opción de impresión
-        """
-        from tkinter import Menu
-        
-        def show_export_menu(event=None):
-            """Muestra el menú de exportación"""
-            menu = Menu(parent, tearoff=0)
-            
-            # Solo agregar opciones disponibles
-            available_formats = []
-            
-            if HAS_EXCEL:
-                menu.add_command(
-                    label="📊 Exportar a Excel (.xlsx)",
-                    command=lambda: TreeviewExporter.export_to_excel(tree, title)
-                )
-                available_formats.append("Excel")
-            
-            if HAS_WORD:
-                menu.add_command(
-                    label="📝 Exportar a Word (.docx)",
-                    command=lambda: TreeviewExporter.export_to_word(tree, title)
-                )
-                available_formats.append("Word")
-            
-            if HAS_PDF:
-                menu.add_command(
-                    label="📄 Exportar a PDF (.pdf)",
-                    command=lambda: TreeviewExporter.export_to_pdf(tree, title)
-                )
-                available_formats.append("PDF")
-                
-                # Agregar opción de impresión si está habilitado
-                if include_print:
-                    menu.add_separator()
-                    menu.add_command(
-                        label="🖨️ Imprimir directamente",
-                        command=lambda: TreeviewExporter.print_directly(tree, title)
+                # CREAR UNA SECCIÓN POR CADA DEPARTAMENTO
+                for dept_name, dept_info in departments_data.items():
+                    # Título del departamento
+                    dept_title_style = ParagraphStyle(
+                        'DeptTitle',
+                        parent=styles['Heading2'],
+                        fontSize=12,
+                        textColor=colors.HexColor('#2c3e50'),
+                        spaceAfter=10,
+                        leftIndent=0,
+                        fontName='Helvetica-Bold'
                     )
-                    menu.add_command(
-                        label="👁️ Vista previa e imprimir",
-                        command=lambda: TreeviewExporter.print_with_preview(tree, title)
-                    )
-            
-            menu.add_command(
-                label="📋 Exportar a CSV (.csv)",
-                command=lambda: TreeviewExporter.export_to_csv(tree, title)
-            )
-            available_formats.append("CSV")
-            
-            # Agregar separador y opción de ayuda
-            menu.add_separator()
-            
-            if len(available_formats) < 4:
-                menu.add_command(
-                    label="⚙️ Instalar dependencias faltantes",
-                    command=TreeviewExporter.show_dependency_help
+                    
+                    dept_text = f"📊 {dept_name}"
+                    if dept_info['subtotal'] > 0:
+                        dept_text += f" - Subtotal: ${dept_info['subtotal']:,.2f}"
+                    
+                    dept_title = Paragraph(dept_text, dept_title_style)
+                    elements.append(dept_title)
+                    
+                    # Crear tabla para este departamento
+                    num_employees = len(dept_info['employees'])
+                    if num_employees > 0:
+                        # Identificar índices de columnas a excluir
+                        indices_a_excluir = []
+                        
+                        # 1. Columna de departamento (siempre)
+                        if hierarchical_structure['indices'].get('department') is not None:
+                            indices_a_excluir.append(hierarchical_structure['indices']['department'])
+                        
+                        # 2. Columna "N° Anticipo" y "N° Liquidación"
+                        for i, header in enumerate(headers):
+                            header_lower = str(header).lower()
+                            if any(keyword in header_lower for keyword in ['anticipo', 'n° anticipo', 'n anticipo', 'nº anticipo', 'numero anticipo',
+                                                                        'no. anticipo', 'liquidación', 'n° liquidación', 'n liquidación', 
+                                                                        'nº liquidación', 'numero liquidación', 'no. liquidación']):
+                                if i not in indices_a_excluir:
+                                    indices_a_excluir.append(i)
+                        
+                        # 3. Columna "Estado"
+                        for i, header in enumerate(headers):
+                            header_lower = str(header).lower()
+                            if any(keyword in header_lower for keyword in ['estado', 'status', 'situacion']):
+                                if i not in indices_a_excluir:
+                                    indices_a_excluir.append(i)
+                        
+                        indices_a_excluir.sort()
+                        
+                        # Construir encabezados de la tabla
+                        table_headers = []
+                        for i, header in enumerate(headers):
+                            if i in indices_a_excluir:
+                                continue
+                            header_abreviado = abreviar_encabezado(header)
+                            table_headers.append(header_abreviado)
+                        
+                        # Construir datos de la tabla
+                        table_data = [table_headers]
+                        
+                        for idx, emp_item in enumerate(dept_info['employees']):
+                            row_data = emp_item['data']
+                            table_row = []
+                            
+                            for i, cell_data in enumerate(row_data):
+                                if i in indices_a_excluir:
+                                    continue
+                                
+                                # Formatear nombre del empleado con numeración
+                                if i == hierarchical_structure['indices'].get('employee'):
+                                    employee_name = cell_data
+                                    clean_name = str(employee_name).replace('   ├── ', '').replace('├── ', '')
+                                    table_row.append(f"{idx + 1}. {clean_name}")
+                                else:
+                                    table_row.append(cell_data)
+                            
+                            table_data.append(table_row)
+                        
+                        # Crear tabla
+                        if table_data and len(table_data[0]) > 0:
+                            num_cols = len(table_data[0])
+                            col_widths = [doc.width / num_cols] * num_cols
+                            
+                            # Ajustar anchos para columnas numéricas
+                            for col_idx in range(num_cols):
+                                if any(keyword in str(table_headers[col_idx]).lower() for keyword in ['gasto', 'monto', 'total', 'precio', 'costo', '$', 'saldo']):
+                                    col_widths[col_idx] = doc.width * 0.15
+                            
+                            table = Table(table_data, colWidths=col_widths, repeatRows=1)
+                            
+                            # Estilo de la tabla
+                            table_style = TableStyle([
+                                # Encabezados
+                                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
+                                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                                
+                                # Bordes
+                                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
+                                
+                                # Filas alternadas
+                                ('ROWBACKGROUNDS', (0, 1), (-1, -1), 
+                                [colors.white, colors.HexColor("#f8f9fa")]),
+                                
+                                # Alineación general
+                                ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+                                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                            ])
+                            
+                            # Alinear montos a la derecha
+                            for col_idx, header in enumerate(table_headers):
+                                if any(keyword in str(header).lower() for keyword in ['gasto', 'monto', 'total', 'precio', 'costo', '$', 'saldo']):
+                                    table_style.add('ALIGN', (col_idx, 1), (col_idx, -1), 'RIGHT')
+                            
+                            table.setStyle(table_style)
+                            elements.append(table)
+                            elements.append(Spacer(1, 0.3*inch))
+                    
+                    # Espacio entre departamentos
+                    elements.append(Spacer(1, 0.2*inch))
+                
+                # Tabla de resumen final
+                elements.append(PageBreak())
+                
+                # Título del resumen
+                summary_title_style = ParagraphStyle(
+                    'SummaryTitle',
+                    parent=styles['Heading2'],
+                    fontSize=12,
+                    textColor=colors.HexColor('#2c3e50'),
+                    spaceAfter=15,
+                    alignment=1
                 )
-            
-            # Mostrar menú
-            if event:
-                try:
-                    menu.tk_popup(event.x_root, event.y_root)
-                finally:
-                    menu.grab_release()
+                
+                summary_title = Paragraph("📊 RESUMEN DE DEPARTAMENTOS", summary_title_style)
+                elements.append(summary_title)
+                
+                # Crear tabla de resumen
+                summary_data = [["DEPARTAMENTO", "SUBTOTAL"]]
+                total_general = 0
+                
+                for dept_name, dept_info in departments_data.items():
+                    summary_data.append([dept_name, f"${dept_info['subtotal']:,.2f}"])
+                    total_general += dept_info['subtotal']
+                
+                summary_data.append(["TOTAL GENERAL", f"${total_general:,.2f}"])
+                
+                summary_table = Table(summary_data, colWidths=[doc.width * 0.7, doc.width * 0.3])
+                summary_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#dddddd")),
+                    ('ALIGN', (1, 1), (1, -1), 'RIGHT'),
+                    ('FONTNAME', (1, -1), (1, -1), 'Helvetica-Bold'),
+                    ('BACKGROUND', (1, -1), (1, -1), colors.HexColor("#27ae60")),
+                    ('TEXTCOLOR', (1, -1), (1, -1), colors.white),
+                ]))
+                
+                elements.append(summary_table)
             else:
-                # Si se llama sin evento, mostrar cerca del botón
-                x = parent.winfo_rootx() + export_btn.winfo_x() + export_btn.winfo_width()
-                y = parent.winfo_rooty() + export_btn.winfo_y() + export_btn.winfo_height()
-                menu.tk_popup(x, y)
-        
-        # Crear botón
-        export_btn = ttk.Button(
-            parent,
-            text=button_text,
-            command=show_export_menu
-        )
-        
-        # Configurar pack si se proporcionaron opciones
-        if pack_options:
-            export_btn.pack(**pack_options)
-        else:
-            export_btn.pack(side=tk.RIGHT, padx=5, pady=5)
-        
-        # También agregar menú contextual al Treeview
-        tree.bind("<Button-3>", show_export_menu)
-        
-        return export_btn
-    
+                # FALLBACK: Tabla plana (sin jerarquía)
+                _, flat_data, _ = TreeviewExporter.get_treeview_data(tree, hierarchical=False)
+                
+                # Construir tabla completa
+                table_data = [headers] + flat_data
+                
+                num_cols = len(headers)
+                if num_cols > 0:
+                    col_widths = [doc.width / num_cols] * num_cols
+                    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+                    
+                    table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#dddddd")),
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), 
+                        [colors.white, colors.HexColor("#f8f9fa")]),
+                    ]))
+                    
+                    elements.append(table)
+            
+            # Pie de página
+            elements.append(Spacer(1, 0.3*inch))
+            
+            footer_style = ParagraphStyle(
+                'Footer',
+                parent=styles['Italic'],
+                fontSize=8,
+                textColor=colors.gray,
+                alignment=1
+            )
+            
+            footer_text = "Sistema de Gestión de Dietas VIAJEX"
+            if hierarchical_structure:
+                footer_text += f" • {len(departments_data)} departamentos procesados"
+            
+            footer = Paragraph(footer_text, footer_style)
+            elements.append(footer)
+            
+            # Construir documento
+            doc.build(elements)
+            
+            # Mensaje de éxito
+            if hierarchical_structure:
+                message = (
+                    f"✅ PDF con tablas separadas exportado:\n\n"
+                    f"📂 {filename}\n\n"
+                    f"• Tablas por departamento: {len(departments_data)}\n"
+                    f"• Total General: ${total_general:,.2f}\n"
+                    f"• Incluye resumen detallado"
+                )
+            else:
+                message = f"✅ PDF exportado exitosamente:\n\n{filename}"
+            
+            messagebox.showinfo("Exportación exitosa", message)
+            return filename
+            
+        except Exception as e:
+            messagebox.showerror("❌ Error", f"No se pudo exportar a PDF:\n\n{str(e)}")
+            import traceback
+            traceback.print_exc()
+            return None
+            
     @staticmethod
     def show_dependency_help():
         """Muestra ayuda para instalar dependencias"""
         help_text = """
-Para exportar en todos los formatos, instale las siguientes bibliotecas:
+            Para exportar en todos los formatos, instale las siguientes bibliotecas:
 
-Excel: pip install openpyxl
-Word:  pip install python-docx
-PDF:   pip install reportlab
+            Excel: pip install openpyxl
+            Word:  pip install python-docx
+            PDF:   pip install reportlab
 
-O instale todas con:
-pip install openpyxl python-docx reportlab
+            O instale todas con:
+            pip install openpyxl python-docx reportlab
         """
         messagebox.showinfo("Dependencias requeridas", help_text)
 
     @staticmethod
     def print_directly(tree: ttk.Treeview, title: str) -> bool:
-        """
-        Imprime directamente los datos del Treeview usando una impresora predefinida
-        o creando un PDF temporal y abriendo el diálogo de impresión.
-        """
+        """Imprime directamente - VERSIÓN MEJORADA"""
         try:
+            # Primero, crear un PDF temporal con el formato correcto
+            temp_dir = tempfile.gettempdir()
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            temp_filename = os.path.join(temp_dir, f"impresion_{timestamp}.pdf")
+            
+            # Usar la función export_to_pdf mejorada
             headers, data = TreeviewExporter.get_treeview_data(tree)
             
             if not headers or not data:
                 messagebox.showwarning("Sin datos", "No hay datos para imprimir")
                 return False
             
-            # Crear archivo PDF temporal
-            temp_dir = tempfile.gettempdir()
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            temp_filename = os.path.join(temp_dir, f"impresion_{timestamp}.pdf")
+            # Crear un mini-PDF optimizado para impresión
+            from reportlab.lib.pagesizes import letter
+            from reportlab.lib.styles import getSampleStyleSheet
             
-            # Generar el PDF
-            result = TreeviewExporter.export_to_pdf(tree, title, temp_filename)
+            # Configurar documento para impresión
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+            from reportlab.lib import colors
+            from reportlab.lib.units import inch
             
-            if result:
-                # Abrir el PDF con el visor predeterminado para imprimir
-                system = platform.system()
-                
-                if system == "Windows":
-                    # En Windows, usamos el diálogo de impresión de Adobe Reader si está disponible
-                    try:
-                        # Primero intentamos con Adobe Reader
-                        acroread_path = r"C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe"
-                        if os.path.exists(acroread_path):
-                            subprocess.run([acroread_path, "/t", temp_filename])
-                        else:
-                            # Si no hay Adobe Reader, abrimos con el programa predeterminado
-                            os.startfile(temp_filename)
-                    except:
-                        os.startfile(temp_filename)
-                        
-                elif system == "Darwin":  # macOS
-                    subprocess.run(["open", temp_filename])
-                else:  # Linux
-                    subprocess.run(["xdg-open", temp_filename])
-                
-                messagebox.showinfo("Impresión", 
-                                f"Se ha abierto el diálogo de impresión.\n"
-                                f"El archivo temporal se encuentra en:\n{temp_filename}\n\n"
-                                f"El archivo será eliminado automáticamente al reiniciar el sistema.")
-                return True
-                
+            doc = SimpleDocTemplate(temp_filename, pagesize=letter,
+                                topMargin=0.5*inch, bottomMargin=0.5*inch,
+                                leftMargin=0.5*inch, rightMargin=0.5*inch)
+            
+            elements = []
+            
+            # Título de impresión
+            styles = getSampleStyleSheet()
+            title_para = Paragraph(f"<b>{title}</b>", styles['Heading2'])
+            elements.append(title_para)
+            
+            # Crear tabla simplificada para impresión
+            table_data = [headers] + data
+            
+            # Ajustar anchos de columna para impresión
+            num_cols = len(headers)
+            col_widths = [doc.width / num_cols] * num_cols
+            
+            table = Table(table_data, colWidths=col_widths, repeatRows=1)
+            
+            # Estilo minimalista para impresión
+            table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ]))
+            
+            elements.append(table)
+            
+            # Pie de página con información
+            footer = Paragraph(
+                f"Impreso el {datetime.now().strftime('%d/%m/%Y %H:%M')} | Total: {len(data)} registros",
+                styles['Italic']
+            )
+            elements.append(footer)
+            
+            doc.build(elements)
+            
+            # Ahora abrir el diálogo de impresión
+            system = platform.system()
+            
+            if system == "Windows":
+                try:
+                    # Usar el comando específico para imprimir en Windows
+                    # 'start' abre el diálogo de impresión del visor predeterminado
+                    os.startfile(temp_filename, "print")
+                    messagebox.showinfo(
+                        "🖨️ Impresión enviada",
+                        f"Documento enviado a la cola de impresión.\n\n"
+                        f"El archivo temporal se eliminará automáticamente."
+                    )
+                except Exception as e:
+                    # Fallback: abrir el archivo normalmente
+                    os.startfile(temp_filename)
+                    messagebox.showinfo(
+                        "📄 Archivo listo para imprimir",
+                        f"Se ha abierto el documento en el visor predeterminado.\n"
+                        f"Use Ctrl+P para imprimir.\n\n"
+                        f"Archivo: {temp_filename}"
+                    )
+            
+            elif system == "Darwin":  # macOS
+                subprocess.run(["lp", temp_filename])
+                messagebox.showinfo(
+                    "✅ Impresión enviada",
+                    "Documento enviado a la impresora por defecto."
+                )
+            
+            else:  # Linux
+                subprocess.run(["lp", temp_filename])
+                messagebox.showinfo(
+                    "✅ Impresión enviada", 
+                    "Documento enviado a la impresora."
+                )
+            
+            # Programar eliminación del archivo temporal (después de 30 segundos)
+            def delete_temp_file():
+                try:
+                    if os.path.exists(temp_filename):
+                        os.remove(temp_filename)
+                except:
+                    pass
+            
+            import threading
+            timer = threading.Timer(30.0, delete_temp_file)
+            timer.start()
+            
+            return True
+            
         except Exception as e:
-            messagebox.showerror("Error", f"No se pudo preparar la impresión:\n{str(e)}")
+            messagebox.showerror("❌ Error de impresión", 
+                            f"No se pudo preparar la impresión:\n\n{str(e)}")
             import traceback
             traceback.print_exc()
             return False
-
+        
     @staticmethod
     def print_with_preview(tree: ttk.Treeview, title: str) -> bool:
         """
@@ -640,8 +1503,104 @@ pip install openpyxl python-docx reportlab
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo mostrar la vista previa:\n{str(e)}")
             return False
+    
+    
+    
+@staticmethod
+def create_export_button(parent, tree: ttk.Treeview, title: str, 
+                        button_text: str = "📤 Exportar", 
+                        pack_options: dict = None,
+                        include_print: bool = True) -> ttk.Button:
+    """
+    Crea un botón de exportación con menú desplegable
+    
+    NOTA: Ahora todas las exportaciones son automáticamente jerárquicas
+          cuando detectan columnas de departamento y solicitante
+    """
+    from tkinter import Menu
+    
+    def show_export_menu(event=None):
+        """Muestra el menú de exportación"""
+        menu = Menu(parent, tearoff=0)
         
-# Función de conveniencia para uso rápido
-def create_export_button(parent, tree: ttk.Treeview, title: str, **kwargs) -> ttk.Button:
-    """Crea un botón de exportación (alias para TreeviewExporter.create_export_button)"""
-    return TreeviewExporter.create_export_button(parent, tree, title, **kwargs)
+        # Obtener información sobre la estructura
+        headers, _, hierarchical_structure = TreeviewExporter.get_treeview_data(tree, hierarchical=True)
+        
+        # Solo agregar opciones disponibles
+        if HAS_EXCEL:
+            menu.add_command(
+                label="📊 Excel (.xlsx)",
+                command=lambda: TreeviewExporter.export_to_excel(tree, title),
+                font=('Arial', 10)
+            )
+        
+        if HAS_WORD:
+            menu.add_command(
+                label="📝 Word (.docx)",
+                command=lambda: TreeviewExporter.export_to_word(tree, title),
+                font=('Arial', 10)
+            )
+        
+        if HAS_PDF:
+            menu.add_command(
+                label="📄 PDF (.pdf)",
+                command=lambda: TreeviewExporter.export_to_pdf(tree, title),
+                font=('Arial', 10)
+            )
+        
+        menu.add_separator()
+        
+        if include_print and HAS_PDF:
+            menu.add_command(
+                label="🖨️ Imprimir",
+                command=lambda: TreeviewExporter.print_directly(tree, title),
+                font=('Arial', 10)
+            )
+            
+            menu.add_command(
+                label="👁️ Vista previa",
+                command=lambda: TreeviewExporter.print_with_preview(tree, title)
+            )
+        
+        menu.add_separator()
+        
+        # Información sobre la exportación
+        if hierarchical_structure:
+            menu.add_command(
+                label="ℹ️ Información",
+                command=lambda: messagebox.showinfo(
+                    "Estructura detectada",
+                    f"Se detectaron automáticamente:\n\n"
+                    f"• Departamentos: {len(hierarchical_structure['summary'])}\n"
+                    f"• Total General: ${hierarchical_structure['total_general']:,.2f}\n"
+                )
+            )
+        
+        # Mostrar menú
+        if event:
+            try:
+                menu.tk_popup(event.x_root, event.y_root)
+            finally:
+                menu.grab_release()
+        else:
+            x = parent.winfo_rootx() + export_btn.winfo_x()
+            y = parent.winfo_rooty() + export_btn.winfo_y() + export_btn.winfo_height()
+            menu.tk_popup(x, y)
+    
+    # Crear botón
+    export_btn = ttk.Button(
+        parent,
+        text=button_text,
+        command=show_export_menu
+    )
+    
+    # Configurar pack si se proporcionaron opciones
+    if pack_options:
+        export_btn.pack(**pack_options)
+    else:
+        export_btn.pack(side=tk.RIGHT, padx=5, pady=5)
+    
+    # También agregar menú contextual al Treeview
+    tree.bind("<Button-3>", show_export_menu)
+    
+    return export_btn
