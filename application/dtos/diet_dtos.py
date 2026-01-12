@@ -55,6 +55,7 @@ class DietCreateDTO:
 @dataclass
 class DietUpdateDTO:
     """DTO para actualizar un anticipo de dieta"""
+    request_user_id: int
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     description: Optional[str] = None

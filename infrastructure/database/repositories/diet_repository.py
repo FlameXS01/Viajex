@@ -227,6 +227,7 @@ class DietRepositoryImpl(DietRepository):
             
             if model:
                 model.is_local = diet.is_local
+                model.request_user_id = diet.request_user_id
                 model.start_date = diet.start_date
                 model.end_date = diet.end_date
                 model.created_at = diet.created_at

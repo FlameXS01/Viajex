@@ -255,7 +255,7 @@ class MainDashboard:
             return btn
         
         # Módulo de Usuarios
-        if self.user.role.value in ['admin', 'manager']:
+        if self.user.role.value in ['admin']:
             btn = create_nav_button(
                 nav_frame, 
                 'users',
@@ -307,7 +307,7 @@ class MainDashboard:
         self.nav_buttons['diets'] = btn
         
         # Módulo de Reportes
-        if self.user.role.value in ['admin', 'manager']:
+        if self.user.role.value in ['admin', 'manager', 'user']:
             btn = create_nav_button(
                 nav_frame,
                 'reports',
@@ -509,7 +509,7 @@ class MainDashboard:
         self._bind_menu_to_label(file_btn, file_menu)
         
         # Menú Configuración
-        if self.user.role.value in ['admin', 'manager']:
+        if self.user.role.value in ['admin']:
             config_btn = self._create_navbar_label("⚙️ Configuración")
             config_menu = tk.Menu(self.root, tearoff=0)
 

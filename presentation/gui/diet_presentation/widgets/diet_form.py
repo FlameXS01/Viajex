@@ -136,64 +136,85 @@ class DietForm(ttk.Frame):
     def _create_user_selection_section(self, parent):
         self.users_frame = ttk.LabelFrame(
             parent, 
-            text="👥 Usuarios", 
+            text="👤 Usuario" if self.is_edit_mode else "👥 Usuarios", 
             padding=8
         )
         self.users_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 5))
         self.users_frame.columnconfigure(0, weight=1)
         self.users_frame.rowconfigure(0, weight=1)
 
-        self.view_only_container = ttk.Frame(self.users_frame)
-        self.view_only_container.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        self.view_only_container.columnconfigure(0, weight=1)
-        self.view_only_container.rowconfigure(1, weight=1)
-        
-        ttk.Label(self.view_only_container, text="Usuarios:").grid(
-            row=0, column=0, sticky=tk.W, pady=(0, 3)
-        )
-        
-        columns = ("nombre", "ci")
-        self.users_treeview = ttk.Treeview(
-            self.view_only_container, 
-            columns=columns, 
-            show="headings", 
-            height=3,
-            selectmode="none"
-        )
-        
-        self.users_treeview.heading("nombre", text="Nombre")
-        self.users_treeview.heading("ci", text="Cédula")
-        self.users_treeview.column("nombre", width=180, minwidth=180)
-        self.users_treeview.column("ci", width=100, minwidth=100)
-        
-        self.users_treeview.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        
-        tree_scrollbar = ttk.Scrollbar(
-            self.view_only_container, 
-            orient=tk.VERTICAL, 
-            command=self.users_treeview.yview
-        )
-        tree_scrollbar.grid(row=1, column=1, sticky=(tk.N, tk.S))
-        self.users_treeview.configure(yscrollcommand=tree_scrollbar.set)
-
-        self.selection_container = ttk.Frame(self.users_frame)
-        self.selection_container.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        self.selection_container.columnconfigure(0, weight=1)
-        self.selection_container.rowconfigure(1, weight=1)
-
-        self.individual_frame = self._create_individual_selection()
-        self.individual_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        
-        self.group_frame = self._create_group_selection()
-        self.group_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        
         if self.is_edit_mode:
-            self.selection_container.grid_remove()
-            self.view_only_container.grid()
-        else:
-            self.view_only_container.grid_remove()
-            self.selection_container.grid()
+            # En modo edición: mostrar solo el combobox para seleccionar un usuario
+            edit_frame = ttk.Frame(self.users_frame)
+            edit_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(5, 0))
+            edit_frame.columnconfigure(1, weight=1)
             
+            ttk.Label(edit_frame, text="Usuario:").grid(
+                row=0, column=0, sticky=tk.W, padx=(0, 5)
+            )
+            
+            user_values = [f"{user.fullname} ({user.ci})" for user in self.users]
+            self.edit_user_combo = ttk.Combobox(
+                edit_frame, 
+                values=user_values, 
+                state="readonly",
+                height=6,
+                font=('Arial', 9),
+                width=40
+            )
+            self.edit_user_combo.grid(row=0, column=1, sticky=(tk.W, tk.E))
+            
+            if user_values:
+                self.edit_user_combo.set(user_values[0])
+        else:
+            # Modo creación: mostrar todo el sistema de selección
+            self.selection_container = ttk.Frame(self.users_frame)
+            self.selection_container.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+            self.selection_container.columnconfigure(0, weight=1)
+            self.selection_container.rowconfigure(0, weight=1)
+
+            self.view_only_container = ttk.Frame(self.users_frame)
+            self.view_only_container.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+            self.view_only_container.columnconfigure(0, weight=1)
+            self.view_only_container.rowconfigure(1, weight=1)
+            
+            ttk.Label(self.view_only_container, text="Usuarios:").grid(
+                row=0, column=0, sticky=tk.W, pady=(0, 3)
+            )
+            
+            columns = ("nombre", "ci")
+            self.users_treeview = ttk.Treeview(
+                self.view_only_container, 
+                columns=columns, 
+                show="headings", 
+                height=3,
+                selectmode="none"
+            )
+            
+            self.users_treeview.heading("nombre", text="Nombre")
+            self.users_treeview.heading("ci", text="Cédula")
+            self.users_treeview.column("nombre", width=180, minwidth=180)
+            self.users_treeview.column("ci", width=100, minwidth=100)
+            
+            self.users_treeview.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+            
+            tree_scrollbar = ttk.Scrollbar(
+                self.view_only_container, 
+                orient=tk.VERTICAL, 
+                command=self.users_treeview.yview
+            )
+            tree_scrollbar.grid(row=1, column=1, sticky=(tk.N, tk.S))
+            self.users_treeview.configure(yscrollcommand=tree_scrollbar.set)
+
+            self.individual_frame = self._create_individual_selection()
+            self.individual_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+            
+            self.group_frame = self._create_group_selection()
+            self.group_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+            
+            self.view_only_container.grid_remove()
+            self.selection_container.grid()   
+
     def _create_individual_selection(self):
         frame = ttk.Frame(self.selection_container)
         frame.columnconfigure(0, weight=1)
@@ -656,20 +677,25 @@ class DietForm(ttk.Frame):
             if card:
                 self.selected_card_var.set(f"{card.card_number} - {card.card_pin}")
 
-        user_ids = [self.diet.request_user_id]
-        
+        # Cargar usuario actual en modo edición
         if self.is_edit_mode:
-            for user_id in user_ids:
-                user = next((u for u in self.users if u.id == user_id), None)
-                if user:
-                    self.users_treeview.insert("", "end", values=(user.fullname, user.ci))
-            
-            user_count = len(user_ids)
-            title_suffix = "Usuario" if user_count == 1 else "Usuarios"
-            self.users_frame.configure(text=f"👥 {user_count} {title_suffix}")
-            
+            user = next((u for u in self.users if u.id == self.diet.request_user_id), None)
+            if user:
+                user_display = f"{user.fullname} ({user.ci})"
+                if hasattr(self, 'edit_user_combo'):
+                    current_values = list(self.edit_user_combo['values'])
+                    if user_display in current_values:
+                        self.edit_user_combo.set(user_display)
+                    else:
+                        # Si el usuario no está en la lista, agregarlo
+                        new_values = list(current_values) + [user_display]
+                        self.edit_user_combo['values'] = new_values
+                        self.edit_user_combo.set(user_display)
         else:
-            if user_ids:
+            # Código original para modo creación
+            if not self.is_edit_mode:
+                user_ids = [self.diet.request_user_id]
+                
                 if self.diet.is_group:
                     for user_id in user_ids:
                         user = next((u for u in self.users if u.id == user_id), None)
@@ -692,16 +718,26 @@ class DietForm(ttk.Frame):
                             self.user_combo['values'] = new_values
                             self.user_combo.set(user_display)
 
-        if not self.is_edit_mode:
-            self._on_diet_type_change()
+            if not self.is_edit_mode:
+                self._on_diet_type_change()
 
     def get_form_data(self):
         """Obtiene todos los datos del formulario en un diccionario"""
         selected_user_ids = []
         
         if self.is_edit_mode:
-            selected_user_ids = [self.diet.request_user_id]
+            # En modo edición: obtener del combobox especial
+            if hasattr(self, 'edit_user_combo'):
+                selected_user = self.edit_user_combo.get()
+                if selected_user:
+                    user = next((u for u in self.users if f"{u.fullname} ({u.ci})" == selected_user), None)
+                    if user:
+                        selected_user_ids = [user.id]
+            else:
+                # Fallback: usar el usuario original
+                selected_user_ids = [self.diet.request_user_id]
         else:
+            # Modo creación: lógica original
             if self.diet_type_var.get() == "INDIVIDUAL":
                 selected_user = self.user_combo.get()
                 if selected_user:
@@ -736,7 +772,7 @@ class DietForm(ttk.Frame):
             "accommodation_payment_method": self.payment_method_var.get(),
             "accommodation_card_id": card_id,
             "user_ids": selected_user_ids
-        }
+        } 
     
     def validate_form(self):
         """
@@ -765,5 +801,5 @@ class DietForm(ttk.Frame):
             
         if data["accommodation_payment_method"] == "CARD" and not data["accommodation_card_id"]:
             errors.append("Debe seleccionar una tarjeta cuando el método de pago es tarjeta")
-            
+
         return len(errors) == 0, errors

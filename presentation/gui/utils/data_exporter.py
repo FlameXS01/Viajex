@@ -1282,7 +1282,7 @@ class TreeviewExporter:
                 for dept_name, dept_info in departments_data.items():
                     summary_data.append([dept_name, f"${dept_info['subtotal']:,.2f}"])
                 
-                summary_data.append(["<b>TOTAL GENERAL</b>", f"<b>${total_general:,.2f}</b>"])
+                summary_data.append(["TOTAL GENERAL", f"${total_general:,.2f}"])
                 
                 summary_table = Table(summary_data, colWidths=[doc.width * 0.7, doc.width * 0.3])
                 
@@ -1404,107 +1404,492 @@ class TreeviewExporter:
 
     @staticmethod
     def print_directly(tree: ttk.Treeview, title: str) -> bool:
-        """Imprime directamente - VERSIÓN MEJORADA"""
+        """Imprime directamente sin mostrar vista previa"""
         try:
-            # Primero, crear un PDF temporal con el formato correcto
+            # Crear un PDF temporal con el MISMO formato que export_to_pdf
             temp_dir = tempfile.gettempdir()
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             temp_filename = os.path.join(temp_dir, f"impresion_{timestamp}.pdf")
             
-            # Usar la función export_to_pdf mejorada
-            headers, data = TreeviewExporter.get_treeview_data(tree)
-            
-            if not headers or not data:
-                messagebox.showwarning("Sin datos", "No hay datos para imprimir")
-                return False
-            
-            # Crear un mini-PDF optimizado para impresión
-            from reportlab.lib.pagesizes import letter
-            from reportlab.lib.styles import getSampleStyleSheet
-            
-            # Configurar documento para impresión
-            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+            # Usar la MISMA lógica que export_to_pdf
+            from reportlab.lib.pagesizes import A4
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
             from reportlab.lib import colors
             from reportlab.lib.units import inch
             
-            doc = SimpleDocTemplate(temp_filename, pagesize=letter,
-                                topMargin=0.5*inch, bottomMargin=0.5*inch,
-                                leftMargin=0.5*inch, rightMargin=0.5*inch)
+            # Obtener datos con transformación jerárquica automática
+            headers, _, hierarchical_structure = TreeviewExporter.get_treeview_data(tree, hierarchical=True)
             
+            if not headers:
+                messagebox.showwarning("Sin datos", "No hay datos para imprimir")
+                return False
+            
+            # Función para abreviar encabezados específicos (IDÉNTICA a export_to_pdf)
+            def abreviar_encabezado(header):
+                header_str = str(header)
+                abreviaciones = {
+                    'Desayunos': 'D',
+                    'Almuerzos': 'A', 
+                    'Cenas': 'C',
+                    'Alojamientos': 'H',
+                }
+                for key, value in abreviaciones.items():
+                    if key in header_str:
+                        return value
+                return header_str
+            
+            # Crear documento PDF con márgenes optimizados (IDÉNTICO a export_to_pdf)
+            doc = SimpleDocTemplate(
+                temp_filename, 
+                pagesize=A4,
+                topMargin=0.5*inch, 
+                bottomMargin=0.5*inch,
+                leftMargin=0.4*inch,
+                rightMargin=0.4*inch
+            )
             elements = []
             
-            # Título de impresión
+            # Estilos (IDÉNTICOS a export_to_pdf)
             styles = getSampleStyleSheet()
-            title_para = Paragraph(f"<b>{title}</b>", styles['Heading2'])
-            elements.append(title_para)
             
-            # Crear tabla simplificada para impresión
-            table_data = [headers] + data
-            
-            # Ajustar anchos de columna para impresión
-            num_cols = len(headers)
-            col_widths = [doc.width / num_cols] * num_cols
-            
-            table = Table(table_data, colWidths=col_widths, repeatRows=1)
-            
-            # Estilo minimalista para impresión
-            table.setStyle(TableStyle([
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 8),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-            ]))
-            
-            elements.append(table)
-            
-            # Pie de página con información
-            footer = Paragraph(
-                f"Impreso el {datetime.now().strftime('%d/%m/%Y %H:%M')} | Total: {len(data)} registros",
-                styles['Italic']
+            # Título principal (IDÉNTICO a export_to_pdf)
+            title_style = ParagraphStyle(
+                'MainTitle',
+                parent=styles['Heading1'],
+                fontSize=14,
+                textColor=colors.HexColor('#2c3e50'),
+                spaceAfter=8,
+                alignment=1,
+                fontName='Helvetica-Bold'
             )
+            
+            main_title = Paragraph(title, title_style)
+            elements.append(main_title)
+            
+            # Subtítulo informativo si hay jerarquía (IDÉNTICO a export_to_pdf)
+            if hierarchical_structure:
+                subtitle_style = ParagraphStyle(
+                    'Subtitle',
+                    parent=styles['Normal'],
+                    fontSize=11,
+                    textColor=colors.HexColor('#27ae60'),
+                    alignment=1,
+                    spaceAfter=10
+                )
+                
+                subtitle = Paragraph("📊 REPORTE POR DEPARTAMENTOS", subtitle_style)
+                elements.append(subtitle)
+            
+            # Fecha de exportación (IDÉNTICO a export_to_pdf)
+            date_style = ParagraphStyle(
+                'DateStyle',
+                parent=styles['Normal'],
+                fontSize=9,
+                textColor=colors.HexColor('#666666'),
+                alignment=1,
+                spaceAfter=12
+            )
+            
+            date_para = Paragraph(f"Impreso: {datetime.now().strftime('%d/%m/%Y %H:%M')}", date_style)
+            elements.append(date_para)
+            
+            elements.append(Spacer(1, 0.15*inch))
+            
+            if hierarchical_structure:
+                # PROCESAR POR DEPARTAMENTOS (IDÉNTICO a export_to_pdf)
+                departments_data = {}
+                current_dept = None
+                
+                for item in hierarchical_structure['hierarchical_data']:
+                    if item['type'] == 'department_header':
+                        current_dept = item['department']
+                        departments_data[current_dept] = {
+                            'header': item,
+                            'employees': [],
+                            'subtotal': item.get('subtotal', 0)
+                        }
+                    elif item['type'] == 'employee_row' and current_dept:
+                        departments_data[current_dept]['employees'].append(item)
+                
+                total_general = 0
+                
+                # CREAR UNA SECCIÓN POR CADA DEPARTAMENTO (IDÉNTICO a export_to_pdf)
+                for dept_idx, (dept_name, dept_info) in enumerate(departments_data.items()):
+                    # Título del departamento (IDÉNTICO a export_to_pdf)
+                    dept_title_style = ParagraphStyle(
+                        'DeptTitle',
+                        parent=styles['Heading2'],
+                        fontSize=11,
+                        textColor=colors.HexColor('#2c3e50'),
+                        spaceAfter=8,
+                        leftIndent=0,
+                        fontName='Helvetica-Bold',
+                        backColor=colors.HexColor('#e8f4f8'),
+                        borderPadding=(6, 6, 6, 6)
+                    )
+                    
+                    dept_text = f"📊 {dept_name}"
+                    if dept_info['subtotal'] > 0:
+                        dept_text += f" - Subtotal: ${dept_info['subtotal']:,.2f}"
+                        total_general += dept_info['subtotal']
+                    
+                    dept_title = Paragraph(dept_text, dept_title_style)
+                    elements.append(dept_title)
+                    
+                    # Crear tabla para este departamento (IDÉNTICO a export_to_pdf)
+                    num_employees = len(dept_info['employees'])
+                    if num_employees > 0:
+                        # Identificar índices de columnas a excluir (IDÉNTICO a export_to_pdf)
+                        indices_a_excluir = []
+                        
+                        # 1. Columna de departamento (siempre)
+                        if hierarchical_structure['indices'].get('department') is not None:
+                            indices_a_excluir.append(hierarchical_structure['indices']['department'])
+                        
+                        # 2. Columna "N° Anticipo" y "N° Liquidación"
+                        for i, header in enumerate(headers):
+                            header_lower = str(header).lower()
+                            if any(keyword in header_lower for keyword in ['anticipo', 'n° anticipo', 'n anticipo', 'nº anticipo', 'numero anticipo',
+                                                                        'no. anticipo', 'liquidación', 'n° liquidación', 'n liquidación', 
+                                                                        'nº liquidación', 'numero liquidación', 'no. liquidación']):
+                                if i not in indices_a_excluir:
+                                    indices_a_excluir.append(i)
+                        
+                        # 3. Columna "Estado"
+                        for i, header in enumerate(headers):
+                            header_lower = str(header).lower()
+                            if any(keyword in header_lower for keyword in ['estado', 'status', 'situacion']):
+                                if i not in indices_a_excluir:
+                                    indices_a_excluir.append(i)
+                        
+                        indices_a_excluir.sort()
+                        
+                        # Construir encabezados de la tabla (IDÉNTICO a export_to_pdf)
+                        table_headers = []
+                        for i, header in enumerate(headers):
+                            if i in indices_a_excluir:
+                                continue
+                            header_abreviado = abreviar_encabezado(header)
+                            table_headers.append(header_abreviado)
+                        
+                        # Construir datos de la tabla (IDÉNTICO a export_to_pdf)
+                        table_data = [table_headers]
+                        
+                        for idx, emp_item in enumerate(dept_info['employees']):
+                            row_data = emp_item['data']
+                            table_row = []
+                            
+                            for i, cell_data in enumerate(row_data):
+                                if i in indices_a_excluir:
+                                    continue
+                                
+                                # Formatear nombre del empleado con numeración usando Paragraph para ajuste de texto
+                                # (IDÉNTICO a export_to_pdf)
+                                if i == hierarchical_structure['indices'].get('employee'):
+                                    employee_name = cell_data
+                                    clean_name = str(employee_name).replace('   ├── ', '').replace('├── ', '')
+                                    # Crear Paragraph con estilo que permita wrap de texto
+                                    employee_style = ParagraphStyle(
+                                        'EmployeeStyle',
+                                        parent=styles['Normal'],
+                                        fontSize=8,
+                                        wordWrap='CJK',  # Permite wrap de texto
+                                        leading=10,  # Espacio entre líneas
+                                    )
+                                    table_row.append(Paragraph(f"{idx + 1}. {clean_name}", employee_style))
+                                else:
+                                    table_row.append(str(cell_data) if cell_data is not None else "")
+                            
+                            table_data.append(table_row)
+                        
+                        # Crear tabla (IDÉNTICO a export_to_pdf)
+                        if table_data and len(table_data[0]) > 0:
+                            num_cols = len(table_data[0])
+                            
+                            # Calcular anchos de columna proporcionales (IDÉNTICO a export_to_pdf)
+                            col_widths = []
+                            total_width = doc.width
+                            
+                            # Distribución inteligente de anchos (IDÉNTICO a export_to_pdf)
+                            if num_cols <= 4:
+                                # Poco columnas: distribuir equitativamente
+                                col_width = total_width / num_cols
+                                col_widths = [col_width] * num_cols
+                            else:
+                                # Muchas columnas: dar más espacio a la primera (empleado)
+                                col_widths = [total_width * 0.35]  # 35% para empleado
+                                # Resto dividido entre las otras columnas
+                                remaining_width = total_width * 0.65
+                                other_cols_width = remaining_width / (num_cols - 1)
+                                col_widths.extend([other_cols_width] * (num_cols - 1))
+                            
+                            table = Table(table_data, colWidths=col_widths, repeatRows=1)
+                            
+                            # ESTILO DE LA TABLA MEJORADO (IDÉNTICO a export_to_pdf)
+                            table_style = TableStyle([
+                                # Encabezados
+                                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
+                                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                                ('TOPPADDING', (0, 0), (-1, 0), 6),
+                                
+                                # Bordes finos
+                                ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor("#dddddd")),
+                                
+                                # Filas alternadas con mejor contraste
+                                ('ROWBACKGROUNDS', (0, 1), (-1, -1), 
+                                [colors.white, colors.HexColor("#f5f7fa")]),
+                                
+                                # Alineación y padding mejorado
+                                ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+                                ('VALIGN', (0, 0), (-1, -1), 'TOP'),  # Alinear arriba para mejor ajuste
+                                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                                
+                                # Padding interno para evitar superposición
+                                ('LEFTPADDING', (0, 1), (-1, -1), 8),
+                                ('RIGHTPADDING', (0, 1), (-1, -1), 8),
+                                ('TOPPADDING', (0, 1), (-1, -1), 4),
+                                ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+                                
+                                # Ajuste especial para la columna del empleado (más espacio)
+                                ('LEFTPADDING', (0, 1), (0, -1), 12),
+                                ('RIGHTPADDING', (0, 1), (0, -1), 10),
+                            ])
+                            
+                            # Alinear montos a la derecha (IDÉNTICO a export_to_pdf)
+                            for col_idx, header in enumerate(table_headers):
+                                if any(keyword in str(header).lower() for keyword in ['gasto', 'monto', 'total', 'precio', 'costo', '$', 'saldo']):
+                                    table_style.add('ALIGN', (col_idx, 1), (col_idx, -1), 'RIGHT')
+                            
+                            table.setStyle(table_style)
+                            elements.append(table)
+                            elements.append(Spacer(1, 0.25*inch))
+                    
+                    # Espacio entre departamentos (IDÉNTICO a export_to_pdf)
+                    if dept_idx < len(departments_data) - 1:
+                        elements.append(Spacer(1, 0.15*inch))
+                
+                # Salto de página para el resumen (IDÉNTICO a export_to_pdf)
+                elements.append(PageBreak())
+                
+                # Tabla de resumen final (IDÉNTICO a export_to_pdf)
+                summary_title_style = ParagraphStyle(
+                    'SummaryTitle',
+                    parent=styles['Heading2'],
+                    fontSize=12,
+                    textColor=colors.HexColor('#2c3e50'),
+                    spaceAfter=12,
+                    alignment=1
+                )
+                
+                summary_title = Paragraph("📊 RESUMEN DE DEPARTAMENTOS", summary_title_style)
+                elements.append(summary_title)
+                
+                # Crear tabla de resumen (IDÉNTICO a export_to_pdf)
+                summary_data = [["DEPARTAMENTO", "SUBTOTAL"]]
+                
+                for dept_name, dept_info in departments_data.items():
+                    summary_data.append([dept_name, f"${dept_info['subtotal']:,.2f}"])
+                
+                summary_data.append(["TOTAL GENERAL", f"${total_general:,.2f}"])
+                
+                summary_table = Table(summary_data, colWidths=[doc.width * 0.7, doc.width * 0.3])
+                
+                # Estilo mejorado para la tabla de resumen (IDÉNTICO a export_to_pdf)
+                summary_style = TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#dddddd")),
+                    
+                    ('ALIGN', (1, 1), (1, -2), 'RIGHT'),
+                    ('FONTNAME', (1, -1), (1, -1), 'Helvetica-Bold'),
+                    ('BACKGROUND', (1, -1), (1, -1), colors.HexColor("#27ae60")),
+                    ('TEXTCOLOR', (1, -1), (1, -1), colors.white),
+                    
+                    # Padding mejorado
+                    ('LEFTPADDING', (0, 1), (-1, -1), 10),
+                    ('RIGHTPADDING', (0, 1), (-1, -1), 10),
+                    ('TOPPADDING', (0, 1), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+                ])
+                
+                # También aplicar estilo a la primera columna del total (IDÉNTICO a export_to_pdf)
+                summary_style.add('BACKGROUND', (0, -1), (0, -1), colors.HexColor("#27ae60"))
+                summary_style.add('TEXTCOLOR', (0, -1), (0, -1), colors.white)
+                
+                summary_table.setStyle(summary_style)
+                elements.append(summary_table)
+            else:
+                # FALLBACK: Tabla plana (sin jerarquía) - IDÉNTICO a export_to_pdf
+                _, flat_data, _ = TreeviewExporter.get_treeview_data(tree, hierarchical=False)
+                
+                # Construir tabla completa
+                table_data = [headers] + flat_data
+                
+                num_cols = len(headers)
+                if num_cols > 0:
+                    col_widths = [doc.width / num_cols] * num_cols
+                    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+                    
+                    table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#dddddd")),
+                        
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), 
+                        [colors.white, colors.HexColor("#f5f7fa")]),
+                        
+                        # Padding para evitar superposición
+                        ('LEFTPADDING', (0, 1), (-1, -1), 8),
+                        ('RIGHTPADDING', (0, 1), (-1, -1), 8),
+                    ]))
+                    
+                    elements.append(table)
+            
+            # Pie de página mejorado (IDÉNTICO a export_to_pdf)
+            elements.append(Spacer(1, 0.3*inch))
+            
+            footer_style = ParagraphStyle(
+                'Footer',
+                parent=styles['Italic'],
+                fontSize=8,
+                textColor=colors.HexColor('#666666'),
+                alignment=1,
+                spaceBefore=10
+            )
+            
+            footer_text = "Sistema de Gestión de Dietas VIAJEX"
+            if hierarchical_structure:
+                footer_text += f" • {len(departments_data)} departamentos procesados"
+            
+            footer = Paragraph(footer_text, footer_style)
             elements.append(footer)
             
+            # Construir documento (IDÉNTICO a export_to_pdf)
             doc.build(elements)
             
-            # Ahora abrir el diálogo de impresión
+            # Ahora abrir el PDF para imprimir (mismo comportamiento que antes)
             system = platform.system()
             
             if system == "Windows":
                 try:
-                    # Usar el comando específico para imprimir en Windows
-                    # 'start' abre el diálogo de impresión del visor predeterminado
-                    os.startfile(temp_filename, "print")
-                    messagebox.showinfo(
-                        "🖨️ Impresión enviada",
-                        f"Documento enviado a la cola de impresión.\n\n"
-                        f"El archivo temporal se eliminará automáticamente."
-                    )
-                except Exception as e:
-                    # Fallback: abrir el archivo normalmente
+                    # SOLUCIÓN SIMPLIFICADA: Abrir el PDF y mostrar instrucciones
                     os.startfile(temp_filename)
+                    
+                    # Dar instrucciones claras al usuario
+                    import time
+                    time.sleep(1)  # Esperar un segundo para que se abra el PDF
+                    
                     messagebox.showinfo(
-                        "📄 Archivo listo para imprimir",
-                        f"Se ha abierto el documento en el visor predeterminado.\n"
-                        f"Use Ctrl+P para imprimir.\n\n"
-                        f"Archivo: {temp_filename}"
+                        "📄 Imprimir documento",
+                        "Se ha abierto el documento PDF en su visor predeterminado.\n\n"
+                        "Para imprimir:\n"
+                        "1. Presione Ctrl+P en el visor de PDF\n"
+                        "2. Seleccione su impresora\n"
+                        "3. Ajuste las configuraciones si es necesario\n"
+                        "4. Haga clic en 'Imprimir'\n\n"
+                        f"Archivo: {temp_filename}\n"
+                        f"Este archivo se eliminará automáticamente."
                     )
+                    
+                except Exception as e:
+                    # Si no se puede abrir, mostrar el archivo en el explorador
+                    messagebox.showinfo(
+                        "📄 Localizar archivo para imprimir",
+                        f"No se pudo abrir el PDF automáticamente.\n\n"
+                        f"Por favor, abra manualmente el archivo:\n\n"
+                        f"{temp_filename}\n\n"
+                        f"Y luego imprímalo con Ctrl+P."
+                    )
+                    # Abrir el explorador en la carpeta
+                    os.startfile(temp_dir)
             
             elif system == "Darwin":  # macOS
-                subprocess.run(["lp", temp_filename])
-                messagebox.showinfo(
-                    "✅ Impresión enviada",
-                    "Documento enviado a la impresora por defecto."
-                )
+                try:
+                    # En macOS, usar lpr para imprimir directamente
+                    result = subprocess.run(['lpr', temp_filename], 
+                                        capture_output=True, text=True, timeout=15)
+                    
+                    if result.returncode == 0:
+                        messagebox.showinfo(
+                            "✅ Impresión enviada",
+                            "Documento enviado a la impresora por defecto."
+                        )
+                    else:
+                        # Si hay error, abrir el PDF
+                        os.startfile(temp_filename)
+                        messagebox.showinfo(
+                            "📄 Imprimir manualmente",
+                            f"No se pudo imprimir automáticamente.\n\n"
+                            f"Se ha abierto el documento en el visor.\n"
+                            f"Use ⌘+P para imprimir manualmente."
+                        )
+                        
+                except subprocess.TimeoutExpired:
+                    messagebox.showwarning(
+                        "⏰ Tiempo de espera agotado",
+                        "La impresión está tardando demasiado.\n"
+                        "Verifique la conexión con la impresora."
+                    )
+                except Exception as mac_err:
+                    # Fallback para macOS
+                    os.startfile(temp_filename)
+                    messagebox.showinfo(
+                        "📄 Imprimir manualmente",
+                        f"No se pudo imprimir automáticamente en macOS.\n\n"
+                        f"Se ha abierto el documento en el visor.\n"
+                        f"Use ⌘+P para imprimir manualmente."
+                    )
             
             else:  # Linux
-                subprocess.run(["lp", temp_filename])
-                messagebox.showinfo(
-                    "✅ Impresión enviada", 
-                    "Documento enviado a la impresora."
-                )
+                try:
+                    # En Linux, usar lp para imprimir
+                    result = subprocess.run(['lp', temp_filename], 
+                                        capture_output=True, text=True, timeout=15)
+                    
+                    if result.returncode == 0:
+                        messagebox.showinfo(
+                            "✅ Impresión enviada",
+                            "Documento enviado a la impresora."
+                        )
+                    else:
+                        # Si hay error, intentar abrir
+                        try:
+                            os.startfile(temp_filename)
+                        except:
+                            pass
+                        messagebox.showinfo(
+                            "📄 Imprimir manualmente",
+                            f"No se pudo imprimir automáticamente en Linux.\n\n"
+                            f"Abra el archivo y use Ctrl+P para imprimir manualmente."
+                        )
+                        
+                except Exception as linux_err:
+                    # Fallback para Linux
+                    try:
+                        os.startfile(temp_filename)
+                    except:
+                        pass
+                    messagebox.showinfo(
+                        "📄 Imprimir manualmente",
+                        f"No se pudo imprimir automáticamente.\n\n"
+                        f"Archivo: {temp_filename}\n"
+                        f"Ábralo e imprímalo manualmente."
+                    )
             
-            # Programar eliminación del archivo temporal (después de 30 segundos)
+            # Programar eliminación del archivo temporal (después de 60 segundos)
             def delete_temp_file():
                 try:
                     if os.path.exists(temp_filename):
@@ -1513,7 +1898,7 @@ class TreeviewExporter:
                     pass
             
             import threading
-            timer = threading.Timer(30.0, delete_temp_file)
+            timer = threading.Timer(60.0, delete_temp_file)
             timer.start()
             
             return True
@@ -1524,93 +1909,7 @@ class TreeviewExporter:
             import traceback
             traceback.print_exc()
             return False
-        
-    @staticmethod
-    def print_with_preview(tree: ttk.Treeview, title: str) -> bool:
-        """
-        Muestra una vista previa de impresión antes de enviar a la impresora.
-        """
-        try:
-            headers, data = TreeviewExporter.get_treeview_data(tree)
-            
-            if not headers or not data:
-                messagebox.showwarning("Sin datos", "No hay datos para imprimir")
-                return False
-            
-            # Crear una ventana de vista previa
-            preview_window = tk.Toplevel()
-            preview_window.title(f"Vista Previa: {title}")
-            preview_window.geometry("800x600")
-            
-            # Frame principal
-            main_frame = ttk.Frame(preview_window)
-            main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-            
-            # Título
-            title_label = ttk.Label(main_frame, text=title, font=("Arial", 14, "bold"))
-            title_label.pack(pady=(0, 10))
-            
-            # Frame para la tabla
-            table_frame = ttk.Frame(main_frame)
-            table_frame.pack(fill=tk.BOTH, expand=True)
-            
-            # Crear Treeview para vista previa
-            preview_tree = ttk.Treeview(table_frame, columns=headers, show="headings")
-            
-            # Configurar encabezados
-            for i, header in enumerate(headers):
-                preview_tree.heading(f"#{i+1}", text=header)
-                preview_tree.column(f"#{i+1}", width=150)
-            
-            # Insertar datos
-            for row in data:
-                preview_tree.insert("", tk.END, values=row)
-            
-            # Scrollbars
-            vsb = ttk.Scrollbar(table_frame, orient="vertical", command=preview_tree.yview)
-            hsb = ttk.Scrollbar(table_frame, orient="horizontal", command=preview_tree.xview)
-            preview_tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
-            
-            preview_tree.grid(row=0, column=0, sticky="nsew")
-            vsb.grid(row=0, column=1, sticky="ns")
-            hsb.grid(row=1, column=0, sticky="ew")
-            
-            table_frame.grid_rowconfigure(0, weight=1)
-            table_frame.grid_columnconfigure(0, weight=1)
-            
-            # Frame para botones
-            button_frame = ttk.Frame(main_frame)
-            button_frame.pack(fill=tk.X, pady=(10, 0))
-            
-            # Botón para imprimir
-            print_btn = ttk.Button(button_frame, text="🖨️ Imprimir",
-                                command=lambda: TreeviewExporter.print_directly(tree, title))
-            print_btn.pack(side=tk.LEFT, padx=5)
-            
-            # Botón para exportar a PDF primero
-            pdf_btn = ttk.Button(button_frame, text="📄 Guardar PDF",
-                                command=lambda: TreeviewExporter.export_to_pdf(tree, title))
-            pdf_btn.pack(side=tk.LEFT, padx=5)
-            
-            # Botón para cerrar
-            close_btn = ttk.Button(button_frame, text="Cerrar",
-                                command=preview_window.destroy)
-            close_btn.pack(side=tk.RIGHT, padx=5)
-            
-            # Información
-            info_label = ttk.Label(main_frame, 
-                                text=f"Total de registros: {len(data)} | Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M')}",
-                                font=("Arial", 9))
-            info_label.pack(pady=(10, 0))
-            
-            return True
-            
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudo mostrar la vista previa:\n{str(e)}")
-            return False
-    
-    
-    
+
 @staticmethod
 def create_export_button(parent, tree: ttk.Treeview, title: str, 
                         button_text: str = "📤 Exportar", 

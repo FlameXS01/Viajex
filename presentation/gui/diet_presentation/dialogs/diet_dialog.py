@@ -260,12 +260,13 @@ class DietDialog(tk.Toplevel):
                 form_data = self.form.get_form_data()
                 
                 # Validar usuarios
-                user_ids = form_data.get("user_ids", [])
+                user_ids = form_data["user_ids"]
                 if not user_ids:
                     messagebox.showwarning("Validación", "Debe seleccionar al menos un usuario")
                     return
                 
                 update_dto = DietUpdateDTO(
+                    request_user_id=user_ids[0],
                     start_date=datetime.strptime(form_data["start_date"], "%d/%m/%Y").date(),
                     end_date=datetime.strptime(form_data["end_date"], "%d/%m/%Y").date(),
                     created_at=datetime.strptime(form_data["created_at"], "%d/%m/%Y").date(),
@@ -277,6 +278,7 @@ class DietDialog(tk.Toplevel):
                     accommodation_payment_method=form_data["accommodation_payment_method"],
                     accommodation_card_id=form_data["accommodation_card_id"]
                 )
+                
                 
                 # ACTUALIZAR LA DIETA
                 result = self.diet_service.update_diet(self.diet.id, update_dto)    # type: ignore
