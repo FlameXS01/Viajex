@@ -80,14 +80,14 @@ class DietList(ttk.Frame):
             
             
             # Usar precio correcto según método de pago
-            if diet.accommodation_payment_method == "CARD":
+            if diet.accommodation_payment_method.upper() == "CARD":
                 # si tiene accommodation_count es dieta sino es liquidacion 
                 if hasattr(diet, 'accommodation_count'):
                     accommodation_total = diet.accommodation_count * service.accommodation_card_price
                 else:
                     # si tiene total_pay se usa ese precio en vez del precio en el servicio
                     if hasattr(diet, 'total_pay'):
-                        accommodation_total = diet.accommodation_count_liquidated * diet.total_pay
+                        accommodation_total =  diet.total_pay
                     else:
                         accommodation_total = diet.accommodation_count_liquidated * service.accommodation_card_price
             # Cuando es en efectivo
@@ -104,8 +104,6 @@ class DietList(ttk.Frame):
             return total
             
         except Exception as e:
-            print(f"ERROR calculando total: {e}")
-            import traceback
             traceback.print_exc()
             return 0.0
     
@@ -182,7 +180,6 @@ class DietList(ttk.Frame):
                 self.selection_callback(None)
                 
         except Exception as e:
-            print(f"Error en selección: {e}")
             traceback.print_exc()
             self.selection_callback(None)
     
@@ -276,7 +273,7 @@ class DietList(ttk.Frame):
                     # Formatear datos para mostrar
                     solicitante = f"{user.fullname}" if user and hasattr(user, 'fullname') else "N/A"
                     fecha_liquidacion = item.liquidation_date.strftime("%d/%m/%Y") if item.liquidation_date else "N/A"
-                    monto = self.calculate_total(item, diet.is_local if diet else True)   # type: ignore
+                    monto = self.calculate_total(item, diet.is_local)   # type: ignore
                     advance_number = diet.advance_number if diet else "N/A"
                     
                     self.tree.insert("", "end", values=(
@@ -292,7 +289,6 @@ class DietList(ttk.Frame):
                         f"${monto:.2f}" if monto is not None else "$0.00"
                     ))
 
-    
     def bind_selection(self, callback: Callable):
         """Establece el callback para cuando se selecciona un item"""
         self.selection_callback = callback
@@ -319,7 +315,7 @@ class DietList(ttk.Frame):
                     bg_color = "#e6e622"  # Amarillo
                     
             except Exception as e:
-                print(f"Error calculando diferencia de horas: {e}")
+                traceback.print_exc()
         
         return bg_color
 
@@ -435,7 +431,7 @@ class DietList(ttk.Frame):
                     return True
                     
         except Exception as e:
-            print(f"Error en búsqueda de item: {e}")
+            traceback.print_exc()
         
         return False
 
