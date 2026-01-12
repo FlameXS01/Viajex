@@ -45,6 +45,7 @@ class DietLiquidationRepositoryImpl(DietLiquidationRepository):
             model = DietLiquidationModel(
                 diet_id=diet_liquidation.diet_id,
                 liquidation_number=diet_liquidation.liquidation_number,
+                liquidation_date=diet_liquidation.liquidation_date,
                 breakfast_count_liquidated=diet_liquidation.breakfast_count_liquidated,
                 lunch_count_liquidated=diet_liquidation.lunch_count_liquidated,
                 dinner_count_liquidated=diet_liquidation.dinner_count_liquidated,
@@ -151,6 +152,7 @@ class DietLiquidationRepositoryImpl(DietLiquidationRepository):
             if model:
                 model.diet_id = diet_liquidation.diet_id
                 model.liquidation_number = diet_liquidation.liquidation_number
+                model.liquidation_date = diet_liquidation.liquidation_date
                 model.breakfast_count_liquidated = diet_liquidation.breakfast_count_liquidated
                 model.lunch_count_liquidated = diet_liquidation.lunch_count_liquidated
                 model.dinner_count_liquidated = diet_liquidation.dinner_count_liquidated

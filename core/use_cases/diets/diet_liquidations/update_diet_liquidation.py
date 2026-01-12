@@ -14,7 +14,7 @@ class UpdateDietLiquidationUseCase:
         
         # Actualizar campos permitidos
         for field, value in update_data.items():
-            if hasattr(liquidation, field) and field not in ['id', 'diet_id', 'liquidation_number', 'liquidation_date']:
+            if hasattr(liquidation, field) and field not in ['id', 'diet_id', 'liquidation_number']:
                 setattr(liquidation, field, value)
         
         return self.diet_liquidation_repository.update(liquidation)

@@ -106,6 +106,7 @@ class DietLiquidationCreateDTO:
 @dataclass
 class DietLiquidationUpdateDTO:
     """DTO para actualizar una liquidación"""
+    liquidation_date: Optional[datetime]
     breakfast_count_liquidated: Optional[int] = None
     lunch_count_liquidated: Optional[int] = None
     dinner_count_liquidated: Optional[int] = None

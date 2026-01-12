@@ -26,8 +26,7 @@ class CreateDietLiquidationUseCase:
         
 
         liquidation_date = liquidation_data['liquidation_date']
-        max_liquidation_date = diet.end_date + timedelta(days=3)
-        
+       
         
         # Validar que las cantidades liquidadas no excedan las solicitadas
         if (liquidation_data['breakfast_count_liquidated'] > diet.breakfast_count or

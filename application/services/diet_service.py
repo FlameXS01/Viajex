@@ -225,7 +225,6 @@ class DietAppService:
             self.diet_liquidation_repository,
             self.diet_service_repository
         )
-        
         liquidation_data = {
             'liquidation_date': create_dto.liquidation_date,
             'breakfast_count_liquidated': create_dto.breakfast_count_liquidated,

@@ -18,6 +18,7 @@ class DietLiquidationDialog(tk.Toplevel):
         self.diet = diet if diet else self.diet_service.get_diet(liquidation.diet_id)
         self.mode = "edit" if liquidation else "create"
         
+        self.liquidation_date_var = tk.StringVar()
         # Obtener el servicio de dieta
         self.diet_service_obj = self.diet_service.get_diet_service_by_local(self.diet.is_local)
         
@@ -101,11 +102,32 @@ class DietLiquidationDialog(tk.Toplevel):
         # Información del anticipo
         info_frame = ttk.LabelFrame(main_frame, text="Información del Anticipo", padding=10)
         info_frame.pack(fill=tk.X, pady=(0, 10))
-        
+
         ttk.Label(info_frame, text=f"Descripción: {self.diet.description}").pack(anchor=tk.W)
-        ttk.Label(info_frame, text=f"Fechas: {self.diet.start_date} a {self.diet.end_date}").pack(anchor=tk.W)
+        ttk.Label(info_frame, text=f"Inicio: {self.diet.start_date} Fin: {self.diet.end_date}").pack(anchor=tk.W)
+        ttk.Label(info_frame, text=f"Solicitado: {self.diet.created_at}").pack(anchor=tk.W)
         ttk.Label(info_frame, text=f"Método pago alojamiento: {self.diet.accommodation_payment_method}").pack(anchor=tk.W)
         
+        liquidation_date_frame = ttk.Frame(info_frame)
+        liquidation_date_frame.pack(anchor=tk.W, pady=(5, 0))
+        
+        ttk.Label(liquidation_date_frame, text="Fecha liquidación:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
+
+        if self.mode == "edit" and self.liquidation:
+            liquidation_date_str = self.liquidation.liquidation_date.strftime("%d/%m/%Y")
+        else:
+            liquidation_date_str = datetime.now().strftime("%d/%m/%Y")
+        
+        self.liquidation_date_var.set(liquidation_date_str)
+        
+        self.liquidation_date_entry = ttk.Entry(
+            liquidation_date_frame,
+            textvariable=self.liquidation_date_var,
+            width=12,
+            font=('Arial', 9)
+        )
+        self.liquidation_date_entry.grid(row=0, column=1, sticky=tk.W)
+
         # Determinar valores iniciales
         if self.mode == "edit" :
             breakfast_init = self.liquidation.breakfast_count_liquidated
@@ -323,15 +345,22 @@ class DietLiquidationDialog(tk.Toplevel):
             if not self.validate_manual_price():
                 return
             
+            liquidation_date_str = self.liquidation_date_var.get()
+            try:
+                liquidation_date = datetime.strptime(liquidation_date_str, "%d/%m/%Y")
+            except ValueError:
+                messagebox.showerror("Error", "Formato de fecha inválido. Use DD/MM/AAAA")
+            
             # Calcular total de alojamiento (esto es lo que se guarda en total_pay)
             accommodation_total = self.calculate_accommodation_total(
                 self.liquidation_vars["alojamientos"].get()
             )
             
+
             # Crear DTO - IMPORTANTE: total_pay es solo el total de alojamiento
             create_dto = DietLiquidationCreateDTO(
                 diet_id=self.diet.id,
-                liquidation_date=datetime.now(),
+                liquidation_date=liquidation_date,
                 breakfast_count_liquidated=self.liquidation_vars["desayunos"].get(),
                 lunch_count_liquidated=self.liquidation_vars["almuerzos"].get(),
                 dinner_count_liquidated=self.liquidation_vars["comidas"].get(),
@@ -339,7 +368,7 @@ class DietLiquidationDialog(tk.Toplevel):
                 accommodation_payment_method=self.diet.accommodation_payment_method,
                 diet_service_id=self.diet.diet_service_id,
                 accommodation_card_id=self.diet.accommodation_card_id,
-                total_pay=accommodation_total  # SOLO el total de alojamiento
+                total_pay=accommodation_total 
             )
             
             # Crear liquidación
@@ -367,7 +396,6 @@ class DietLiquidationDialog(tk.Toplevel):
     
     def on_update(self):
         """Actualizar liquidación existente"""
-        print(self.liquidation)
 
         try:
             # Validar cantidades
@@ -382,6 +410,12 @@ class DietLiquidationDialog(tk.Toplevel):
             if not self.validate_manual_price():
                 return
             
+            liquidation_date_str = self.liquidation_date_var.get()
+            try:
+                liquidation_date = datetime.strptime(liquidation_date_str, "%d/%m/%Y")
+            except ValueError:
+                messagebox.showerror("Error", "Formato de fecha inválido. Use DD/MM/AAAA")
+
             # Calcular nuevo total de alojamiento
             new_accommodation_total = self.calculate_accommodation_total(
                 self.liquidation_vars["alojamientos"].get()
@@ -427,6 +461,7 @@ class DietLiquidationDialog(tk.Toplevel):
                 accommodation_count_liquidated=self.liquidation_vars["alojamientos"].get(),
                 accommodation_payment_method=self.diet.accommodation_payment_method.upper(),
                 accommodation_card_id=self.diet.accommodation_card_id,
+                liquidation_date=liquidation_date,
                 total_pay=new_accommodation_total  # SOLO el nuevo total de alojamiento
             )
             
