@@ -41,6 +41,7 @@ class CreateDietUseCase:
             is_local=diet_data['is_local'],
             start_date=diet_data['start_date'],
             end_date=diet_data['end_date'],
+            created_at=diet_data['created_at'],
             description=diet_data['description'],
             advance_number=advance_number,
             is_group=diet_data['is_group'],

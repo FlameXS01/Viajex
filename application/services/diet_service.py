@@ -143,7 +143,7 @@ class DietAppService:
             'accommodation_count': create_dto.accommodation_count,
             'accommodation_payment_method': create_dto.accommodation_payment_method,
             'accommodation_card_id': create_dto.accommodation_card_id,
-            'created_at': datetime.now()
+            'created_at': create_dto.created_at
         }
         
         diet = use_case.execute(diet_data)
@@ -470,6 +470,7 @@ class DietAppService:
             is_local=diet.is_local,
             start_date=diet.start_date,
             end_date=diet.end_date,
+            created_at=diet.created_at,
             description=diet.description,
             advance_number=diet.advance_number,
             is_group=diet.is_group,

@@ -45,6 +45,7 @@ class DietForm(ttk.Frame):
         
         self.start_date_var = tk.StringVar()
         self.end_date_var = tk.StringVar()
+        self.req_date_var = tk.StringVar()
         
         self.service_vars = {
             "breakfast_count": tk.IntVar(value=0),
@@ -368,10 +369,14 @@ class DietForm(ttk.Frame):
 
         # Fechas
         dates_frame = ttk.Frame(details_frame)
-        dates_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 5))
+        dates_frame.grid(row=0, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 5))
+        
+        # Configurar columnas para 3 grupos (etiqueta + entrada)
         dates_frame.columnconfigure(1, weight=0)
         dates_frame.columnconfigure(3, weight=0)
+        dates_frame.columnconfigure(5, weight=0)
 
+        # Grupo 1: Fecha de Inicio
         ttk.Label(dates_frame, text="Inicio:").grid(
             row=0, column=0, sticky=tk.W, padx=(0, 3)
         )
@@ -387,6 +392,7 @@ class DietForm(ttk.Frame):
         default_start = datetime.now().strftime("%d/%m/%Y")
         self.start_date_var.set(default_start)
 
+        # Grupo 2: Fecha de Fin
         ttk.Label(dates_frame, text="Fin:").grid(
             row=0, column=2, sticky=tk.W, padx=(0, 3)
         )
@@ -397,10 +403,26 @@ class DietForm(ttk.Frame):
             width=12,
             font=('Arial', 9)
         )
-        self.end_date_entry.grid(row=0, column=3, sticky=tk.W)
+        self.end_date_entry.grid(row=0, column=3, sticky=tk.W, padx=(0, 15))
         
         default_end = (datetime.now() + timedelta(days=1)).strftime("%d/%m/%Y")
         self.end_date_var.set(default_end)
+
+        # Grupo 3: Fecha de Solicitud
+        ttk.Label(dates_frame, text="Solicitud:").grid(
+            row=0, column=4, sticky=tk.W, padx=(0, 3)
+        )
+        
+        self.req_date_entry = ttk.Entry(
+            dates_frame, 
+            textvariable=self.req_date_var,
+            width=12,
+            font=('Arial', 9)
+        )
+        self.req_date_entry.grid(row=0, column=5, sticky=tk.W)
+        
+        default_req = datetime.now().strftime("%d/%m/%Y")  # Fecha actual
+        self.req_date_var.set(default_req)
 
         # Servicios
         services_frame = ttk.Frame(details_frame)
@@ -618,6 +640,8 @@ class DietForm(ttk.Frame):
             self.start_date_var.set(self.diet.start_date.strftime("%d/%m/%Y"))
         if self.diet.end_date:
             self.end_date_var.set(self.diet.end_date.strftime("%d/%m/%Y"))
+        if self.diet.created_at:
+            self.req_date_var.set(self.diet.created_at.strftime("%d/%m/%Y"))
 
         self.service_vars["breakfast_count"].set(self.diet.breakfast_count)
         self.service_vars["lunch_count"].set(self.diet.lunch_count)
@@ -704,6 +728,7 @@ class DietForm(ttk.Frame):
             "is_group": self.diet_type_var.get() == "GROUP",
             "start_date": self.start_date_var.get(),
             "end_date": self.end_date_var.get(),
+            "created_at": self.req_date_var.get(),
             "breakfast_count": self.service_vars["breakfast_count"].get(),
             "lunch_count": self.service_vars["lunch_count"].get(),
             "dinner_count": self.service_vars["dinner_count"].get(),

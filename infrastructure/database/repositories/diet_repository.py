@@ -59,6 +59,7 @@ class DietRepositoryImpl(DietRepository):
             model = DietModel(
                 is_local=diet.is_local,
                 start_date=diet.start_date,
+                created_at=diet.created_at,
                 end_date=diet.end_date,
                 description=diet.description,
                 advance_number=diet.advance_number,
@@ -228,6 +229,7 @@ class DietRepositoryImpl(DietRepository):
                 model.is_local = diet.is_local
                 model.start_date = diet.start_date
                 model.end_date = diet.end_date
+                model.created_at = diet.created_at
                 model.description = diet.description
                 model.advance_number = diet.advance_number
                 model.is_group = diet.is_group
@@ -240,6 +242,7 @@ class DietRepositoryImpl(DietRepository):
                 model.accommodation_count = diet.accommodation_count
                 model.accommodation_payment_method = diet.accommodation_payment_method.upper()
                 model.accommodation_card_id = diet.accommodation_card_id
+
                 self.session.commit()
                 self.session.refresh(model)
             return self._to_entity(model)
@@ -378,6 +381,7 @@ class DietRepositoryImpl(DietRepository):
             is_local=model.is_local,
             start_date=model.start_date,
             end_date=model.end_date,
+            created_at=model.created_at,
             description=model.description,
             advance_number=model.advance_number,
             is_group=model.is_group,

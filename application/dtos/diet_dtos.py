@@ -49,6 +49,7 @@ class DietCreateDTO:
     dinner_count: int
     accommodation_count: int
     accommodation_payment_method: str
+    created_at: Optional[date]
     accommodation_card_id: Optional[int] = None
 
 @dataclass
@@ -63,6 +64,7 @@ class DietUpdateDTO:
     accommodation_count: Optional[int] = None
     accommodation_payment_method: Optional[str] = None
     accommodation_card_id: Optional[int] = None
+    created_at: Optional[date] = None
 
 @dataclass
 class DietResponseDTO:
@@ -83,6 +85,7 @@ class DietResponseDTO:
     accommodation_count: int
     accommodation_payment_method: str
     accommodation_card_id: Optional[int]
+    created_at: Optional[date]
     total_amount: Optional[Decimal] = None
 
 

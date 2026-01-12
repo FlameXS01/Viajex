@@ -18,7 +18,7 @@ class UpdateDietUseCase:
         
         # Actualizar campos permitidos
         for field, value in update_data.items():
-            if hasattr(diet, field) and field not in ['id', 'advance_number', 'created_at']:
+            if hasattr(diet, field) and field not in ['id', 'advance_number']:
                 setattr(diet, field, value)
         
         return self.diet_repository.update(diet)

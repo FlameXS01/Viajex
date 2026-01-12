@@ -11,10 +11,12 @@ class LoginWindow:
         self.on_login_success = on_login_success
         
         self.root = tk.Tk()
+        self.root.withdraw()
         self.root.iconbitmap('icon.ico')
         self.root.title("Bienvenido - Sistema de Dietas - VIAJEX")
         self.root.geometry("400x300")
         self.root.resizable(False, False)
+        self.root.deiconify()
         
         # Centrar ventana
         WindowUtils.center_window(self.root)

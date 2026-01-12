@@ -229,7 +229,8 @@ class DietDialog(tk.Toplevel):
                     dinner_count=form_data["dinner_count"],
                     accommodation_count=form_data["accommodation_count"],
                     accommodation_payment_method=form_data["accommodation_payment_method"],
-                    accommodation_card_id=form_data["accommodation_card_id"]
+                    accommodation_card_id=form_data["accommodation_card_id"], 
+                    created_at=datetime.strptime(form_data["created_at"], "%d/%m/%Y").date(), 
                 )
                 
                 diet = self.diet_service.create_diet(create_dto)
@@ -267,6 +268,7 @@ class DietDialog(tk.Toplevel):
                 update_dto = DietUpdateDTO(
                     start_date=datetime.strptime(form_data["start_date"], "%d/%m/%Y").date(),
                     end_date=datetime.strptime(form_data["end_date"], "%d/%m/%Y").date(),
+                    created_at=datetime.strptime(form_data["created_at"], "%d/%m/%Y").date(),
                     description=form_data["description"],
                     breakfast_count=form_data["breakfast_count"],
                     lunch_count=form_data["lunch_count"],

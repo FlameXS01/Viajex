@@ -2,6 +2,7 @@
 """
 Módulo para exportar datos de Treeview a diferentes formatos.
 """
+import keyword
 import platform
 import subprocess
 import tempfile
@@ -373,10 +374,15 @@ class TreeviewExporter:
                         
                         # ENCABEZADOS DE LA TABLA (excluyendo columnas no deseadas)
                         col_idx_destino = 1
+                        
+                        # Lista para mapear índices de columna a headers originales
+                        included_headers = []
+                        
                         for i, header in enumerate(headers):
                             if i in indices_a_excluir:
                                 continue
                             
+                            included_headers.append(header)  # Guardar header para referencia
                             header_cell = ws.cell(row=current_row, column=col_idx_destino)
                             header_abreviado = abreviar_encabezado(header)
                             header_cell.value = str(header_abreviado)
@@ -403,6 +409,9 @@ class TreeviewExporter:
                                 
                                 cell = ws.cell(row=current_row, column=col_idx_destino, value=cell_data)
                                 
+                                # Obtener el header original para esta columna
+                                original_header = included_headers[col_idx_destino - 1]
+                                
                                 # Formatear nombre del empleado con numeración
                                 if i == hierarchical_structure['indices'].get('employee'):
                                     employee_name = cell_data
@@ -410,11 +419,31 @@ class TreeviewExporter:
                                     cell.value = f"{idx + 1}. {clean_name}"
                                     cell.alignment = Alignment(horizontal='left')
                                 
-                                # Formatear montos
+                                # Formatear montos (excluyendo columnas D, A, C, H)
                                 cell_str = str(cell_data)
-                                if cell_str.startswith('$') or cell_str.replace('.', '', 1).replace(',', '').isdigit():
+                                
+                                # Verificar si es una columna de cantidad (D, A, C, H)
+                                is_quantity_column = False
+                                if original_header and any(keyword in str(original_header).lower() for keyword in ['desayunos', 'almuerzos', 'cenas', 'alojamientos']):
+                                    is_quantity_column = True
+                                
+                                # Para montos (excepto columnas de cantidad)
+                                if cell_str.startswith('$') or (cell_str.replace('.', '', 1).replace(',', '').isdigit() and not is_quantity_column):
                                     cell.alignment = Alignment(horizontal='right')
                                     cell.number_format = '"$"#,##0.00'
+                                # Para columnas de cantidad (D, A, C, H)
+                                elif is_quantity_column and cell_str.replace('.', '', 1).isdigit():
+                                    # Mostrar como número entero
+                                    try:
+                                        # Convertir a entero si es decimal
+                                        if '.' in cell_str:
+                                            cell.value = int(float(cell_str))
+                                        else:
+                                            cell.value = int(cell_str)
+                                        cell.alignment = Alignment(horizontal='right')
+                                        cell.number_format = '0'  # Formato entero sin decimales
+                                    except (ValueError, TypeError):
+                                        pass
                                 
                                 # Fondo alternado para filas
                                 if idx % 2 == 0:
@@ -520,25 +549,44 @@ class TreeviewExporter:
                 value=f"Sistema de Gestión de Dietas VIAJEX • Exportado el: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
             ws.cell(row=footer_row, column=1).font = Font(italic=True, size=9, color="666666")
             
-            # Autoajustar columnas
-            for column in ws.columns:
+
+            for col_idx in range(1, ws.max_column + 1):
                 max_length = 0
-                column_letter = column[0].column_letter
-                for cell in column:
-                    try:
-                        if cell.value and len(str(cell.value)) > max_length:
-                            max_length = len(str(cell.value))
-                    except:
-                        pass
-                adjusted_width = min(max_length + 2, 50)
-                ws.column_dimensions[column_letter].width = adjusted_width
+                col_letter = get_column_letter(col_idx)
+                
+                # Verificar si esta columna tiene dimensiones definidas
+                if col_letter in ws.column_dimensions:
+                    # Iterar solo sobre filas que existen
+                    for row in range(1, ws.max_row + 1):
+                        cell = ws.cell(row=row, column=col_idx)
+                        
+                        # Verificar que no sea una celda fusionada
+                        try:
+                            # Si es MergedCell, saltarla
+                            if hasattr(cell, 'is_merged') and cell.is_merged:
+                                continue
+                        except:
+                            pass
+                        
+                        # Calcular longitud del contenido
+                        if cell.value:
+                            try:
+                                cell_length = len(str(cell.value))
+                                if cell_length > max_length:
+                                    max_length = cell_length
+                            except:
+                                pass
+                    
+                    # Ajustar ancho (mínimo 10, máximo 50)
+                    adjusted_width = min(max(max_length + 2, 10), 50)
+                    ws.column_dimensions[col_letter].width = adjusted_width
             
             wb.save(filename)
             
             # Mensaje de éxito
             if hierarchical_structure:
                 message = (
-                    f"✅ EXCEL con tablas separadas exportado:\n\n"
+                    f"✅ EXCEL :\n\n"
                     f"📂 {filename}\n\n"
                     f"• Tablas por departamento: {len(departments_data)}\n"
                     f"• Total General: ${total_general:,.2f}\n"
@@ -554,8 +602,8 @@ class TreeviewExporter:
             messagebox.showerror("❌ Error", f"No se pudo exportar a Excel:\n\n{str(e)}")
             import traceback
             traceback.print_exc()
-            return None
-            
+            return None        
+        
     @staticmethod
     def export_to_word(tree: ttk.Treeview, title: str, filename: str = None) -> Optional[str]:
         """Exporta Treeview a Word con tablas separadas por departamento"""
@@ -978,14 +1026,14 @@ class TreeviewExporter:
                         return value
                 return header_str
             
-            # Crear documento PDF
+            # Crear documento PDF con márgenes optimizados
             doc = SimpleDocTemplate(
                 filename, 
                 pagesize=A4,
                 topMargin=0.5*inch, 
                 bottomMargin=0.5*inch,
-                leftMargin=0.5*inch, 
-                rightMargin=0.5*inch
+                leftMargin=0.4*inch,  # Reducido para más espacio
+                rightMargin=0.4*inch
             )
             elements = []
             
@@ -998,7 +1046,7 @@ class TreeviewExporter:
                 parent=styles['Heading1'],
                 fontSize=14,
                 textColor=colors.HexColor('#2c3e50'),
-                spaceAfter=10,
+                spaceAfter=8,
                 alignment=1,
                 fontName='Helvetica-Bold'
             )
@@ -1014,7 +1062,7 @@ class TreeviewExporter:
                     fontSize=11,
                     textColor=colors.HexColor('#27ae60'),
                     alignment=1,
-                    spaceAfter=15
+                    spaceAfter=10
                 )
                 
                 subtitle = Paragraph("📊 REPORTE POR DEPARTAMENTOS", subtitle_style)
@@ -1027,13 +1075,13 @@ class TreeviewExporter:
                 fontSize=9,
                 textColor=colors.HexColor('#666666'),
                 alignment=1,
-                spaceAfter=15
+                spaceAfter=12
             )
             
             date_para = Paragraph(f"Exportado: {datetime.now().strftime('%d/%m/%Y %H:%M')}", date_style)
             elements.append(date_para)
             
-            elements.append(Spacer(1, 0.2*inch))
+            elements.append(Spacer(1, 0.15*inch))
             
             if hierarchical_structure:
                 # PROCESAR POR DEPARTAMENTOS
@@ -1051,22 +1099,27 @@ class TreeviewExporter:
                     elif item['type'] == 'employee_row' and current_dept:
                         departments_data[current_dept]['employees'].append(item)
                 
+                total_general = 0
+                
                 # CREAR UNA SECCIÓN POR CADA DEPARTAMENTO
-                for dept_name, dept_info in departments_data.items():
+                for dept_idx, (dept_name, dept_info) in enumerate(departments_data.items()):
                     # Título del departamento
                     dept_title_style = ParagraphStyle(
                         'DeptTitle',
                         parent=styles['Heading2'],
-                        fontSize=12,
+                        fontSize=11,
                         textColor=colors.HexColor('#2c3e50'),
-                        spaceAfter=10,
+                        spaceAfter=8,
                         leftIndent=0,
-                        fontName='Helvetica-Bold'
+                        fontName='Helvetica-Bold',
+                        backColor=colors.HexColor('#e8f4f8'),
+                        borderPadding=(6, 6, 6, 6)
                     )
                     
                     dept_text = f"📊 {dept_name}"
                     if dept_info['subtotal'] > 0:
                         dept_text += f" - Subtotal: ${dept_info['subtotal']:,.2f}"
+                        total_general += dept_info['subtotal']
                     
                     dept_title = Paragraph(dept_text, dept_title_style)
                     elements.append(dept_title)
@@ -1118,50 +1171,80 @@ class TreeviewExporter:
                                 if i in indices_a_excluir:
                                     continue
                                 
-                                # Formatear nombre del empleado con numeración
+                                # Formatear nombre del empleado con numeración usando Paragraph para ajuste de texto
                                 if i == hierarchical_structure['indices'].get('employee'):
                                     employee_name = cell_data
                                     clean_name = str(employee_name).replace('   ├── ', '').replace('├── ', '')
-                                    table_row.append(f"{idx + 1}. {clean_name}")
+                                    # Crear Paragraph con estilo que permita wrap de texto
+                                    employee_style = ParagraphStyle(
+                                        'EmployeeStyle',
+                                        parent=styles['Normal'],
+                                        fontSize=8,
+                                        wordWrap='CJK',  # Permite wrap de texto
+                                        leading=10,  # Espacio entre líneas
+                                    )
+                                    table_row.append(Paragraph(f"{idx + 1}. {clean_name}", employee_style))
                                 else:
-                                    table_row.append(cell_data)
+                                    table_row.append(str(cell_data) if cell_data is not None else "")
                             
                             table_data.append(table_row)
                         
                         # Crear tabla
                         if table_data and len(table_data[0]) > 0:
                             num_cols = len(table_data[0])
-                            col_widths = [doc.width / num_cols] * num_cols
                             
-                            # Ajustar anchos para columnas numéricas
-                            for col_idx in range(num_cols):
-                                if any(keyword in str(table_headers[col_idx]).lower() for keyword in ['gasto', 'monto', 'total', 'precio', 'costo', '$', 'saldo']):
-                                    col_widths[col_idx] = doc.width * 0.15
+                            # Calcular anchos de columna proporcionales
+                            col_widths = []
+                            total_width = doc.width
+                            
+                            # Distribución inteligente de anchos
+                            if num_cols <= 4:
+                                # Poco columnas: distribuir equitativamente
+                                col_width = total_width / num_cols
+                                col_widths = [col_width] * num_cols
+                            else:
+                                # Muchas columnas: dar más espacio a la primera (empleado)
+                                col_widths = [total_width * 0.35]  # 35% para empleado
+                                # Resto dividido entre las otras columnas
+                                remaining_width = total_width * 0.65
+                                other_cols_width = remaining_width / (num_cols - 1)
+                                col_widths.extend([other_cols_width] * (num_cols - 1))
                             
                             table = Table(table_data, colWidths=col_widths, repeatRows=1)
                             
-                            # Estilo de la tabla
+                            # ESTILO DE LA TABLA MEJORADO
                             table_style = TableStyle([
                                 # Encabezados
                                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
                                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                                 ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
                                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                                ('TOPPADDING', (0, 0), (-1, 0), 6),
                                 
-                                # Bordes
-                                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
+                                # Bordes finos
+                                ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor("#dddddd")),
                                 
-                                # Filas alternadas
+                                # Filas alternadas con mejor contraste
                                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), 
-                                [colors.white, colors.HexColor("#f8f9fa")]),
+                                [colors.white, colors.HexColor("#f5f7fa")]),
                                 
-                                # Alineación general
+                                # Alineación y padding mejorado
                                 ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
-                                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                ('VALIGN', (0, 0), (-1, -1), 'TOP'),  # Alinear arriba para mejor ajuste
                                 ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                                
+                                # Padding interno para evitar superposición
+                                ('LEFTPADDING', (0, 1), (-1, -1), 8),
+                                ('RIGHTPADDING', (0, 1), (-1, -1), 8),
+                                ('TOPPADDING', (0, 1), (-1, -1), 4),
+                                ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+                                
+                                # Ajuste especial para la columna del empleado (más espacio)
+                                ('LEFTPADDING', (0, 1), (0, -1), 12),
+                                ('RIGHTPADDING', (0, 1), (0, -1), 10),
                             ])
                             
                             # Alinear montos a la derecha
@@ -1171,21 +1254,22 @@ class TreeviewExporter:
                             
                             table.setStyle(table_style)
                             elements.append(table)
-                            elements.append(Spacer(1, 0.3*inch))
+                            elements.append(Spacer(1, 0.25*inch))
                     
                     # Espacio entre departamentos
-                    elements.append(Spacer(1, 0.2*inch))
+                    if dept_idx < len(departments_data) - 1:
+                        elements.append(Spacer(1, 0.15*inch))
                 
-                # Tabla de resumen final
+                # Salto de página para el resumen
                 elements.append(PageBreak())
                 
-                # Título del resumen
+                # Tabla de resumen final
                 summary_title_style = ParagraphStyle(
                     'SummaryTitle',
                     parent=styles['Heading2'],
                     fontSize=12,
                     textColor=colors.HexColor('#2c3e50'),
-                    spaceAfter=15,
+                    spaceAfter=12,
                     alignment=1
                 )
                 
@@ -1194,27 +1278,41 @@ class TreeviewExporter:
                 
                 # Crear tabla de resumen
                 summary_data = [["DEPARTAMENTO", "SUBTOTAL"]]
-                total_general = 0
                 
                 for dept_name, dept_info in departments_data.items():
                     summary_data.append([dept_name, f"${dept_info['subtotal']:,.2f}"])
-                    total_general += dept_info['subtotal']
                 
-                summary_data.append(["TOTAL GENERAL", f"${total_general:,.2f}"])
+                summary_data.append(["<b>TOTAL GENERAL</b>", f"<b>${total_general:,.2f}</b>"])
                 
                 summary_table = Table(summary_data, colWidths=[doc.width * 0.7, doc.width * 0.3])
-                summary_table.setStyle(TableStyle([
+                
+                # Estilo mejorado para la tabla de resumen
+                summary_style = TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                     ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    
                     ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#dddddd")),
-                    ('ALIGN', (1, 1), (1, -1), 'RIGHT'),
+                    
+                    ('ALIGN', (1, 1), (1, -2), 'RIGHT'),
                     ('FONTNAME', (1, -1), (1, -1), 'Helvetica-Bold'),
                     ('BACKGROUND', (1, -1), (1, -1), colors.HexColor("#27ae60")),
                     ('TEXTCOLOR', (1, -1), (1, -1), colors.white),
-                ]))
+                    
+                    # Padding mejorado
+                    ('LEFTPADDING', (0, 1), (-1, -1), 10),
+                    ('RIGHTPADDING', (0, 1), (-1, -1), 10),
+                    ('TOPPADDING', (0, 1), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+                ])
                 
+                # También aplicar estilo a la primera columna del total
+                summary_style.add('BACKGROUND', (0, -1), (0, -1), colors.HexColor("#27ae60"))
+                summary_style.add('TEXTCOLOR', (0, -1), (0, -1), colors.white)
+                
+                summary_table.setStyle(summary_style)
                 elements.append(summary_table)
             else:
                 # FALLBACK: Tabla plana (sin jerarquía)
@@ -1233,22 +1331,29 @@ class TreeviewExporter:
                         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
                         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        
                         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#dddddd")),
+                        
                         ('ROWBACKGROUNDS', (0, 1), (-1, -1), 
-                        [colors.white, colors.HexColor("#f8f9fa")]),
+                        [colors.white, colors.HexColor("#f5f7fa")]),
+                        
+                        # Padding para evitar superposición
+                        ('LEFTPADDING', (0, 1), (-1, -1), 8),
+                        ('RIGHTPADDING', (0, 1), (-1, -1), 8),
                     ]))
                     
                     elements.append(table)
             
-            # Pie de página
+            # Pie de página mejorado
             elements.append(Spacer(1, 0.3*inch))
             
             footer_style = ParagraphStyle(
                 'Footer',
                 parent=styles['Italic'],
                 fontSize=8,
-                textColor=colors.gray,
-                alignment=1
+                textColor=colors.HexColor('#666666'),
+                alignment=1,
+                spaceBefore=10
             )
             
             footer_text = "Sistema de Gestión de Dietas VIAJEX"
@@ -1280,8 +1385,8 @@ class TreeviewExporter:
             messagebox.showerror("❌ Error", f"No se pudo exportar a PDF:\n\n{str(e)}")
             import traceback
             traceback.print_exc()
-            return None
-            
+            return None    
+                
     @staticmethod
     def show_dependency_help():
         """Muestra ayuda para instalar dependencias"""

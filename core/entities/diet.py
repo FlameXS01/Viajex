@@ -14,6 +14,7 @@ class Diet:
     is_local: bool
     start_date: date
     end_date: date
+    created_at: date
     description: str
     advance_number: int
     is_group: bool
