@@ -205,10 +205,6 @@ class ReportModule(ttk.Frame):
                 ("Fecha Fin", "fecha_fin", 100, "entry"),
                 ("Fecha Solicitud", "fecha_solicitud", 120, "entry"),
                 ("Fecha Liquidación", "fecha_liquidacion", 120, "entry"),
-                ("S.E", "monto_solicitado_efec", 120, "entry"),
-                ("S.T", "monto_solicitado_card", 120, "entry"),
-                ("G.E", "gasto_efec", 120, "entry"),
-                ("G.T", "gasto_card", 120, "entry"),
                 ("Estado", "estado", 120, "combobox") 
             ]
             filters_per_row = max(7, min(14, self.filter_frame.winfo_width() // 160))
@@ -293,6 +289,7 @@ class ReportModule(ttk.Frame):
             ("S.T", 120, "e"),
             ("G.E", 120, "e"),
             ("G.T", 120, "e"),
+            ("Monto", 120, "e"),
             ("Estado", 120, "e")
         ]
         
@@ -435,6 +432,8 @@ class ReportModule(ttk.Frame):
                 else:
                     estado = estado_raw
 
+                monto = item.get("raw_gasto", "0.0") 
+
                 values = (
                     item.get("no_anticipo", ""),
                     item.get("no_liquidacion", ""),
@@ -449,6 +448,7 @@ class ReportModule(ttk.Frame):
                     item.get("monto_solicitado_card", ""), 
                     item.get("gasto_efec", ""),   
                     item.get("gasto_card", ""),
+                    monto,
                     estado
                 )
             

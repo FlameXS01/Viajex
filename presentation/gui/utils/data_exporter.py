@@ -204,7 +204,7 @@ class DataHierarchyTransformer:
 class TreeviewExporter:
     """Exportador genérico para Treeview de tkinter"""
     
-    # Reemplazar la función existente get_treeview_data con esta versión mejorada
+    
     @staticmethod
     def get_treeview_data(tree: ttk.Treeview, hierarchical=True):
         """
@@ -1828,6 +1828,642 @@ class TreeviewExporter:
             traceback.print_exc()
             return False
 
+    @staticmethod
+    def export_to_excel_full_columns(tree: ttk.Treeview, title: str, filename: str = None) -> Optional[str]:
+        """Exporta Treeview a Excel con todas las columnas del reporte"""
+        if not HAS_EXCEL:
+            messagebox.showerror("Error", "openpyxl no está instalado. Instálelo con: pip install openpyxl")
+            return None
+        
+        if not filename:
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".xlsx",
+                filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+                title="Guardar como Excel (Todas las columnas)"
+            )
+            
+        if not filename:
+            return None
+        
+        try:
+            # Obtener datos del treeview
+            columns = tree['columns']
+            headers = []
+            for col in columns:
+                header = tree.heading(col)['text']
+                headers.append(header)
+            
+            data = []
+            for item in tree.get_children():
+                values = tree.item(item)['values']
+                data.append(values)
+            
+            if not headers or not data:
+                messagebox.showwarning("Sin datos", "No hay datos para exportar")
+                return None
+            
+            # Detectar índices de columnas importantes
+            def detect_columns():
+                indices = {
+                    'departamento': None,
+                    'solicitante': None,
+                    'monto_efec': None,
+                    'monto_card': None,
+                    'gasto_efec': None,
+                    'gasto_card': None,
+                    'estado': None
+                }
+                
+                for i, header in enumerate(headers):
+                    header_str = str(header).lower()
+                    
+                    if indices['departamento'] is None:
+                        if any(keyword in header_str for keyword in ['departamento', 'depto', 'unidad', 'area']):
+                            indices['departamento'] = i
+                    
+                    if indices['solicitante'] is None:
+                        if any(keyword in header_str for keyword in ['solicitante', 'empleado', 'nombre', 'fullname']):
+                            indices['solicitante'] = i
+                    
+                    if indices['monto_efec'] is None:
+                        if any(keyword in header_str for keyword in ['s.e', 'efec', 'efectivo solicitado', 'monto efec']):
+                            indices['monto_efec'] = i
+                    
+                    if indices['monto_card'] is None:
+                        if any(keyword in header_str for keyword in ['s.t', 'tarjeta solicitado', 'monto card', 'tarjeta']):
+                            indices['monto_card'] = i
+                    
+                    if indices['gasto_efec'] is None:
+                        if any(keyword in header_str for keyword in ['g.e', 'gasto efec', 'gasto efectivo']):
+                            indices['gasto_efec'] = i
+                    
+                    if indices['gasto_card'] is None:
+                        if any(keyword in header_str for keyword in ['g.t', 'gasto card', 'gasto tarjeta']):
+                            indices['gasto_card'] = i
+                    
+                    if indices['estado'] is None:
+                        if any(keyword in header_str for keyword in ['estado', 'status', 'situacion']):
+                            indices['estado'] = i
+                
+                return indices
+            
+            indices = detect_columns()
+            
+            # Crear workbook
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Reporte Completo"
+            
+            # Escribir título principal
+            ws.merge_cells(f'A1:{get_column_letter(len(headers))}1')
+            title_cell = ws['A1']
+            title_cell.value = f"{title} - Todas las columnas"
+            title_cell.font = Font(size=14, bold=True, color="2c3e50")
+            title_cell.alignment = Alignment(horizontal='center', vertical='center')
+            
+            # Fecha de exportación
+            ws.merge_cells(f'A2:{get_column_letter(len(headers))}2')
+            date_cell = ws['A2']
+            date_cell.value = f"Exportado: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            date_cell.font = Font(size=9, color="666666")
+            date_cell.alignment = Alignment(horizontal='center')
+            
+            # Comenzar en la fila 4
+            current_row = 4
+            
+            # Agrupar datos por departamento si se detectó columna de departamento
+            if indices['departamento'] is not None:
+                # Agrupar por departamento
+                departments = {}
+                for row in data:
+                    dept = str(row[indices['departamento']]) if indices['departamento'] < len(row) else "Sin Departamento"
+                    if dept not in departments:
+                        departments[dept] = []
+                    departments[dept].append(row)
+                
+                # Ordenar departamentos
+                sorted_depts = sorted(departments.keys())
+                total_general_efec = 0
+                total_general_card = 0
+                
+                for dept in sorted_depts:
+                    dept_data = departments[dept]
+                    
+                    # Título del departamento
+                    dept_cell = ws.cell(row=current_row, column=1)
+                    dept_cell.value = f"📊 DEPARTAMENTO: {dept.upper()}"
+                    dept_cell.font = Font(bold=True, color="2c3e50", size=12)
+                    dept_cell.fill = PatternFill(start_color="e8f4f8", end_color="e8f4f8", fill_type="solid")
+                    
+                    ws.merge_cells(
+                        start_row=current_row,
+                        start_column=1,
+                        end_row=current_row,
+                        end_column=len(headers)
+                    )
+                    
+                    current_row += 1
+                    
+                    # Encabezados de tabla
+                    for col_idx, header in enumerate(headers, start=1):
+                        header_cell = ws.cell(row=current_row, column=col_idx)
+                        header_cell.value = header
+                        header_cell.font = Font(bold=True, color="FFFFFF")
+                        header_cell.fill = PatternFill(start_color="2c3e50", end_color="2c3e50", fill_type="solid")
+                        header_cell.alignment = Alignment(horizontal='center', vertical='center')
+                        
+                        col_letter = get_column_letter(col_idx)
+                        ws.column_dimensions[col_letter].width = max(len(str(header)) + 2, 12)
+                    
+                    current_row += 1
+                    
+                    # Variables para subtotales del departamento
+                    dept_subtotal_efec = 0
+                    dept_subtotal_card = 0
+                    dept_gasto_efec = 0
+                    dept_gasto_card = 0
+                    
+                    # Datos del departamento
+                    for idx, row in enumerate(dept_data):
+                        for col_idx, cell_data in enumerate(row, start=1):
+                            cell = ws.cell(row=current_row, column=col_idx, value=cell_data)
+                            
+                            # Formatear según tipo de dato
+                            cell_str = str(cell_data) if cell_data is not None else ""
+                            
+                            # Convertir montos a números (quitar $ y comas)
+                            is_monto_column = False
+                            if col_idx - 1 in [indices['monto_efec'], indices['monto_card'], 
+                                              indices['gasto_efec'], indices['gasto_card']]:
+                                is_monto_column = True
+                            
+                            if is_monto_column and cell_str:
+                                # Quitar símbolos de moneda y caracteres no numéricos
+                                clean_str = cell_str.replace('$', '').replace(',', '').replace(' ', '').strip()
+                                
+                                # Verificar si es un número
+                                if clean_str.replace('.', '', 1).isdigit():
+                                    try:
+                                        num_value = float(clean_str)
+                                        cell.value = num_value
+                                        
+                                        # Formato numérico con 2 decimales
+                                        cell.number_format = '0.00'
+                                        cell.alignment = Alignment(horizontal='right')
+                                        
+                                        # Acumular subtotales
+                                        if col_idx - 1 == indices['monto_efec']:
+                                            dept_subtotal_efec += num_value
+                                            total_general_efec += num_value
+                                        elif col_idx - 1 == indices['monto_card']:
+                                            dept_subtotal_card += num_value
+                                            total_general_card += num_value
+                                        elif col_idx - 1 == indices['gasto_efec']:
+                                            dept_gasto_efec += num_value
+                                        elif col_idx - 1 == indices['gasto_card']:
+                                            dept_gasto_card += num_value
+                                            
+                                    except (ValueError, TypeError):
+                                        # Si no se puede convertir, mantener el string original
+                                        cell.value = cell_str
+                                else:
+                                    cell.value = cell_str
+                            
+                            # Numerar solicitantes
+                            elif col_idx - 1 == indices['solicitante']:
+                                if cell_str:
+                                    # Quitar prefijos existentes y agregar numeración
+                                    clean_name = cell_str.replace('   ├── ', '').replace('├── ', '')
+                                    cell.value = f"{idx + 1}. {clean_name}"
+                            
+                            # Formatear fechas
+                            elif any(keyword in headers[col_idx-1].lower() for keyword in ['fecha', 'date']):
+                                cell.alignment = Alignment(horizontal='center')
+                            
+                            # Formatear estado
+                            elif col_idx - 1 == indices['estado']:
+                                cell.alignment = Alignment(horizontal='center')
+                        
+                        # Fondo alternado para filas
+                        if idx % 2 == 0:
+                            for col_idx in range(1, len(headers) + 1):
+                                ws.cell(row=current_row, column=col_idx).fill = PatternFill(
+                                    start_color="F8F9FA", end_color="F8F9FA", fill_type="solid"
+                                )
+                        
+                        current_row += 1
+                    
+                    # Fila de subtotales del departamento
+                    subtotal_row = current_row
+                    
+                    # Crear fila de subtotal
+                    for col_idx in range(1, len(headers) + 1):
+                        cell = ws.cell(row=subtotal_row, column=col_idx)
+                        
+                        # Poner subtotales en sus columnas respectivas
+                        if col_idx - 1 == indices['monto_efec']:
+                            cell.value = dept_subtotal_efec
+                            cell.number_format = '0.00'
+                            cell.font = Font(bold=True, color="2c3e50")
+                            cell.fill = PatternFill(start_color="FFF3CD", end_color="FFF3CD", fill_type="solid")
+                        elif col_idx - 1 == indices['monto_card']:
+                            cell.value = dept_subtotal_card
+                            cell.number_format = '0.00'
+                            cell.font = Font(bold=True, color="2c3e50")
+                            cell.fill = PatternFill(start_color="FFF3CD", end_color="FFF3CD", fill_type="solid")
+                        elif col_idx - 1 == indices['departamento']:
+                            cell.value = f"Subtotal {dept}"
+                            cell.font = Font(bold=True, italic=True)
+                            cell.fill = PatternFill(start_color="FFF3CD", end_color="FFF3CD", fill_type="solid")
+                    
+                    current_row += 2  # Espacio entre departamentos
+                
+                                # --- RESUMEN POR DEPARTAMENTO (NUEVO) ---
+                summary_row = current_row + 1
+                
+                # Título del resumen por departamento
+                ws.merge_cells(f'A{summary_row}:{get_column_letter(len(headers))}{summary_row}')
+                summary_title = ws.cell(row=summary_row, column=1)
+                summary_title.value = "📊 RESUMEN POR DEPARTAMENTOS"
+                summary_title.font = Font(bold=True, color="2c3e50", size=12)
+                summary_title.alignment = Alignment(horizontal='center')
+                summary_title.fill = PatternFill(start_color="E8F8F5", end_color="E8F8F5", fill_type="solid")
+                
+                summary_row += 1
+                
+                # Encabezados del resumen por departamento
+                dept_summary_headers = [
+                    "DEPARTAMENTO",
+                    "Total Efectivo Anticipado",
+                    "Total Tarjeta Anticipado",
+                    "Total Efectivo Gastado",
+                    "Total Tarjeta Gastado",
+                    "Reembolso Efectivo",
+                    "Reembolso Tarjeta",
+                    "Gasto Total",
+                    "Subtotal Departamento"
+                ]
+                
+                for col_idx, header in enumerate(dept_summary_headers, start=1):
+                    header_cell = ws.cell(row=summary_row, column=col_idx, value=header)
+                    header_cell.font = Font(bold=True, color="FFFFFF")
+                    header_cell.fill = PatternFill(start_color="2c3e50", end_color="2c3e50", fill_type="solid")
+                    header_cell.alignment = Alignment(horizontal='center', vertical='center')
+                    
+                    # Ajustar ancho de columna
+                    col_letter = get_column_letter(col_idx)
+                    ws.column_dimensions[col_letter].width = max(len(header) + 2, 15)
+                
+                summary_row += 1
+                
+                # Variables para el resumen general
+                general_efec_anticipado = 0
+                general_card_anticipado = 0
+                general_efec_gastado = 0
+                general_card_gastado = 0
+                
+                # Crear lista para almacenar resumen por departamento
+                dept_summary_data = []
+                
+                # Procesar cada departamento para el resumen
+                for dept in sorted_depts:
+                    dept_data = departments[dept]
+                    
+                    # Inicializar acumuladores para este departamento
+                    dept_efec_anticipado = 0
+                    dept_card_anticipado = 0
+                    dept_efec_gastado = 0
+                    dept_card_gastado = 0
+                    
+                    # Calcular montos por departamento
+                    for row in dept_data:
+                        # Efectivo solicitado (S.E)
+                        if indices['monto_efec'] is not None and indices['monto_efec'] < len(row):
+                            cell_str = str(row[indices['monto_efec']]) if row[indices['monto_efec']] is not None else ""
+                            if cell_str:
+                                clean_str = cell_str.replace('$', '').replace(',', '').replace(' ', '').strip()
+                                if clean_str.replace('.', '', 1).isdigit():
+                                    dept_efec_anticipado += float(clean_str)
+                                    general_efec_anticipado += float(clean_str)
+                        
+                        # Tarjeta solicitado (S.T)
+                        if indices['monto_card'] is not None and indices['monto_card'] < len(row):
+                            cell_str = str(row[indices['monto_card']]) if row[indices['monto_card']] is not None else ""
+                            if cell_str:
+                                clean_str = cell_str.replace('$', '').replace(',', '').replace(' ', '').strip()
+                                if clean_str.replace('.', '', 1).isdigit():
+                                    dept_card_anticipado += float(clean_str)
+                                    general_card_anticipado += float(clean_str)
+                        
+                        # Gasto efectivo (G.E)
+                        if indices['gasto_efec'] is not None and indices['gasto_efec'] < len(row):
+                            cell_str = str(row[indices['gasto_efec']]) if row[indices['gasto_efec']] is not None else ""
+                            if cell_str:
+                                clean_str = cell_str.replace('$', '').replace(',', '').replace(' ', '').strip()
+                                if clean_str.replace('.', '', 1).isdigit():
+                                    dept_efec_gastado += float(clean_str)
+                                    general_efec_gastado += float(clean_str)
+                        
+                        # Gasto tarjeta (G.T)
+                        if indices['gasto_card'] is not None and indices['gasto_card'] < len(row):
+                            cell_str = str(row[indices['gasto_card']]) if row[indices['gasto_card']] is not None else ""
+                            if cell_str:
+                                clean_str = cell_str.replace('$', '').replace(',', '').replace(' ', '').strip()
+                                if clean_str.replace('.', '', 1).isdigit():
+                                    dept_card_gastado += float(clean_str)
+                                    general_card_gastado += float(clean_str)
+                    
+                    # Calcular valores derivados
+                    reembolso_efec = dept_efec_anticipado - dept_efec_gastado
+                    reembolso_card = dept_card_anticipado - dept_card_gastado
+                    gasto_total = dept_efec_gastado + dept_card_gastado
+                    subtotal_dept = dept_efec_anticipado + dept_card_anticipado
+                    
+                    # Agregar a la lista de resumen
+                    dept_summary_data.append({
+                        'nombre': dept,
+                        'efec_anticipado': dept_efec_anticipado,
+                        'card_anticipado': dept_card_anticipado,
+                        'efec_gastado': dept_efec_gastado,
+                        'card_gastado': dept_card_gastado,
+                        'reembolso_efec': reembolso_efec,
+                        'reembolso_card': reembolso_card,
+                        'gasto_total': gasto_total,
+                        'subtotal': subtotal_dept
+                    })
+                
+                # Escribir datos del resumen por departamento
+                for dept_summary in dept_summary_data:
+                    # DEPARTAMENTO
+                    ws.cell(row=summary_row, column=1, value=dept_summary['nombre'])
+                    
+                    # Total Efectivo Anticipado
+                    ws.cell(row=summary_row, column=2, value=dept_summary['efec_anticipado'])
+                    ws.cell(row=summary_row, column=2).number_format = '0.00'
+                    
+                    # Total Tarjeta Anticipado
+                    ws.cell(row=summary_row, column=3, value=dept_summary['card_anticipado'])
+                    ws.cell(row=summary_row, column=3).number_format = '0.00'
+                    
+                    # Total Efectivo Gastado
+                    ws.cell(row=summary_row, column=4, value=dept_summary['efec_gastado'])
+                    ws.cell(row=summary_row, column=4).number_format = '0.00'
+                    
+                    # Total Tarjeta Gastado
+                    ws.cell(row=summary_row, column=5, value=dept_summary['card_gastado'])
+                    ws.cell(row=summary_row, column=5).number_format = '0.00'
+                    
+                    # Reembolso Efectivo
+                    reembolso_efec_cell = ws.cell(row=summary_row, column=6, value=dept_summary['reembolso_efec'])
+                    reembolso_efec_cell.number_format = '0.00'
+                    # Color: rojo si es negativo (faltante), verde si es positivo (sobrante)
+                    if dept_summary['reembolso_efec'] < 0:
+                        reembolso_efec_cell.font = Font(color="FF0000")  # Rojo
+                    elif dept_summary['reembolso_efec'] > 0:
+                        reembolso_efec_cell.font = Font(color="00AA00")  # Verde
+                    
+                    # Reembolso Tarjeta
+                    reembolso_card_cell = ws.cell(row=summary_row, column=7, value=dept_summary['reembolso_card'])
+                    reembolso_card_cell.number_format = '0.00'
+                    if dept_summary['reembolso_card'] < 0:
+                        reembolso_card_cell.font = Font(color="FF0000")
+                    elif dept_summary['reembolso_card'] > 0:
+                        reembolso_card_cell.font = Font(color="00AA00")
+                    
+                    # Gasto Total
+                    ws.cell(row=summary_row, column=8, value=dept_summary['gasto_total'])
+                    ws.cell(row=summary_row, column=8).number_format = '0.00'
+                    
+                    # Subtotal Departamento
+                    ws.cell(row=summary_row, column=9, value=dept_summary['subtotal'])
+                    ws.cell(row=summary_row, column=9).number_format = '0.00'
+                    ws.cell(row=summary_row, column=9).font = Font(bold=True)
+                    
+                    # Fondo alternado para filas
+                    if (summary_row - 3) % 2 == 0:
+                        for col in range(1, len(dept_summary_headers) + 1):
+                            ws.cell(row=summary_row, column=col).fill = PatternFill(
+                                start_color="F8F9FA", end_color="F8F9FA", fill_type="solid"
+                            )
+                    
+                    summary_row += 1
+                
+                # Fila de TOTALES POR DEPARTAMENTOS
+                total_row = summary_row
+                
+                # "TOTAL GENERAL" en primera columna
+                ws.cell(row=total_row, column=1, value="TOTAL GENERAL").font = Font(bold=True, color="FFFFFF")
+                
+                # Total Efectivo Anticipado
+                total_efec_anticipado_cell = ws.cell(row=total_row, column=2, value=general_efec_anticipado)
+                total_efec_anticipado_cell.number_format = '0.00'
+                total_efec_anticipado_cell.font = Font(bold=True, color="FFFFFF")
+                
+                # Total Tarjeta Anticipado
+                total_card_anticipado_cell = ws.cell(row=total_row, column=3, value=general_card_anticipado)
+                total_card_anticipado_cell.number_format = '0.00'
+                total_card_anticipado_cell.font = Font(bold=True, color="FFFFFF")
+                
+                # Total Efectivo Gastado
+                total_efec_gastado_cell = ws.cell(row=total_row, column=4, value=general_efec_gastado)
+                total_efec_gastado_cell.number_format = '0.00'
+                total_efec_gastado_cell.font = Font(bold=True, color="FFFFFF")
+                
+                # Total Tarjeta Gastado
+                total_card_gastado_cell = ws.cell(row=total_row, column=5, value=general_card_gastado)
+                total_card_gastado_cell.number_format = '0.00'
+                total_card_gastado_cell.font = Font(bold=True, color="FFFFFF")
+                
+                # Reembolso Efectivo Total
+                reembolso_efec_total = general_efec_anticipado - general_efec_gastado
+                reembolso_efec_total_cell = ws.cell(row=total_row, column=6, value=reembolso_efec_total)
+                reembolso_efec_total_cell.number_format = '0.00'
+                reembolso_efec_total_cell.font = Font(bold=True, color="FFFFFF")
+                if reembolso_efec_total < 0:
+                    reembolso_efec_total_cell.font = Font(bold=True, color="FFCCCC")  # Rojo claro
+                elif reembolso_efec_total > 0:
+                    reembolso_efec_total_cell.font = Font(bold=True, color="CCFFCC")  # Verde claro
+                
+                # Reembolso Tarjeta Total
+                reembolso_card_total = general_card_anticipado - general_card_gastado
+                reembolso_card_total_cell = ws.cell(row=total_row, column=7, value=reembolso_card_total)
+                reembolso_card_total_cell.number_format = '0.00'
+                reembolso_card_total_cell.font = Font(bold=True, color="FFFFFF")
+                if reembolso_card_total < 0:
+                    reembolso_card_total_cell.font = Font(bold=True, color="FFCCCC")
+                elif reembolso_card_total > 0:
+                    reembolso_card_total_cell.font = Font(bold=True, color="CCFFCC")
+                
+                # Gasto Total General
+                gasto_total_general = general_efec_gastado + general_card_gastado
+                gasto_total_cell = ws.cell(row=total_row, column=8, value=gasto_total_general)
+                gasto_total_cell.number_format = '0.00'
+                gasto_total_cell.font = Font(bold=True, color="FFFFFF")
+                
+                # Subtotal General (Total Anticipado)
+                subtotal_general = general_efec_anticipado + general_card_anticipado
+                subtotal_cell = ws.cell(row=total_row, column=9, value=subtotal_general)
+                subtotal_cell.number_format = '0.00'
+                subtotal_cell.font = Font(bold=True, color="FFFFFF")
+                
+                # Aplicar fondo verde a toda la fila de total general
+                for col in range(1, len(dept_summary_headers) + 1):
+                    ws.cell(row=total_row, column=col).fill = PatternFill(
+                        start_color="27ae60", end_color="27ae60", fill_type="solid"
+                    )
+                
+                # Espacio después del resumen
+                summary_row = total_row + 2
+                
+                # --- RESUMEN CONSOLIDADO SIMPLE (opcional) ---
+                # Título del resumen consolidado
+                ws.merge_cells(f'A{summary_row}:{get_column_letter(len(headers))}{summary_row}')
+                consol_title = ws.cell(row=summary_row, column=1)
+                consol_title.value = "📊 RESUMEN CONSOLIDADO"
+                consol_title.font = Font(bold=True, color="2c3e50", size=12)
+                consol_title.alignment = Alignment(horizontal='center')
+                consol_title.fill = PatternFill(start_color="E8F8F5", end_color="E8F8F5", fill_type="solid")
+                
+                summary_row += 1
+                
+                # Encabezados del resumen consolidado
+                ws.cell(row=summary_row, column=1, value="CONCEPTO").font = Font(bold=True)
+                ws.cell(row=summary_row, column=2, value="MONTO").font = Font(bold=True)
+                
+                summary_row += 1
+                
+                # Datos del resumen consolidado
+                consolidado_data = [
+                    ("Total Efectivo Anticipado", general_efec_anticipado),
+                    ("Total Tarjeta Anticipado", general_card_anticipado),
+                    ("Total Anticipado", subtotal_general),
+                    ("", ""),  # Separador
+                    ("Total Efectivo Gastado", general_efec_gastado),
+                    ("Total Tarjeta Gastado", general_card_gastado),
+                    ("Total Gastado", gasto_total_general),
+                    ("", ""),  # Separador
+                    ("Reembolso Efectivo", reembolso_efec_total),
+                    ("Reembolso Tarjeta", reembolso_card_total),
+                    ("Reembolso Total", reembolso_efec_total + reembolso_card_total),
+                ]
+                
+                for idx, (concepto, monto) in enumerate(consolidado_data):
+                    row = summary_row + idx
+                    if concepto:  # Si no es separador
+                        ws.cell(row=row, column=1, value=concepto)
+                        if monto != "":  # Si tiene monto
+                            cell = ws.cell(row=row, column=2, value=monto)
+                            cell.number_format = '0.00'
+                            
+                            # Formato especial para reembolsos
+                            if "Reembolso" in concepto:
+                                if monto < 0:
+                                    cell.font = Font(color="FF0000", bold=True)
+                                elif monto > 0:
+                                    cell.font = Font(color="00AA00", bold=True)
+                            
+                            # Formato para totales
+                            if "Total" in concepto and "Anticipado" not in concepto and "Gastado" not in concepto:
+                                cell.font = Font(bold=True)
+                
+                # Ajustar el ancho de las columnas del resumen
+                ws.column_dimensions['A'].width = 25
+                ws.column_dimensions['B'].width = 15
+                
+            else:
+                # Si no hay columna de departamento, tabla simple
+                # Encabezados
+                for col_idx, header in enumerate(headers, start=1):
+                    header_cell = ws.cell(row=current_row, column=col_idx)
+                    header_cell.value = header
+                    header_cell.font = Font(bold=True, color="FFFFFF")
+                    header_cell.fill = PatternFill(start_color="2c3e50", end_color="2c3e50", fill_type="solid")
+                    header_cell.alignment = Alignment(horizontal='center', vertical='center')
+                    
+                    col_letter = get_column_letter(col_idx)
+                    ws.column_dimensions[col_letter].width = max(len(str(header)) + 2, 12)
+                
+                current_row += 1
+                
+                # Datos
+                for row_idx, row in enumerate(data):
+                    for col_idx, cell_data in enumerate(row, start=1):
+                        cell = ws.cell(row=current_row, column=col_idx, value=cell_data)
+                        
+                        # Convertir montos a números
+                        cell_str = str(cell_data) if cell_data is not None else ""
+                        if cell_str.startswith('$'):
+                            clean_str = cell_str.replace('$', '').replace(',', '').replace(' ', '').strip()
+                            if clean_str.replace('.', '', 1).isdigit():
+                                try:
+                                    cell.value = float(clean_str)
+                                    cell.number_format = '0.00'
+                                    cell.alignment = Alignment(horizontal='right')
+                                except (ValueError, TypeError):
+                                    cell.value = cell_str
+                        
+                    # Fondo alternado
+                    if row_idx % 2 == 0:
+                        for col_idx in range(1, len(headers) + 1):
+                            ws.cell(row=current_row, column=col_idx).fill = PatternFill(
+                                start_color="F8F9FA", end_color="F8F9FA", fill_type="solid"
+                            )
+                    
+                    current_row += 1
+            
+            # Aplicar bordes a todas las celdas con datos
+            thin_border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+            
+            max_row = ws.max_row
+            max_col = ws.max_column
+            
+            for row in ws.iter_rows(min_row=4, max_row=max_row, min_col=1, max_col=max_col):
+                for cell in row:
+                    if cell.value is not None:
+                        cell.border = thin_border
+            
+            # Ajustar automáticamente el ancho de las columnas
+            for col_idx in range(1, max_col + 1):
+                max_length = 0
+                col_letter = get_column_letter(col_idx)
+                
+                for row in range(4, max_row + 1):
+                    cell = ws.cell(row=row, column=col_idx)
+                    if cell.value:
+                        cell_length = len(str(cell.value))
+                        if cell_length > max_length:
+                            max_length = cell_length
+                
+                # Ajustar ancho (mínimo 10, máximo 30)
+                adjusted_width = min(max(max_length + 2, 10), 30)
+                ws.column_dimensions[col_letter].width = adjusted_width
+            
+            # Guardar archivo
+            wb.save(filename)
+            
+            # Mensaje de éxito
+            if indices['departamento'] is not None:
+                message = (
+                    f"✅ EXCEL CON TODAS LAS COLUMNAS:\n\n"
+                    f"📂 {filename}\n\n"
+                )
+            else:
+                message = f"✅ Excel con todas las columnas exportado:\n\n{filename}"
+            
+            messagebox.showinfo("Exportación exitosa", message)
+            return filename
+            
+        except Exception as e:
+            messagebox.showerror("❌ Error", f"No se pudo exportar a Excel:\n\n{str(e)}")
+            import traceback
+            traceback.print_exc()
+            return None
+        
 @staticmethod
 def create_export_button(parent, tree: ttk.Treeview, title: str, 
                         button_text: str = "📤 Exportar", 
@@ -1855,7 +2491,13 @@ def create_export_button(parent, tree: ttk.Treeview, title: str,
                 command=lambda: TreeviewExporter.export_to_excel(tree, title),
                 font=('Arial', 10)
             )
-        
+
+            menu.add_command(
+                label="📊 Excel Completo (Todas columnas)",
+                command=lambda: TreeviewExporter.export_to_excel_full_columns(tree, title),
+                font=('Arial', 10)
+            )
+
         if HAS_WORD:
             menu.add_command(
                 label="📝 Word (.docx)",
@@ -1879,24 +2521,7 @@ def create_export_button(parent, tree: ttk.Treeview, title: str,
                 font=('Arial', 10)
             )
             
-            menu.add_command(
-                label="👁️ Vista previa",
-                command=lambda: TreeviewExporter.print_with_preview(tree, title)
-            )
-        
         menu.add_separator()
-        
-        # Información sobre la exportación
-        if hierarchical_structure:
-            menu.add_command(
-                label="ℹ️ Información",
-                command=lambda: messagebox.showinfo(
-                    "Estructura detectada",
-                    f"Se detectaron automáticamente:\n\n"
-                    f"• Departamentos: {len(hierarchical_structure['summary'])}\n"
-                    f"• Total General: ${hierarchical_structure['total_general']:,.2f}\n"
-                )
-            )
         
         # Mostrar menú
         if event:
