@@ -58,7 +58,7 @@ class MainDashboard:
         self.root.withdraw()
         self._load_icons()
         self.root.state('zoomed')
-        self.root.minsize(1000, 650)
+        self.root.minsize(1000, 720)
         
         # Configurar cierre seguro
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)

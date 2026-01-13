@@ -1,17 +1,13 @@
-# presentation/gui/reports_presentation/reports_module.py
 import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import Dict, List, Any
 import traceback
+from datetime import datetime
+from tkcalendar import DateEntry
 from presentation.gui.utils.data_exporter import TreeviewExporter, create_export_button
 
 
 class ReportModule(ttk.Frame):
-    """
-    
-    Módulo de reportes del sistema 
-    
-    """
     
     def __init__(self, parent, report_service, department_service, 
                  user_service, card_service, diet_service=None, 
@@ -24,58 +20,48 @@ class ReportModule(ttk.Frame):
         self.diet_service = diet_service
         self.request_user_service = request_user_service
         
-        # Datos actuales
         self.current_data = []
-        self.current_report_type = None  # "cards" o "diets"
-        
-        # Diccionario para almacenar las entradas de filtro por columna
+        self.current_report_type = None
         self.filter_entries = {}
         
         self.create_widgets()
         self.show_initial_message()
     
     def create_widgets(self):
-        """Crea todos los widgets del módulo"""
-        # Frame principal
         main_frame = ttk.Frame(self)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # 1. Selector de tipo de reporte
         self._create_report_selector(main_frame)
         
+        self.date_filter_frame = ttk.LabelFrame(main_frame, text="📅 Filtro por Rango de Fechas")
         
-        # 3. Frame para la tabla
-        table_frame = ttk.Frame(main_frame)
-        table_frame.pack(fill=tk.BOTH, expand=True, pady=(5, 10))
-        
-        # 2. Frame para filtros (se llenará dinámicamente)
         self.filter_frame = ttk.LabelFrame(main_frame, text="🔍 Filtros por Columna")
         self.filter_frame.pack(fill=tk.X, pady=(10, 5))
-        # 4. Crear tabla
+        
+        self._create_date_filter_widgets()
+        
+        table_frame = ttk.Frame(main_frame)
+        table_frame.pack(fill=tk.BOTH, expand=True, pady=(5, 10))
         self._create_table(table_frame)
         
-        # 5. Botón de exportación (se mostrará solo para dietas)
-        self.export_button_frame = ttk.Frame(main_frame)
-        self.export_button_frame.pack(fill=tk.X, pady=(0, 5))
+        self.button_frame = ttk.Frame(main_frame)
+        self.button_frame.pack(fill=tk.X, pady=(0, 5))
         
+        self.export_button_frame = ttk.Frame(self.button_frame)
+        self.export_button_frame.pack(side=tk.LEFT, padx=5)
         
-        # 6. Botón de limpiar filtros
-        ttk.Button(main_frame, text="🧹 Limpiar Filtros", 
-                  command=self.clear_filters).pack(side=tk.RIGHT, padx=5)
-        
-        # 7. Botón de actualizar
-        ttk.Button(main_frame, text="🔄 Actualizar", 
+        ttk.Button(self.button_frame, text="🔄 Actualizar", 
                   command=self.refresh_report).pack(side=tk.RIGHT, padx=5)
+        
+        ttk.Button(self.button_frame, text="🧹 Limpiar Filtros", 
+                  command=self.clear_filters).pack(side=tk.RIGHT, padx=5)
     
     def _create_report_selector(self, parent):
-        """Crea el selector de tipo de reporte"""
         selector_frame = ttk.LabelFrame(parent, text="📊 Tipo de Reporte")
         selector_frame.pack(fill=tk.X, pady=(0, 10))
         
-        # Variable para los radio buttons
         self.report_type_var = tk.StringVar(value="cards")
         
-        # Radio buttons
         cards_rb = ttk.Radiobutton(
             selector_frame, 
             text="💳 Reporte de Tarjetas", 
@@ -94,55 +80,112 @@ class ReportModule(ttk.Frame):
         )
         diets_rb.pack(side=tk.LEFT, padx=20, pady=5)
     
+    def on_report_type_changed(self):
+        report_type = self.report_type_var.get()
+        self.current_report_type = report_type
+        
+        if report_type == "diets":
+            self.date_filter_frame.pack(fill=tk.X, pady=(10, 5), before=self.filter_frame)
+        else:
+            self.date_filter_frame.pack_forget()
+        
+        self.update_filter_fields()
+        self.load_report_data()
+        self.update_export_button()
+    
+    def _create_date_filter_widgets(self):
+        self.date_filter_type = tk.StringVar(value="solicitud")
+        
+        type_frame = ttk.Frame(self.date_filter_frame)
+        type_frame.pack(fill=tk.X, padx=10, pady=(5, 0))
+        
+        ttk.Label(type_frame, text="Filtrar por:").pack(side=tk.LEFT, padx=(0, 10))
+        
+        ttk.Radiobutton(
+            type_frame, 
+            text="Fecha de Solicitud", 
+            variable=self.date_filter_type, 
+            value="solicitud",
+            command=self.apply_date_filter
+        ).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Radiobutton(
+            type_frame, 
+            text="Fecha de Liquidación", 
+            variable=self.date_filter_type, 
+            value="liquidacion",
+            command=self.apply_date_filter
+        ).pack(side=tk.LEFT, padx=5)
+        
+        range_frame = ttk.Frame(self.date_filter_frame)
+        range_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        ttk.Label(range_frame, text="Desde:").pack(side=tk.LEFT, padx=(0, 5))
+        
+        self.date_from_entry = DateEntry(
+            range_frame,
+            date_pattern='dd/mm/yyyy',
+            width=12,
+            background='darkblue',
+            foreground='white',
+            borderwidth=2,
+            locale='es_ES'
+        )
+        self.date_from_entry.pack(side=tk.LEFT, padx=5)
+        
+        ttk.Label(range_frame, text="Hasta:").pack(side=tk.LEFT, padx=(10, 5))
+        
+        self.date_to_entry = DateEntry(
+            range_frame,
+            date_pattern='dd/mm/yyyy',
+            width=12,
+            background='darkblue',
+            foreground='white',
+            borderwidth=2,
+            locale='es_ES'
+        )
+        self.date_to_entry.pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(
+            range_frame, 
+            text="Aplicar Filtro de Fechas", 
+            command=self.apply_date_filter
+        ).pack(side=tk.LEFT, padx=(20, 0))
+        
+        ttk.Button(
+            range_frame, 
+            text="Limpiar Fechas", 
+            command=self.clear_date_filter
+        ).pack(side=tk.LEFT, padx=5)
+        
+        self.date_from_entry.bind("<<DateEntrySelected>>", lambda e: self.apply_date_filter())
+        self.date_to_entry.bind("<<DateEntrySelected>>", lambda e: self.apply_date_filter())
+    
     def _create_table(self, parent):
-        """Crea la tabla para mostrar los reportes"""
-        # Frame para tabla con scrollbars
         table_container = ttk.Frame(parent)
         table_container.pack(fill=tk.BOTH, expand=True)
         
-        # Crear Treeview
         self.tree = ttk.Treeview(table_container, show="headings")
         
-        # Scrollbars
         vsb = ttk.Scrollbar(table_container, orient="vertical", command=self.tree.yview)
         hsb = ttk.Scrollbar(table_container, orient="horizontal", command=self.tree.xview)
         self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
         
-        # Grid layout
         self.tree.grid(row=0, column=0, sticky="nsew")
         vsb.grid(row=0, column=1, sticky="ns")
         hsb.grid(row=1, column=0, sticky="ew")
         
-        # Configurar pesos
         table_container.grid_rowconfigure(0, weight=1)
         table_container.grid_columnconfigure(0, weight=1)
         
-        # Configurar evento de selección
         self.tree.bind("<<TreeviewSelect>>", self.on_item_selected)
     
-    def on_report_type_changed(self):
-        """Se ejecuta cuando cambia el tipo de reporte"""
-        report_type = self.report_type_var.get()
-        self.current_report_type = report_type
-        
-        # Actualizar filtros
-        self.update_filter_fields()
-        
-        # Cargar datos
-        self.load_report_data()
-        
-        # Mostrar/ocultar botón de exportación
-        self.update_export_button()
-    
     def update_filter_fields(self):
-        """Actualiza los campos de filtro según el tipo de reporte"""
-        # Limpiar frame de filtros
         for widget in self.filter_frame.winfo_children():
             widget.destroy()
         
         self.filter_entries.clear()
         
-        # Definir columnas según tipo de reporte
         if self.current_report_type == "cards":
             columns = [
                 ("Número de Tarjeta", "numero_tarjeta", 150, "entry"),
@@ -150,8 +193,8 @@ class ReportModule(ttk.Frame):
                 ("Balance", "balance", 120, "entry"),
                 ("Estado", "estado", 120, "entry")
             ]
-            filters_per_row = 4  # Siempre 1 fila para tarjetas
-        else:  # diets
+            filters_per_row = 4
+        else:
             columns = [
                 ("No.A", "no_anticipo", 100, "entry"),
                 ("No.L", "no_liquidacion", 120, "entry"),
@@ -168,20 +211,15 @@ class ReportModule(ttk.Frame):
                 ("G.T", "gasto_card", 120, "entry"),
                 ("Estado", "estado", 120, "combobox") 
             ]
-            # Calcular dinámicamente cuántos filtros por fila
             filters_per_row = max(7, min(14, self.filter_frame.winfo_width() // 160))
         
-        # Crear etiquetas y entradas para cada columna
         for idx, (display_name, key, width, widget_type) in enumerate(columns):
-            # Calcular fila y columna
             row = idx // filters_per_row
             col = idx % filters_per_row
             
-            # Frame para cada filtro
             filter_item_frame = ttk.Frame(self.filter_frame)
             filter_item_frame.grid(row=row, column=col, padx=5, pady=5, sticky="nsew")
             
-            # Etiqueta
             label = ttk.Label(filter_item_frame, text=display_name, font=("Arial", 9, "bold"))
             label.pack(anchor="w")
             
@@ -198,21 +236,19 @@ class ReportModule(ttk.Frame):
                 entry.bind("<KeyRelease>", lambda e, k=key: self.apply_filters())
                 self.filter_entries[key] = entry
         
-        # Configurar pesos de columnas
         for i in range(filters_per_row):
             self.filter_frame.columnconfigure(i, weight=1)
     
     def load_report_data(self):
-        """Carga los datos del reporte seleccionado"""
         try:
             if self.current_report_type == "cards":
                 self.current_data = self.report_service.get_all_cards_report()
                 self._setup_columns_for_cards()
-            else:  # diets
+                self.clear_date_filter()
+            else:
                 self.current_data = self.report_service.get_all_diets_report()
                 self._setup_columns_for_diets()
             
-            # Aplicar filtros si existen
             self.apply_filters()
             
         except Exception as e:
@@ -222,19 +258,15 @@ class ReportModule(ttk.Frame):
             self._clear_table()
     
     def _setup_columns_for_cards(self):
-        """Configura las columnas para el reporte de tarjetas"""
-        # Limpiar columnas existentes
         self._clear_table()
         
-        # Definir columnas
         columns = [
             ("Número de Tarjeta", 150),
             ("PIN", 100),
-            ("Balance", 120, "e"),  # 'e' para alineación derecha
+            ("Balance", 120, "e"),
             ("Estado", 120)
         ]
         
-        # Configurar columnas
         col_ids = ["#{}".format(i+1) for i in range(len(columns))]
         self.tree["columns"] = col_ids
         
@@ -245,13 +277,10 @@ class ReportModule(ttk.Frame):
             self.tree.column(col_id, width=width, anchor=anchor)
     
     def _setup_columns_for_diets(self):
-        """Configura las columnas para el reporte de dietas"""
-        # Limpiar columnas existentes
         self._clear_table()
         
-        # Definir columnas
         columns = [
-            ("No.A", 100, "c"),  # 'c' para centrado
+            ("No.A", 100, "c"),
             ("No.L", 120, "c"),
             ("Descripción", 200),
             ("Solicitante", 150),
@@ -262,12 +291,11 @@ class ReportModule(ttk.Frame):
             ("Fecha Liquidación", 120, "c"),
             ("S.E", 120, "e"),
             ("S.T", 120, "e"),
-            ("G.E", 120, "e"),   
+            ("G.E", 120, "e"),
             ("G.T", 120, "e"),
             ("Estado", 120, "e")
         ]
         
-        # Configurar columnas
         col_ids = ["#{}".format(i+1) for i in range(len(columns))]
         self.tree["columns"] = col_ids
         
@@ -284,29 +312,23 @@ class ReportModule(ttk.Frame):
             self.tree.column(col_id, width=width, anchor=anchor)
     
     def _clear_table(self):
-        """Limpia la tabla completamente"""
-        # Eliminar todas las columnas
         for col in self.tree["columns"]:
             self.tree.heading(col, text="")
         
-        # Eliminar todas las filas
         for item in self.tree.get_children():
             self.tree.delete(item)
     
     def apply_filters(self):
-        """Aplica los filtros de todas las columnas"""
         if not self.current_data:
             return
         
-        # Obtener valores de filtro
         filters = {}
         for key, widget in self.filter_entries.items():
             value = widget.get().strip()
             
-            # Manejar caso especial del combobox de estado
             if key == "estado" and self.current_report_type == "diets":
                 if value == "Todas":
-                    continue  # No aplicar filtro
+                    continue
                 elif value == "Solicitadas":
                     value = "REQUESTED"
                 elif value == "Liquidadas":
@@ -316,28 +338,86 @@ class ReportModule(ttk.Frame):
                 filters[key] = value
         
         try:
-            # Filtrar datos
             if self.current_report_type == "cards":
                 filtered_data = self.report_service.filter_cards_report(filters)
-            else:  # diets
+            else:
                 filtered_data = self.report_service.filter_diets_report(filters)
             
-            # Actualizar tabla
             self._populate_table(filtered_data)
             
         except Exception as e:
             messagebox.showerror("Error", f"Error al aplicar filtros:\n{str(e)}")
     
+    def apply_date_filter(self):
+        if self.current_report_type != "diets" or not self.current_data:
+            return
+        
+        try:
+            date_from_obj = self.date_from_entry.get_date()
+            date_to_obj = self.date_to_entry.get_date()
+            
+            date_from_str = date_from_obj.strftime("%d/%m/%Y")
+            date_to_str = date_to_obj.strftime("%d/%m/%Y")
+        except Exception:
+            date_from_str = ""
+            date_to_str = ""
+        
+        filter_type = self.date_filter_type.get()
+        
+        if not date_from_str and not date_to_str:
+            self.apply_filters()
+            return
+        
+        try:
+            date_from = None
+            date_to = None
+            
+            if date_from_str:
+                date_from = datetime.strptime(date_from_str, "%d/%m/%Y")
+            
+            if date_to_str:
+                date_to = datetime.strptime(date_to_str, "%d/%m/%Y")
+            
+            filtered_data = []
+            for item in self.current_data:
+                if filter_type == "solicitud":
+                    date_str = item.get("fecha_solicitud", "")
+                else:
+                    date_str = item.get("fecha_liquidacion", "")
+                
+                if not date_str or date_str == "N/A":
+                    continue
+                
+                try:
+                    item_date = datetime.strptime(date_str, "%d/%m/%Y")
+                except ValueError:
+                    continue
+                
+                in_range = True
+                
+                if date_from and item_date < date_from:
+                    in_range = False
+                
+                if date_to and item_date > date_to:
+                    in_range = False
+                
+                if in_range:
+                    filtered_data.append(item)
+            
+            self._populate_table(filtered_data)
+            
+        except ValueError:
+            messagebox.showwarning("Formato inválido", "Por favor ingrese fechas en formato dd/mm/yyyy")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al aplicar filtro de fechas:\n{str(e)}")
+    
     def _populate_table(self, data):
-        """Pobla la tabla con los datos proporcionados"""
-        # Limpiar filas existentes
         for item in self.tree.get_children():
             self.tree.delete(item)
         
         if not data:
             return
         
-        # Insertar datos
         for item in data:
             if self.current_report_type == "cards":
                 values = (
@@ -346,7 +426,7 @@ class ReportModule(ttk.Frame):
                     item.get("balance", ""),
                     item.get("estado", "")
                 )
-            else:  # diets
+            else:
                 estado_raw = item.get("estado", "").upper()
                 if estado_raw == "LIQUIDATED":
                     estado = "Liquidado"
@@ -370,47 +450,50 @@ class ReportModule(ttk.Frame):
                     item.get("gasto_efec", ""),   
                     item.get("gasto_card", ""),
                     estado
-
                 )
             
             self.tree.insert("", tk.END, values=values)
         
-        # Actualizar contador
         self.update_status_bar(len(data))
     
     def update_status_bar(self, count):
-        """Actualiza la barra de estado con el conteo de registros"""
-        # Puedes implementar una barra de estado si es necesario
         pass
     
     def clear_filters(self):
-        """Limpia todos los filtros"""
         for key, widget in self.filter_entries.items():
             if isinstance(widget, ttk.Combobox) and key == "estado" and self.current_report_type == "diets":
-                widget.set("Todas")  # Resetear combobox a valor por defecto
+                widget.set("Todas")
             else:
                 widget.delete(0, tk.END)
         
-        # Aplicar filtros (que ahora estarán vacíos)
-        self.apply_filters()
+        if self.current_report_type == "diets":
+            self.clear_date_filter()
+        else:
+            self.apply_filters()
+    
+    def clear_date_filter(self):
+        today = datetime.now()
         
+        self.date_from_entry.set_date(today)
+        self.date_to_entry.set_date(today)
+        
+        self.date_filter_type.set("solicitud")
+        
+        if self.current_report_type == "diets":
+            self.apply_filters()
+    
     def refresh_report(self):
-        """Refresca el reporte actual"""
         self.load_report_data()
     
     def on_item_selected(self, event):
-        """Maneja la selección de un item en la tabla"""
         selection = self.tree.selection()
         if not selection:
             return
-         
+    
     def update_export_button(self):
-        """Actualiza el botón de exportación"""
-        # Limpiar frame del botón
         for widget in self.export_button_frame.winfo_children():
             widget.destroy()
         
-        # Solo mostrar para reporte de dietas
         if self.current_report_type == "diets":
             title = "Reportes Generales"
             create_export_button(
@@ -423,10 +506,8 @@ class ReportModule(ttk.Frame):
             )
     
     def show_initial_message(self):
-        """Muestra mensaje inicial"""
         self._clear_table()
         
-        # Mostrar mensaje en la tabla
         self.tree["columns"] = ("#1",)
         self.tree.heading("#1", text="Seleccione un tipo de reporte")
         self.tree.column("#1", width=400, anchor="center")
