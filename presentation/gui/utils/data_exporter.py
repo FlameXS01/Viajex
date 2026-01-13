@@ -21,10 +21,11 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from reportlab.lib.pagesizes import letter, A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import inch
+
 
 
 HAS_EXCEL = True
@@ -1410,14 +1411,7 @@ class TreeviewExporter:
             temp_dir = tempfile.gettempdir()
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             temp_filename = os.path.join(temp_dir, f"impresion_{timestamp}.pdf")
-            
-            # Usar la MISMA lógica que export_to_pdf
-            from reportlab.lib.pagesizes import A4
-            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
-            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-            from reportlab.lib import colors
-            from reportlab.lib.units import inch
-            
+                   
             # Obtener datos con transformación jerárquica automática
             headers, _, hierarchical_structure = TreeviewExporter.get_treeview_data(tree, hierarchical=True)
             
@@ -1497,7 +1491,7 @@ class TreeviewExporter:
             elements.append(Spacer(1, 0.15*inch))
             
             if hierarchical_structure:
-                # PROCESAR POR DEPARTAMENTOS (IDÉNTICO a export_to_pdf)
+                # PROCESAR POR DEPARTAMENTOS 
                 departments_data = {}
                 current_dept = None
                 
@@ -1514,9 +1508,9 @@ class TreeviewExporter:
                 
                 total_general = 0
                 
-                # CREAR UNA SECCIÓN POR CADA DEPARTAMENTO (IDÉNTICO a export_to_pdf)
+                # CREAR UNA SECCIÓN POR CADA DEPARTAMENTO 
                 for dept_idx, (dept_name, dept_info) in enumerate(departments_data.items()):
-                    # Título del departamento (IDÉNTICO a export_to_pdf)
+                    # Título del departamento
                     dept_title_style = ParagraphStyle(
                         'DeptTitle',
                         parent=styles['Heading2'],
@@ -1537,10 +1531,10 @@ class TreeviewExporter:
                     dept_title = Paragraph(dept_text, dept_title_style)
                     elements.append(dept_title)
                     
-                    # Crear tabla para este departamento (IDÉNTICO a export_to_pdf)
+                    # Crear tabla para este departamento 
                     num_employees = len(dept_info['employees'])
                     if num_employees > 0:
-                        # Identificar índices de columnas a excluir (IDÉNTICO a export_to_pdf)
+                        # Identificar índices de columnas a excluir 
                         indices_a_excluir = []
                         
                         # 1. Columna de departamento (siempre)
@@ -1585,7 +1579,6 @@ class TreeviewExporter:
                                     continue
                                 
                                 # Formatear nombre del empleado con numeración usando Paragraph para ajuste de texto
-                                # (IDÉNTICO a export_to_pdf)
                                 if i == hierarchical_structure['indices'].get('employee'):
                                     employee_name = cell_data
                                     clean_name = str(employee_name).replace('   ├── ', '').replace('├── ', '')
@@ -1603,15 +1596,15 @@ class TreeviewExporter:
                             
                             table_data.append(table_row)
                         
-                        # Crear tabla (IDÉNTICO a export_to_pdf)
+                        # Crear tabla 
                         if table_data and len(table_data[0]) > 0:
                             num_cols = len(table_data[0])
                             
-                            # Calcular anchos de columna proporcionales (IDÉNTICO a export_to_pdf)
+                            # Calcular anchos de columna proporcionales 
                             col_widths = []
                             total_width = doc.width
                             
-                            # Distribución inteligente de anchos (IDÉNTICO a export_to_pdf)
+                            # Distribución inteligente de anchos 
                             if num_cols <= 4:
                                 # Poco columnas: distribuir equitativamente
                                 col_width = total_width / num_cols
@@ -1777,18 +1770,15 @@ class TreeviewExporter:
             footer = Paragraph(footer_text, footer_style)
             elements.append(footer)
             
-            # Construir documento (IDÉNTICO a export_to_pdf)
+            # Construir documento 
             doc.build(elements)
             
-            # Ahora abrir el PDF para imprimir (mismo comportamiento que antes)
+            # Ahora abrir el PDF para imprimir 
             system = platform.system()
             
             if system == "Windows":
                 try:
-                    # SOLUCIÓN SIMPLIFICADA: Abrir el PDF y mostrar instrucciones
-                    os.startfile(temp_filename)
                     
-                    # Dar instrucciones claras al usuario
                     import time
                     time.sleep(1)  # Esperar un segundo para que se abra el PDF
                     
@@ -1804,6 +1794,7 @@ class TreeviewExporter:
                         f"Este archivo se eliminará automáticamente."
                     )
                     
+                    os.startfile(temp_filename)
                 except Exception as e:
                     # Si no se puede abrir, mostrar el archivo en el explorador
                     messagebox.showinfo(
@@ -1815,79 +1806,6 @@ class TreeviewExporter:
                     )
                     # Abrir el explorador en la carpeta
                     os.startfile(temp_dir)
-            
-            elif system == "Darwin":  # macOS
-                try:
-                    # En macOS, usar lpr para imprimir directamente
-                    result = subprocess.run(['lpr', temp_filename], 
-                                        capture_output=True, text=True, timeout=15)
-                    
-                    if result.returncode == 0:
-                        messagebox.showinfo(
-                            "✅ Impresión enviada",
-                            "Documento enviado a la impresora por defecto."
-                        )
-                    else:
-                        # Si hay error, abrir el PDF
-                        os.startfile(temp_filename)
-                        messagebox.showinfo(
-                            "📄 Imprimir manualmente",
-                            f"No se pudo imprimir automáticamente.\n\n"
-                            f"Se ha abierto el documento en el visor.\n"
-                            f"Use ⌘+P para imprimir manualmente."
-                        )
-                        
-                except subprocess.TimeoutExpired:
-                    messagebox.showwarning(
-                        "⏰ Tiempo de espera agotado",
-                        "La impresión está tardando demasiado.\n"
-                        "Verifique la conexión con la impresora."
-                    )
-                except Exception as mac_err:
-                    # Fallback para macOS
-                    os.startfile(temp_filename)
-                    messagebox.showinfo(
-                        "📄 Imprimir manualmente",
-                        f"No se pudo imprimir automáticamente en macOS.\n\n"
-                        f"Se ha abierto el documento en el visor.\n"
-                        f"Use ⌘+P para imprimir manualmente."
-                    )
-            
-            else:  # Linux
-                try:
-                    # En Linux, usar lp para imprimir
-                    result = subprocess.run(['lp', temp_filename], 
-                                        capture_output=True, text=True, timeout=15)
-                    
-                    if result.returncode == 0:
-                        messagebox.showinfo(
-                            "✅ Impresión enviada",
-                            "Documento enviado a la impresora."
-                        )
-                    else:
-                        # Si hay error, intentar abrir
-                        try:
-                            os.startfile(temp_filename)
-                        except:
-                            pass
-                        messagebox.showinfo(
-                            "📄 Imprimir manualmente",
-                            f"No se pudo imprimir automáticamente en Linux.\n\n"
-                            f"Abra el archivo y use Ctrl+P para imprimir manualmente."
-                        )
-                        
-                except Exception as linux_err:
-                    # Fallback para Linux
-                    try:
-                        os.startfile(temp_filename)
-                    except:
-                        pass
-                    messagebox.showinfo(
-                        "📄 Imprimir manualmente",
-                        f"No se pudo imprimir automáticamente.\n\n"
-                        f"Archivo: {temp_filename}\n"
-                        f"Ábralo e imprímalo manualmente."
-                    )
             
             # Programar eliminación del archivo temporal (después de 60 segundos)
             def delete_temp_file():
