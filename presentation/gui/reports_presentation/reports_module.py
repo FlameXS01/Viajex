@@ -502,7 +502,8 @@ class ReportModule(ttk.Frame):
                 title,
                 button_text="📤 Exportar Reporte",
                 pack_options={'side': tk.RIGHT, 'padx': 5, 'pady': 5},
-                include_print=True
+                include_print=True, 
+                export_type='report_module'
             )
     
     def show_initial_message(self):

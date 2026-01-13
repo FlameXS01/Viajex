@@ -2468,12 +2468,19 @@ class TreeviewExporter:
 def create_export_button(parent, tree: ttk.Treeview, title: str, 
                         button_text: str = "📤 Exportar", 
                         pack_options: dict = None,
-                        include_print: bool = True) -> ttk.Button:
+                        include_print: bool = True,
+                        export_type: str = "normal") -> ttk.Button:
     """
     Crea un botón de exportación con menú desplegable
     
-    NOTA: Ahora todas las exportaciones son automáticamente jerárquicas
-          cuando detectan columnas de departamento y solicitante
+    Args:
+        parent: Widget padre
+        tree: Treeview a exportar
+        title: Título del documento
+        button_text: Texto del botón
+        pack_options: Opciones de pack
+        include_print: Incluir opción de imprimir
+        export_type: Tipo de exportación ("normal" o "report_module")
     """
     from tkinter import Menu
     
@@ -2484,44 +2491,46 @@ def create_export_button(parent, tree: ttk.Treeview, title: str,
         # Obtener información sobre la estructura
         headers, _, hierarchical_structure = TreeviewExporter.get_treeview_data(tree, hierarchical=True)
         
-        # Solo agregar opciones disponibles
-        if HAS_EXCEL:
-            menu.add_command(
-                label="📊 Excel (.xlsx)",
-                command=lambda: TreeviewExporter.export_to_excel(tree, title),
-                font=('Arial', 10)
-            )
-
-            menu.add_command(
-                label="📊 Excel Completo (Todas columnas)",
-                command=lambda: TreeviewExporter.export_to_excel_full_columns(tree, title),
-                font=('Arial', 10)
-            )
-
-        if HAS_WORD:
-            menu.add_command(
-                label="📝 Word (.docx)",
-                command=lambda: TreeviewExporter.export_to_word(tree, title),
-                font=('Arial', 10)
-            )
+        # Menú para report_module (solo Excel Completo)
+        if export_type == "report_module":
+            if HAS_EXCEL:
+                menu.add_command(
+                    label="📊 Excel (.xlsx)",
+                    command=lambda: TreeviewExporter.export_to_excel_full_columns(tree, title),
+                    font=('Arial', 10)
+                )
         
-        if HAS_PDF:
-            menu.add_command(
-                label="📄 PDF (.pdf)",
-                command=lambda: TreeviewExporter.export_to_pdf(tree, title),
-                font=('Arial', 10)
-            )
-        
-        menu.add_separator()
-        
-        if include_print and HAS_PDF:
-            menu.add_command(
-                label="🖨️ Imprimir",
-                command=lambda: TreeviewExporter.print_directly(tree, title),
-                font=('Arial', 10)
-            )
+        else:
+            # Solo agregar opciones disponibles
+            if HAS_EXCEL:
+                menu.add_command(
+                    label="📊 Excel (.xlsx)",
+                    command=lambda: TreeviewExporter.export_to_excel(tree, title),
+                    font=('Arial', 10)
+                )
             
-        menu.add_separator()
+            if HAS_WORD:
+                menu.add_command(
+                    label="📝 Word (.docx)",
+                    command=lambda: TreeviewExporter.export_to_word(tree, title),
+                    font=('Arial', 10)
+                )
+            
+            if HAS_PDF:
+                menu.add_command(
+                    label="📄 PDF (.pdf)",
+                    command=lambda: TreeviewExporter.export_to_pdf(tree, title),
+                    font=('Arial', 10)
+                )
+            
+            menu.add_separator()
+            
+            if include_print and HAS_PDF:
+                menu.add_command(
+                    label="🖨️ Imprimir",
+                    command=lambda: TreeviewExporter.print_directly(tree, title),
+                    font=('Arial', 10)
+                )
         
         # Mostrar menú
         if event:
