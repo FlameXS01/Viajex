@@ -1,24 +1,396 @@
-import os
+# presentation/gui/reports_presentation/reports_module.py
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
-from datetime import date, datetime
-from typing import List, Dict, Any
-import pandas as pd
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
+from tkinter import ttk, messagebox
+from typing import Dict, List, Any
+import traceback
+from presentation.gui.utils.data_exporter import TreeviewExporter, create_export_button
 
-from application.dtos.diet_dtos import DietServiceResponseDTO
-from application.services.card_service import CardService
-from application.services.diet_service import DietAppService
-from application.services.request_service import UserRequestService
-from application.services.department_service import DepartmentService
-from core.entities import department
-from core.entities.diet_service import DietService
-from core.entities.enums import PaymentMethod
 
-class ReportsModule(ttk.Frame):
-    """Módulo de generación de reportes con previsualización integrada"""
+class ReportModule(ttk.Frame):
+    """
+    Módulo de reportes del sistema - Versión completa con filtros por columna
+    """
     
-    def __init__(self, parent, card_service: CardService, diet_service: DietAppService, request_service: UserRequestService, department_service: DepartmentService): super().__init__(parent, style='Content.TFrame') self.card_service = card_service self.diet_service = diet_service self.request_service = request_service self.department_service = department_service self.report_types = [ "Reporte General de Tarjetas", "Reporte de Tarjetas Activas", "Reporte de Tarjetas Inactivas", "Reporte de Movimientos por Tarjeta", "Reporte de Saldos", "Reporte de Solicitantes por Departamento", "Reporte General de Solicitantes", "Reporte de Departamentos" ] self.formats = ["PDF", "Excel (XLSX)"] self._create_widgets() self._update_preview() def _create_widgets(self): """Crea la interfaz del módulo de reportes con previsualización integrada""" self.columnconfigure(0, weight=1) self.rowconfigure(1, weight=1) # Header del módulo header_frame = ttk.Frame(self, style='Content.TFrame') header_frame.grid(row=0, column=0, sticky='ew', pady=(0, 20)) header_frame.columnconfigure(1, weight=1) # Título ttk.Label(header_frame, text="Generador de Reportes", font=('Arial', 18, 'bold'), style='Content.TLabel').grid(row=0, column=0, sticky='w') # Contenedor principal con dos secciones main_container = ttk.Frame(self, style='Content.TFrame') main_container.grid(row=1, column=0, sticky='nsew') main_container.columnconfigure(0, weight=1) main_container.rowconfigure(1, weight=1) # Sección superior: Configuración del reporte config_frame = ttk.LabelFrame(main_container, text="Configuración del Reporte", padding="15") config_frame.grid(row=0, column=0, sticky='ew', padx=10, pady=(0, 10)) config_frame.columnconfigure(0, weight=1) # Selección de tipo de reporte ttk.Label(config_frame, text="Tipo de Reporte:", font=('Arial', 11, 'bold')).grid(row=0, column=0, sticky='w', pady=(0, 5)) self.report_combo = ttk.Combobox(config_frame, values=self.report_types, state='readonly', font=('Arial', 10)) self.report_combo.grid(row=1, column=0, sticky='ew', pady=(0, 15)) self.report_combo.set(self.report_types[0]) self.report_combo.bind('<<ComboboxSelected>>', self._on_report_type_change) # Frame para parámetros específicos self.params_frame = ttk.LabelFrame(config_frame, text="Parámetros del Reporte", padding="15") self.params_frame.grid(row=2, column=0, sticky='ew', pady=(0, 15)) self.params_frame.columnconfigure(0, weight=1) # Inicializar parámetros para el primer reporte self._create_card_report_params() # Selección de formato y botón de generación action_frame = ttk.Frame(config_frame, style='Content.TFrame') action_frame.grid(row=3, column=0, sticky='ew') action_frame.columnconfigure(1, weight=1) ttk.Label(action_frame, text="Formato:", font=('Arial', 11, 'bold')).grid(row=0, column=0, sticky='w', padx=(0, 10)) self.format_combo = ttk.Combobox(action_frame, values=self.formats, state='readonly', font=('Arial', 10), width=15) self.format_combo.grid(row=0, column=1, sticky='w') self.format_combo.set(self.formats[0]) self.generate_btn = ttk.Button(action_frame, text="Generar Reporte Completo", command=self._generate_report, style='Accent.TButton') self.generate_btn.grid(row=0, column=2, sticky='e', padx=(10, 0)) # Sección inferior: Previsualización preview_frame = ttk.LabelFrame(main_container, text="Vista Previa del Reporte", padding="10") preview_frame.grid(row=1, column=0, sticky='nsew', padx=10, pady=(0, 10)) preview_frame.columnconfigure(0, weight=1) preview_frame.rowconfigure(0, weight=1) # Widget de texto para previsualización text_frame = ttk.Frame(preview_frame) text_frame.grid(row=0, column=0, sticky='nsew') text_frame.columnconfigure(0, weight=1) text_frame.rowconfigure(0, weight=1) # Crear Text widget con scrollbar self.preview_text = tk.Text( text_frame, wrap=tk.WORD, height=20, font=("Consolas", 10), bg='white', relief=tk.FLAT, borderwidth=2 ) # Configurar etiquetas para colores self.preview_text.tag_configure("title", font=("Arial", 12, "bold"), foreground="#2c3e50") self.preview_text.tag_configure("header", font=("Arial", 10, "bold"), foreground="#34495e") self.preview_text.tag_configure("data", font=("Consolas", 9), foreground="#2c3e50") self.preview_text.tag_configure("summary", font=("Arial", 9, "italic"), foreground="#7f8c8d") self.preview_text.tag_configure("error", font=("Arial", 10), foreground="#e74c3c") self.preview_text.tag_configure("success", font=("Arial", 9, "bold"), foreground="#27ae60") self.preview_text.tag_configure("warning", font=("Arial", 9), foreground="#f39c12") # Scrollbar preview_scrollbar = ttk.Scrollbar(text_frame, command=self.preview_text.yview) self.preview_text.config(yscrollcommand=preview_scrollbar.set) # Grid self.preview_text.grid(row=0, column=0, sticky='nsew') preview_scrollbar.grid(row=0, column=1, sticky='ns') # Info bar self.info_label = ttk.Label( preview_frame, text="La vista previa se actualiza automáticamente al cambiar los parámetros", font=("Arial", 8), foreground="#7f8c8d" ) self.info_label.grid(row=1, column=0, sticky='w', pady=(5, 0)) def _on_report_type_change(self, event=None): """Cambia los parámetros según el tipo de reporte seleccionado""" # Limpiar frame de parámetros for widget in self.params_frame.winfo_children(): widget.destroy() report_type = self.report_combo.get() if "Tarjeta" in report_type: self._create_card_report_params() elif "Solicitante" in report_type: self._create_request_user_report_params() elif "Departamento" in report_type: self._create_department_report_params() # Actualizar previsualización self._update_preview() def _create_card_report_params(self): """Crea parámetros para reportes de tarjetas""" row = 0 # Filtro por estado ttk.Label(self.params_frame, text="Estado:").grid(row=row, column=0, sticky='w', padx=(0, 10)) self.status_var = tk.StringVar(value="Todos") status_combo = ttk.Combobox(self.params_frame, textvariable=self.status_var, values=["Todos", "Activas", "Inactivas"], state='readonly', width=15) status_combo.grid(row=row, column=1, sticky='w') self.status_var.trace('w', lambda *args: self._update_preview()) row += 1 # Filtro por saldo mínimo ttk.Label(self.params_frame, text="Saldo Mínimo:").grid(row=row, column=0, sticky='w', padx=(0, 10)) self.min_balance_var = tk.DoubleVar(value=0.0) min_balance_spin = ttk.Spinbox(self.params_frame, from_=0, to=100000, textvariable=self.min_balance_var, width=15, command=self._update_preview) min_balance_spin.grid(row=row, column=1, sticky='w') self.min_balance_var.trace('w', lambda *args: self._update_preview()) row += 1 # Ordenar por ttk.Label(self.params_frame, text="Ordenar por:").grid(row=row, column=0, sticky='w', padx=(0, 10)) self.sort_var = tk.StringVar(value="Número") sort_combo = ttk.Combobox(self.params_frame, textvariable=self.sort_var, values=["Número", "Saldo", "Fecha de Creación"], state='readonly', width=15) sort_combo.grid(row=row, column=1, sticky='w') self.sort_var.trace('w', lambda *args: self._update_preview()) def _create_request_user_report_params(self): """Crea parámetros para reportes de solicitantes""" # Filtro por departamento ttk.Label(self.params_frame, text="Departamento:").grid(row=0, column=0, sticky='w', padx=(0, 10)) self.dept_filter_var = tk.StringVar(value="Todos") # Obtener departamentos para el combobox try: departments = self.department_service.get_all_departments() dept_names = ["Todos"] + [dept.name for dept in departments] except: dept_names = ["Todos"] dept_combo = ttk.Combobox(self.params_frame, textvariable=self.dept_filter_var, values=dept_names, state='readonly', width=20) dept_combo.grid(row=0, column=1, sticky='w') self.dept_filter_var.trace('w', lambda *args: self._update_preview()) def _create_department_report_params(self): """Crea parámetros para reportes de departamentos""" # Opción de incluir conteo de solicitantes self.include_count_var = tk.BooleanVar(value=True) include_check = ttk.Checkbutton(self.params_frame, text="Incluir conteo de solicitantes", variable=self.include_count_var, command=self._update_preview) include_check.grid(row=0, column=0, sticky='w', columnspan=2) def _update_preview(self, event=None): """Actualiza automáticamente la vista previa""" try: report_type = self.report_combo.get() # Limpiar área de previsualización self.preview_text.config(state=tk.NORMAL) self.preview_text.delete(1.0, tk.END) # Mostrar encabezado self.preview_text.insert(tk.END, f"VISTA PREVIA: {report_type}\n", "title") self.preview_text.insert(tk.END, f"{'='*50}\n\n", "header") # Obtener datos según el tipo de reporte if "Tarjeta" in report_type: data = self._get_card_data(report_type) self._show_card_preview(data, report_type) elif "Solicitante" in report_type: data = self._get_request_user_data(report_type) self._show_request_user_preview(data, report_type) elif "Departamento" in report_type: data = self._get_department_data(report_type) self._show_department_preview(data, report_type) # Deshabilitar edición self.preview_text.config(state=tk.DISABLED) # Actualizar info label self.info_label.config( text=f"Vista previa actualizada: {datetime.now().strftime('%H:%M:%S')}" ) except Exception as e: self.preview_text.config(state=tk.NORMAL) self.preview_text.delete(1.0, tk.END) self.preview_text.insert(tk.END, f"Error al generar vista previa:\n{str(e)}", "error") self.preview_text.config(state=tk.DISABLED) def _show_card_preview(self, data, report_type): """Muestra previsualización para reportes de tarjetas""" # Mostrar parámetros aplicados self.preview_text.insert(tk.END, "Parámetros aplicados:\n", "header") self.preview_text.insert(tk.END, f"  • Estado: {self.status_var.get()}\n", "data") self.preview_text.insert(tk.END, f"  • Saldo mínimo: ${self.min_balance_var.get():.2f}\n", "data") self.preview_text.insert(tk.END, f"  • Ordenar por: {self.sort_var.get()}\n\n", "data") if not data: self.preview_text.insert(tk.END, "No hay datos que coincidan con los filtros aplicados.\n\n", "warning") return # Mostrar resumen total_cards = len(data) active_cards = sum(1 for card in data if card['Estado'] == 'Activa') total_balance = sum(float(card['Saldo'].replace('$', '').replace(',', '')) for card in data) self.preview_text.insert(tk.END, "Resumen:\n", "header") self.preview_text.insert(tk.END, f"  • Total de tarjetas: {total_cards}\n", "data") self.preview_text.insert(tk.END, f"  • Tarjetas activas: {active_cards}\n", "data") self.preview_text.insert(tk.END, f"  • Tarjetas inactivas: {total_cards - active_cards}\n", "data") self.preview_text.insert(tk.END, f"  • Saldo total: ${total_balance:.2f}\n\n", "data") # Mostrar muestra de datos (máximo 10 filas) max_rows = min(10, len(data)) self.preview_text.insert(tk.END, f"Muestra de datos (primeras {max_rows} filas):\n", "header") # Crear tabla ASCII headers = list(data[0].keys()) # Calcular anchos de columna col_widths = [len(str(h)) for h in headers] for i in range(max_rows): row = data[i] for j, key in enumerate(headers): col_widths[j] = max(col_widths[j], len(str(row.get(key, '')))) # Crear separador separator = '+' + '+'.join(['-' * (w + 2) for w in col_widths]) + '+\n' # Encabezados self.preview_text.insert(tk.END, separator) header_row = '|' for h, w in zip(headers, col_widths): header_row += f" {h:<{w}} |" self.preview_text.insert(tk.END, header_row + '\n', "header") self.preview_text.insert(tk.END, separator) # Datos for i in range(max_rows): row = data[i] data_row = '|' for j, key in enumerate(headers): value = str(row.get(key, '')) data_row += f" {value:<{col_widths[j]}} |" self.preview_text.insert(tk.END, data_row + '\n', "data") self.preview_text.insert(tk.END, separator + '\n') # Nota si hay más datos if len(data) > max_rows: self.preview_text.insert(tk.END, f"Nota: Mostrando {max_rows} de {len(data)} registros totales.\n" f"El reporte completo incluirá todos los registros.\n\n", "summary") def _show_request_user_preview(self, data, report_type): """Muestra previsualización para reportes de solicitantes""" # Mostrar parámetros aplicados self.preview_text.insert(tk.END, "Parámetros aplicados:\n", "header") self.preview_text.insert(tk.END, f"  • Departamento: {self.dept_filter_var.get()}\n\n", "data") if not data: self.preview_text.insert(tk.END, "No hay datos que coincidan con los filtros aplicados.\n\n", "warning") return # Mostrar resumen total_users = len(data) # Contar por departamento si aplica if self.dept_filter_var.get() == "Todos": dept_counts = {} for user in data: dept = user.get('Departamento', 'N/A') dept_counts[dept] = dept_counts.get(dept, 0) + 1 self.preview_text.insert(tk.END, "Resumen:\n", "header") self.preview_text.insert(tk.END, f"  • Total de solicitantes: {total_users}\n", "data") if self.dept_filter_var.get() == "Todos" and dept_counts: self.preview_text.insert(tk.END, "  • Distribución por departamento:\n", "data") for dept, count in sorted(dept_counts.items(), key=lambda x: x[1], reverse=True)[:5]: percentage = (count / total_users) * 100 self.preview_text.insert(tk.END, f"      - {dept}: {count} ({percentage:.1f}%)\n", "data") if len(dept_counts) > 5: self.preview_text.insert(tk.END, f"      ... y {len(dept_counts) - 5} departamentos más\n", "data") self.preview_text.insert(tk.END, "\n") # Mostrar muestra de datos max_rows = min(8, len(data)) self.preview_text.insert(tk.END, f"Muestra de datos (primeras {max_rows} filas):\n", "header") for i in range(max_rows): user = data[i] self.preview_text.insert(tk.END, f"{i+1}. {user.get('Nombre', 'N/A')}\n" f"   CI: {user.get('CI', 'N/A')} | Departamento: {user.get('Departamento', 'N/A')}\n", "data") self.preview_text.insert(tk.END, "\n") if len(data) > max_rows: self.preview_text.insert(tk.END, f"Nota: Mostrando {max_rows} de {len(data)} registros totales.\n", "summary") def _show_department_preview(self, data, report_type): """Muestra previsualización para reportes de departamentos""" # Mostrar parámetros aplicados self.preview_text.insert(tk.END, "Parámetros aplicados:\n", "header") self.preview_text.insert(tk.END, f"  • Incluir conteo de solicitantes: {'Sí' if self.include_count_var.get() else 'No'}\n\n", "data") if not data: self.preview_text.insert(tk.END, "No hay datos disponibles.\n\n", "warning") return # Mostrar resumen total_depts = len(data) total_users = sum(d.get('Solicitantes', 0) for d in data) if self.include_count_var.get() else 0 self.preview_text.insert(tk.END, "Resumen:\n", "header") self.preview_text.insert(tk.END, f"  • Total de departamentos: {total_depts}\n", "data") if self.include_count_var.get(): self.preview_text.insert(tk.END, f"  • Total de solicitantes: {total_users}\n", "data") avg_users = total_users / total_depts if total_depts > 0 else 0 self.preview_text.insert(tk.END, f"  • Promedio por departamento: {avg_users:.1f}\n", "data") self.preview_text.insert(tk.END, "\n") # Mostrar datos self.preview_text.insert(tk.END, "Lista de departamentos:\n", "header") for i, dept in enumerate(data[:10]):  # Mostrar máximo 10 dept_info = f"{i+1}. {dept.get('Nombre', 'N/A')}" if self.include_count_var.get(): dept_info += f" - {dept.get('Solicitantes', 0)} solicitantes" self.preview_text.insert(tk.END, dept_info + "\n", "data") if len(data) > 10: self.preview_text.insert(tk.END, f"\n... y {len(data) - 10} departamentos más\n", "summary") def _generate_report(self): """Genera el reporte completo según los parámetros seleccionados""" report_type = self.report_combo.get() output_format = self.format_combo.get() if not report_type: messagebox.showwarning("Advertencia", "Seleccione un tipo de reporte") return try: # Generar datos según el tipo de reporte if "Tarjeta" in report_type: data = self._get_card_data(report_type) default_name = f"reporte_tarjetas_{datetime.now().strftime('%Y%m%d_%H%M%S')}" elif "Solicitante" in report_type: data = self._get_request_user_data(report_type) default_name = f"reporte_solicitantes_{datetime.now().strftime('%Y%m%d_%H%M%S')}" elif "Departamento" in report_type: data = self._get_department_data(report_type) default_name = f"reporte_departamentos_{datetime.now().strftime('%Y%m%d_%H%M%S')}" else: messagebox.showerror("Error", "Tipo de reporte no implementado") return if not data: messagebox.showwarning("Sin datos", "No hay datos para generar el reporte") return # Generar en el formato seleccionado if "Excel" in output_format: self._generate_excel(data, report_type, default_name) else: self._generate_pdf(data, report_type, default_name) except Exception as e: messagebox.showerror("Error", f"No se pudo generar el reporte: {str(e)}") import traceback traceback.print_exc() def _get_card_data(self, report_type: str) -> List[Dict[str, Any]]: """Obtiene datos para reportes de tarjetas""" try: cards = self.card_service.get_all_cards() except Exception as e: messagebox.showerror("Error", f"No se pudieron obtener las tarjetas: {str(e)}") return [] data = [] for card in cards: # Aplicar filtros if "Activas" in report_type and not card.is_active: continue if "Inactivas" in report_type and card.is_active: continue balance = getattr(card, 'balance', 0) if balance < self.min_balance_var.get(): continue card_data = { 'Número': card.card_number, 'Saldo': f"${balance:.2f}", 'Estado': 'Activa' if card.is_active else 'Inactiva', 'PIN': getattr(card, 'card_pin', 'N/A'), 'Creada': getattr(card, 'created_at', 'N/A').strftime('%d/%m/%Y') if hasattr(card, 'created_at') and card.created_at else 'N/A', 'Última Actualización': getattr(card, 'updated_at', 'N/A').strftime('%d/%m/%Y %H:%M') if hasattr(card, 'updated_at') and card.updated_at else 'N/A' } data.append(card_data) # Ordenar datos sort_key = self.sort_var.get() if sort_key == "Número": data.sort(key=lambda x: x['Número']) elif sort_key == "Saldo": data.sort(key=lambda x: float(x['Saldo'].replace('$', '').replace(',', '')), reverse=True) elif sort_key == "Fecha de Creación": data.sort(key=lambda x: x['Creada'], reverse=True) # Aplicar filtro de estado if self.status_var.get() == "Activas": data = [d for d in data if d['Estado'] == 'Activa'] elif self.status_var.get() == "Inactivas": data = [d for d in data if d['Estado'] == 'Inactiva'] return data def _get_request_user_data(self, report_type: str) -> List[Dict[str, Any]]: """Obtiene datos para reportes de solicitantes""" try: request_users = self.request_service.get_all_users() except Exception as e: messagebox.showerror("Error", f"No se pudieron obtener los solicitantes: {str(e)}") return [] data = [] for user in request_users: # Aplicar filtro por departamento dept_filter = self.dept_filter_var.get() if dept_filter != "Todos" and hasattr(user, 'department'): if user.department.name != dept_filter: continue user_data = { 'Nombre': user.fullname, 'CI': user.ci, 'Departamento': user.department.name if hasattr(user, 'department') else 'N/A', 'Email': getattr(user, 'email', 'N/A'), 'Teléfono': getattr(user, 'phone', 'N/A'), 'Fecha Registro': getattr(user, 'created_at', 'N/A').strftime('%d/%m/%Y') if hasattr(user, 'created_at') and user.created_at else 'N/A' } data.append(user_data) return data def _get_department_data(self, report_type: str) -> List[Dict[str, Any]]: """Obtiene datos para reportes de departamentos""" try: departments = self.department_service.get_all_departments() except Exception as e: messagebox.showerror("Error", f"No se pudieron obtener los departamentos: {str(e)}") return [] data = [] for dept in departments: dept_data = { 'Nombre': dept.name } if self.include_count_var.get(): # Contar solicitantes en este departamento count = 0 try: request_users = self.request_service.get_all_users() count = sum(1 for user in request_users if hasattr(user, 'department_id') and user.department_id == dept.id) except: pass dept_data['Solicitantes'] = count data.append(dept_data) return data def _get_department_debits_in_range(self, report_type: str, date_in: datetime, date_end: datetime) -> list[dict[str, Any]]: """Obtiene datos para reportes de departamentos""" try: diets_in_range = self.diet_service.list_diets_in_range(date_in, date_end) dept_data = { } for diet in diets_in_range: request = self.request_service.get_user_by_id(diet.request_user_id) department = self.department_service.get_department_by_id(request.department_id) service = self.diet_service.get_diet_service_by_local(diet.is_local) dept_name = department.name if dept_name not in dept_data: dept_data[dept_name] = {} if request.fullname not in dept_data[dept_name]: dept_data[dept_name][request.fullname] = { 'Id_Departamento': request.department_id, 'Id_Usuario': request.id, 'Solicitante': request.fullname, 'Gasto': self._calculate_total(service, diet.breakfast_count, diet.lunch_count, diet.dinner_count, diet.accommodation_count, diet.accommodation_payment_method) } else: dept_data[dept_name][request.fullname]['Gasto'] += self._calculate_total(service, diet.breakfast_count, diet.lunch_count, diet.dinner_count, diet.accommodation_count, diet.accommodation_payment_method) except Exception as e: messagebox.showerror("Error", f"No se pudieron obtener los departamentos: {str(e)}") return [] def _calculate_total_in_request(self, service:DietServiceResponseDTO , breakfast_count, lunch_count, dinner_count, accommodation_count, accommodation_payment_method) -> float: suma = breakfast_count * service.breakfast_price + lunch_count * service.lunch_price + dinner_count * service.dinner_price if accommodation_payment_method == PaymentMethod.CARD.value.upper(): suma += accommodation_count * service.accommodation_card_price else: suma += accommodation_count * service.accommodation_cash_price return suma
+    def __init__(self, parent, report_service, department_service, 
+                 user_service, card_service, diet_service=None, 
+                 request_user_service=None):
+        super().__init__(parent)
+        self.report_service = report_service
+        self.department_service = department_service
+        self.user_service = user_service
+        self.card_service = card_service
+        self.diet_service = diet_service
+        self.request_user_service = request_user_service
+        
+        # Datos actuales
+        self.current_data = []
+        self.current_report_type = None  # "cards" o "diets"
+        
+        # Diccionario para almacenar las entradas de filtro por columna
+        self.filter_entries = {}
+        
+        self.create_widgets()
+        self.show_initial_message()
+    
+    def create_widgets(self):
+        """Crea todos los widgets del módulo"""
+        # Frame principal
+        main_frame = ttk.Frame(self)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # 1. Selector de tipo de reporte
+        self._create_report_selector(main_frame)
+        
+        # 2. Frame para filtros (se llenará dinámicamente)
+        self.filter_frame = ttk.LabelFrame(main_frame, text="🔍 Filtros por Columna")
+        self.filter_frame.pack(fill=tk.X, pady=(10, 5))
+        
+        # 3. Frame para la tabla
+        table_frame = ttk.Frame(main_frame)
+        table_frame.pack(fill=tk.BOTH, expand=True, pady=(5, 10))
+        
+        # 4. Crear tabla
+        self._create_table(table_frame)
+        
+        # 5. Botón de exportación (se mostrará solo para dietas)
+        self.export_button_frame = ttk.Frame(main_frame)
+        self.export_button_frame.pack(fill=tk.X, pady=(0, 5))
+        
+        # 6. Botón de limpiar filtros
+        ttk.Button(main_frame, text="🧹 Limpiar Filtros", 
+                  command=self.clear_filters).pack(side=tk.RIGHT, padx=5)
+        
+        # 7. Botón de actualizar
+        ttk.Button(main_frame, text="🔄 Actualizar", 
+                  command=self.refresh_report).pack(side=tk.RIGHT, padx=5)
+    
+    def _create_report_selector(self, parent):
+        """Crea el selector de tipo de reporte"""
+        selector_frame = ttk.LabelFrame(parent, text="📊 Tipo de Reporte")
+        selector_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        # Variable para los radio buttons
+        self.report_type_var = tk.StringVar(value="cards")
+        
+        # Radio buttons
+        cards_rb = ttk.Radiobutton(
+            selector_frame, 
+            text="💳 Reporte de Tarjetas", 
+            variable=self.report_type_var, 
+            value="cards",
+            command=self.on_report_type_changed
+        )
+        cards_rb.pack(side=tk.LEFT, padx=20, pady=5)
+        
+        diets_rb = ttk.Radiobutton(
+            selector_frame, 
+            text="🍽️ Reporte de Dietas", 
+            variable=self.report_type_var, 
+            value="diets",
+            command=self.on_report_type_changed
+        )
+        diets_rb.pack(side=tk.LEFT, padx=20, pady=5)
+    
+    def _create_table(self, parent):
+        """Crea la tabla para mostrar los reportes"""
+        # Frame para tabla con scrollbars
+        table_container = ttk.Frame(parent)
+        table_container.pack(fill=tk.BOTH, expand=True)
+        
+        # Crear Treeview
+        self.tree = ttk.Treeview(table_container, show="headings")
+        
+        # Scrollbars
+        vsb = ttk.Scrollbar(table_container, orient="vertical", command=self.tree.yview)
+        hsb = ttk.Scrollbar(table_container, orient="horizontal", command=self.tree.xview)
+        self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        
+        # Grid layout
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        vsb.grid(row=0, column=1, sticky="ns")
+        hsb.grid(row=1, column=0, sticky="ew")
+        
+        # Configurar pesos
+        table_container.grid_rowconfigure(0, weight=1)
+        table_container.grid_columnconfigure(0, weight=1)
+        
+        # Configurar evento de selección
+        self.tree.bind("<<TreeviewSelect>>", self.on_item_selected)
+    
+    def on_report_type_changed(self):
+        """Se ejecuta cuando cambia el tipo de reporte"""
+        report_type = self.report_type_var.get()
+        self.current_report_type = report_type
+        
+        # Actualizar filtros
+        self.update_filter_fields()
+        
+        # Cargar datos
+        self.load_report_data()
+        
+        # Mostrar/ocultar botón de exportación
+        self.update_export_button()
+    
+    def update_filter_fields(self):
+        """Actualiza los campos de filtro según el tipo de reporte"""
+        # Limpiar frame de filtros
+        for widget in self.filter_frame.winfo_children():
+            widget.destroy()
+        
+        self.filter_entries.clear()
+        
+        # Definir columnas según tipo de reporte
+        if self.current_report_type == "cards":
+            columns = [
+                ("Número de Tarjeta", "numero_tarjeta", 150),
+                ("PIN", "pin", 100),
+                ("Balance", "balance", 120),
+                ("Estado", "estado", 120)
+            ]
+        else:  # diets
+            columns = [
+                ("No. Anticipo", "no_anticipo", 100),
+                ("No. Liquidación", "no_liquidacion", 120),
+                ("Descripción", "descripcion", 200),
+                ("Solicitante", "solicitante", 150),
+                ("Departamento", "departamento", 150),
+                ("Fecha Inicio", "fecha_inicio", 100),
+                ("Fecha Fin", "fecha_fin", 100),
+                ("Fecha Solicitud", "fecha_solicitud", 120),
+                ("Fecha Liquidación", "fecha_liquidacion", 120),
+                ("Monto Solicitado", "monto_solicitado", 120),
+                ("Gasto", "gasto", 120),
+                ("Reembolso", "reembolso", 120)
+            ]
+        
+        # Crear etiquetas y entradas para cada columna
+        for idx, (display_name, key, width) in enumerate(columns):
+            # Frame para cada filtro
+            filter_item_frame = ttk.Frame(self.filter_frame)
+            filter_item_frame.pack(side=tk.LEFT, padx=5, pady=5)
+            
+            # Etiqueta
+            label = ttk.Label(filter_item_frame, text=display_name, font=("Arial", 9, "bold"))
+            label.pack(anchor="w")
+            
+            # Entrada de filtro
+            entry = ttk.Entry(filter_item_frame, width=15)
+            entry.pack(fill=tk.X)
+            
+            # Vincular evento de tecla para filtrado en tiempo real
+            entry.bind("<KeyRelease>", lambda e, k=key: self.apply_filters())
+            
+            # Guardar referencia
+            self.filter_entries[key] = entry
+    
+    def load_report_data(self):
+        """Carga los datos del reporte seleccionado"""
+        try:
+            if self.current_report_type == "cards":
+                self.current_data = self.report_service.get_all_cards_report()
+                self._setup_columns_for_cards()
+            else:  # diets
+                self.current_data = self.report_service.get_all_diets_report()
+                self._setup_columns_for_diets()
+            
+            # Aplicar filtros si existen
+            self.apply_filters()
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudieron cargar los datos:\n{str(e)}")
+            traceback.print_exc()
+            self.current_data = []
+            self._clear_table()
+    
+    def _setup_columns_for_cards(self):
+        """Configura las columnas para el reporte de tarjetas"""
+        # Limpiar columnas existentes
+        self._clear_table()
+        
+        # Definir columnas
+        columns = [
+            ("Número de Tarjeta", 150),
+            ("PIN", 100),
+            ("Balance", 120, "e"),  # 'e' para alineación derecha
+            ("Estado", 120)
+        ]
+        
+        # Configurar columnas
+        col_ids = ["#{}".format(i+1) for i in range(len(columns))]
+        self.tree["columns"] = col_ids
+        
+        for i, (text, width, *align) in enumerate(columns):
+            col_id = col_ids[i]
+            anchor = "e" if align and align[0] == "e" else "w"
+            self.tree.heading(col_id, text=text)
+            self.tree.column(col_id, width=width, anchor=anchor)
+    
+    def _setup_columns_for_diets(self):
+        """Configura las columnas para el reporte de dietas"""
+        # Limpiar columnas existentes
+        self._clear_table()
+        
+        # Definir columnas
+        columns = [
+            ("No. Anticipo", 100, "c"),  # 'c' para centrado
+            ("No. Liquidación", 120, "c"),
+            ("Descripción", 200),
+            ("Solicitante", 150),
+            ("Departamento", 150),
+            ("Fecha Inicio", 100, "c"),
+            ("Fecha Fin", 100, "c"),
+            ("Fecha Solicitud", 120, "c"),
+            ("Fecha Liquidación", 120, "c"),
+            ("Monto Solicitado", 120, "e"),
+            ("Gasto", 120, "e"),
+            ("Reembolso", 120, "e")
+        ]
+        
+        # Configurar columnas
+        col_ids = ["#{}".format(i+1) for i in range(len(columns))]
+        self.tree["columns"] = col_ids
+        
+        for i, (text, width, *align) in enumerate(columns):
+            col_id = col_ids[i]
+            if align and align[0] == "e":
+                anchor = "e"
+            elif align and align[0] == "c":
+                anchor = "center"
+            else:
+                anchor = "w"
+            
+            self.tree.heading(col_id, text=text)
+            self.tree.column(col_id, width=width, anchor=anchor)
+    
+    def _clear_table(self):
+        """Limpia la tabla completamente"""
+        # Eliminar todas las columnas
+        for col in self.tree["columns"]:
+            self.tree.heading(col, text="")
+        
+        # Eliminar todas las filas
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+    
+    def apply_filters(self):
+        """Aplica los filtros de todas las columnas"""
+        if not self.current_data:
+            return
+        
+        # Obtener valores de filtro
+        filters = {}
+        for key, entry in self.filter_entries.items():
+            value = entry.get().strip()
+            if value:
+                filters[key] = value
+        
+        try:
+            # Filtrar datos
+            if self.current_report_type == "cards":
+                filtered_data = self.report_service.filter_cards_report(filters)
+            else:  # diets
+                filtered_data = self.report_service.filter_diets_report(filters)
+            
+            # Actualizar tabla
+            self._populate_table(filtered_data)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al aplicar filtros:\n{str(e)}")
+    
+    def _populate_table(self, data):
+        """Pobla la tabla con los datos proporcionados"""
+        # Limpiar filas existentes
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        
+        if not data:
+            return
+        
+        # Insertar datos
+        for item in data:
+            if self.current_report_type == "cards":
+                values = (
+                    item.get("numero_tarjeta", ""),
+                    item.get("pin", ""),
+                    item.get("balance", ""),
+                    item.get("estado", "")
+                )
+            else:  # diets
+                values = (
+                    item.get("no_anticipo", ""),
+                    item.get("no_liquidacion", ""),
+                    item.get("descripcion", ""),
+                    item.get("solicitante", ""),
+                    item.get("departamento", ""),
+                    item.get("fecha_inicio", ""),
+                    item.get("fecha_fin", ""),
+                    item.get("fecha_solicitud", ""),
+                    item.get("fecha_liquidacion", ""),
+                    item.get("monto_solicitado", ""),
+                    item.get("gasto", ""),
+                    item.get("reembolso", "")
+                )
+            
+            self.tree.insert("", tk.END, values=values)
+        
+        # Actualizar contador
+        self.update_status_bar(len(data))
+    
+    def update_status_bar(self, count):
+        """Actualiza la barra de estado con el conteo de registros"""
+        # Puedes implementar una barra de estado si es necesario
+        pass
+    
+    def clear_filters(self):
+        """Limpia todos los filtros"""
+        for entry in self.filter_entries.values():
+            entry.delete(0, tk.END)
+        
+        # Aplicar filtros (que ahora estarán vacíos)
+        self.apply_filters()
+    
+    def refresh_report(self):
+        """Refresca el reporte actual"""
+        self.load_report_data()
+    
+    def on_item_selected(self, event):
+        """Maneja la selección de un item en la tabla"""
+        selection = self.tree.selection()
+        if not selection:
+            return
+        
+        # Puedes implementar acciones al seleccionar un item
+        # Por ejemplo, mostrar detalles
+        
+        # item = self.tree.item(selection[0])
+        # values = item['values']
+        # print(f"Selected: {values}")
+    
+    def update_export_button(self):
+        """Actualiza el botón de exportación"""
+        # Limpiar frame del botón
+        for widget in self.export_button_frame.winfo_children():
+            widget.destroy()
+        
+        # Solo mostrar para reporte de dietas
+        if self.current_report_type == "diets":
+            title = "Reporte de Dietas - Sistema de Gestión de Dietas"
+            create_export_button(
+                self.export_button_frame,
+                self.tree,
+                title,
+                button_text="📤 Exportar Reporte de Dietas",
+                pack_options={'side': tk.RIGHT, 'padx': 5, 'pady': 5},
+                include_print=True
+            )
+    
+    def show_initial_message(self):
+        """Muestra mensaje inicial"""
+        self._clear_table()
+        
+        # Mostrar mensaje en la tabla
+        self.tree["columns"] = ("#1",)
+        self.tree.heading("#1", text="Seleccione un tipo de reporte")
+        self.tree.column("#1", width=400, anchor="center")
+        
+        self.tree.insert("", tk.END, values=("👈 Use los botones de arriba para seleccionar el tipo de reporte",))

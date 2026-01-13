@@ -3,6 +3,7 @@ from application.services.account_service import AccountService
 from application.services.card_service import CardService
 from application.services.card_transaction_service import CardTransactionService
 from application.services.department_service import DepartmentService
+from application.services.report_service import ReportService  
 from core.entities import card_transaction
 from core.repositories import card_transaction_repository
 from core.use_cases.account import create_account_use_case
@@ -260,9 +261,17 @@ def main():
             validate_account_number_use_case = validate_account_number_use_case
         )
 
+        report_service = ReportService(
+            card_repo = card_repository,
+            diet_repo = diet_repository,
+            request_user_repo = request_user_repository,
+            department_repo = department_repository,
+            liquidation_repo = diet_liquidation_repository
+        )
+
         # # Crear usuario admin por defecto
         initialize_admin_user(user_service)
-
+        
 
         # Inicializar casos de uso de autenticación
         login_use_case = LoginUseCase(user_repository, password_hasher)
@@ -282,7 +291,8 @@ def main():
                 card_service,
                 diet_service,
                 account_service, 
-                card_transaction
+                card_transaction,
+                report_service=report_service
                 )
             dashboard.run()
 
