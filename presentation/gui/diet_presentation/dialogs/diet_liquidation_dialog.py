@@ -92,7 +92,6 @@ class DietLiquidationDialog(tk.Toplevel):
             return total
             
         except Exception as e:
-            print(f"ERROR calculando total: {e}")
             return 0.0
 
     def create_widgets(self):

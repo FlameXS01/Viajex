@@ -8,7 +8,9 @@ from presentation.gui.utils.data_exporter import TreeviewExporter, create_export
 
 class ReportModule(ttk.Frame):
     """
-    Módulo de reportes del sistema - Versión completa con filtros por columna
+    
+    Módulo de reportes del sistema 
+    
     """
     
     def __init__(self, parent, report_service, department_service, 
@@ -55,6 +57,7 @@ class ReportModule(ttk.Frame):
         # 5. Botón de exportación (se mostrará solo para dietas)
         self.export_button_frame = ttk.Frame(main_frame)
         self.export_button_frame.pack(fill=tk.X, pady=(0, 5))
+        
         
         # 6. Botón de limpiar filtros
         ttk.Button(main_frame, text="🧹 Limpiar Filtros", 
@@ -142,44 +145,62 @@ class ReportModule(ttk.Frame):
         # Definir columnas según tipo de reporte
         if self.current_report_type == "cards":
             columns = [
-                ("Número de Tarjeta", "numero_tarjeta", 150),
-                ("PIN", "pin", 100),
-                ("Balance", "balance", 120),
-                ("Estado", "estado", 120)
+                ("Número de Tarjeta", "numero_tarjeta", 150, "entry"),
+                ("PIN", "pin", 100, "entry"),
+                ("Balance", "balance", 120, "entry"),
+                ("Estado", "estado", 120, "entry")
             ]
+            filters_per_row = 4  # Siempre 1 fila para tarjetas
         else:  # diets
             columns = [
-                ("No. Anticipo", "no_anticipo", 100),
-                ("No. Liquidación", "no_liquidacion", 120),
-                ("Descripción", "descripcion", 200),
-                ("Solicitante", "solicitante", 150),
-                ("Departamento", "departamento", 150),
-                ("Fecha Inicio", "fecha_inicio", 100),
-                ("Fecha Fin", "fecha_fin", 100),
-                ("Fecha Solicitud", "fecha_solicitud", 120),
-                ("Fecha Liquidación", "fecha_liquidacion", 120),
-                ("Monto Solicitado", "monto_solicitado", 120)
+                ("No.A", "no_anticipo", 100, "entry"),
+                ("No.L", "no_liquidacion", 120, "entry"),
+                ("Descripción", "descripcion", 200, "entry"),
+                ("Solicitante", "solicitante", 150, "entry"),
+                ("Departamento", "departamento", 150, "entry"),
+                ("Fecha Inicio", "fecha_inicio", 100, "entry"),
+                ("Fecha Fin", "fecha_fin", 100, "entry"),
+                ("Fecha Solicitud", "fecha_solicitud", 120, "entry"),
+                ("Fecha Liquidación", "fecha_liquidacion", 120, "entry"),
+                ("S.E", "monto_solicitado_efec", 120, "entry"),
+                ("S.T", "monto_solicitado_card", 120, "entry"),
+                ("G.E", "gasto_efec", 120, "entry"),
+                ("G.T", "gasto_card", 120, "entry"),
+                ("Estado", "estado", 120, "combobox") 
             ]
+            # Calcular dinámicamente cuántos filtros por fila
+            filters_per_row = max(7, min(14, self.filter_frame.winfo_width() // 160))
         
         # Crear etiquetas y entradas para cada columna
-        for idx, (display_name, key, width) in enumerate(columns):
+        for idx, (display_name, key, width, widget_type) in enumerate(columns):
+            # Calcular fila y columna
+            row = idx // filters_per_row
+            col = idx % filters_per_row
+            
             # Frame para cada filtro
             filter_item_frame = ttk.Frame(self.filter_frame)
-            filter_item_frame.pack(side=tk.LEFT, padx=5, pady=5)
+            filter_item_frame.grid(row=row, column=col, padx=5, pady=5, sticky="nsew")
             
             # Etiqueta
             label = ttk.Label(filter_item_frame, text=display_name, font=("Arial", 9, "bold"))
             label.pack(anchor="w")
             
-            # Entrada de filtro
-            entry = ttk.Entry(filter_item_frame, width=15)
-            entry.pack(fill=tk.X)
-            
-            # Vincular evento de tecla para filtrado en tiempo real
-            entry.bind("<KeyRelease>", lambda e, k=key: self.apply_filters())
-            
-            # Guardar referencia
-            self.filter_entries[key] = entry
+            if widget_type == "combobox" and key == "estado":
+                combo = ttk.Combobox(filter_item_frame, width=13, state="readonly")
+                combo['values'] = ("Todas", "Solicitadas", "Liquidadas")
+                combo.set("Todas")
+                combo.pack(fill=tk.X)
+                combo.bind("<<ComboboxSelected>>", lambda e, k=key: self.apply_filters())
+                self.filter_entries[key] = combo
+            else:
+                entry = ttk.Entry(filter_item_frame, width=15)
+                entry.pack(fill=tk.X)
+                entry.bind("<KeyRelease>", lambda e, k=key: self.apply_filters())
+                self.filter_entries[key] = entry
+        
+        # Configurar pesos de columnas
+        for i in range(filters_per_row):
+            self.filter_frame.columnconfigure(i, weight=1)
     
     def load_report_data(self):
         """Carga los datos del reporte seleccionado"""
@@ -230,8 +251,8 @@ class ReportModule(ttk.Frame):
         
         # Definir columnas
         columns = [
-            ("No. Anticipo", 100, "c"),  # 'c' para centrado
-            ("No. Liquidación", 120, "c"),
+            ("No.A", 100, "c"),  # 'c' para centrado
+            ("No.L", 120, "c"),
             ("Descripción", 200),
             ("Solicitante", 150),
             ("Departamento", 150),
@@ -239,7 +260,11 @@ class ReportModule(ttk.Frame):
             ("Fecha Fin", 100, "c"),
             ("Fecha Solicitud", 120, "c"),
             ("Fecha Liquidación", 120, "c"),
-            ("Monto Solicitado", 120, "e")
+            ("S.E", 120, "e"),
+            ("S.T", 120, "e"),
+            ("G.E", 120, "e"),   
+            ("G.T", 120, "e"),
+            ("Estado", 120, "e")
         ]
         
         # Configurar columnas
@@ -275,8 +300,18 @@ class ReportModule(ttk.Frame):
         
         # Obtener valores de filtro
         filters = {}
-        for key, entry in self.filter_entries.items():
-            value = entry.get().strip()
+        for key, widget in self.filter_entries.items():
+            value = widget.get().strip()
+            
+            # Manejar caso especial del combobox de estado
+            if key == "estado" and self.current_report_type == "diets":
+                if value == "Todas":
+                    continue  # No aplicar filtro
+                elif value == "Solicitadas":
+                    value = "REQUESTED"
+                elif value == "Liquidadas":
+                    value = "LIQUIDATED"
+            
             if value:
                 filters[key] = value
         
@@ -312,6 +347,14 @@ class ReportModule(ttk.Frame):
                     item.get("estado", "")
                 )
             else:  # diets
+                estado_raw = item.get("estado", "").upper()
+                if estado_raw == "LIQUIDATED":
+                    estado = "Liquidado"
+                elif estado_raw == "REQUESTED":
+                    estado = "Solicitado"
+                else:
+                    estado = estado_raw
+
                 values = (
                     item.get("no_anticipo", ""),
                     item.get("no_liquidacion", ""),
@@ -322,7 +365,12 @@ class ReportModule(ttk.Frame):
                     item.get("fecha_fin", ""),
                     item.get("fecha_solicitud", ""),
                     item.get("fecha_liquidacion", ""),
-                    item.get("monto_solicitado", "")
+                    item.get("monto_solicitado_efec", ""),
+                    item.get("monto_solicitado_card", ""), 
+                    item.get("gasto_efec", ""),   
+                    item.get("gasto_card", ""),
+                    estado
+
                 )
             
             self.tree.insert("", tk.END, values=values)
@@ -337,12 +385,15 @@ class ReportModule(ttk.Frame):
     
     def clear_filters(self):
         """Limpia todos los filtros"""
-        for entry in self.filter_entries.values():
-            entry.delete(0, tk.END)
+        for key, widget in self.filter_entries.items():
+            if isinstance(widget, ttk.Combobox) and key == "estado" and self.current_report_type == "diets":
+                widget.set("Todas")  # Resetear combobox a valor por defecto
+            else:
+                widget.delete(0, tk.END)
         
         # Aplicar filtros (que ahora estarán vacíos)
         self.apply_filters()
-    
+        
     def refresh_report(self):
         """Refresca el reporte actual"""
         self.load_report_data()
@@ -361,12 +412,12 @@ class ReportModule(ttk.Frame):
         
         # Solo mostrar para reporte de dietas
         if self.current_report_type == "diets":
-            title = "Reporte de Dietas - Sistema de Gestión de Dietas"
+            title = "Reportes Generales"
             create_export_button(
                 self.export_button_frame,
                 self.tree,
                 title,
-                button_text="📤 Exportar Reporte de Dietas",
+                button_text="📤 Exportar Reporte",
                 pack_options={'side': tk.RIGHT, 'padx': 5, 'pady': 5},
                 include_print=True
             )

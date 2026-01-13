@@ -167,7 +167,6 @@ class DietInfoDialog(tk.Toplevel):
             
             return breakfast_total + lunch_total + dinner_total + accommodation_total
         except Exception as e:
-            print(f"Error calculando total: {e}")
             return 0.0
     
     def center_on_parent(self, parent):

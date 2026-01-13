@@ -249,7 +249,7 @@ def main():
             record_card_transaction_use_case = record_card_transaction_use_case
         )
 
-         # Inicializar servicio de usuarios
+        # Inicializar servicio de usuarios
         account_service = AccountService(
             create_account_use_case = create_account_use_case,
             delete_account_use_case = delete_account_use_case,
@@ -266,7 +266,8 @@ def main():
             diet_repo = diet_repository,
             request_user_repo = request_user_repository,
             department_repo = department_repository,
-            liquidation_repo = diet_liquidation_repository
+            liquidation_repo = diet_liquidation_repository,
+            diet_service = diet_service_repository
         )
 
         # # Crear usuario admin por defecto

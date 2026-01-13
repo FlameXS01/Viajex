@@ -58,7 +58,7 @@ class MainDashboard:
         self.root.withdraw()
         self._load_icons()
         self.root.state('zoomed')
-        self.root.minsize(1000, 600)
+        self.root.minsize(1000, 650)
         
         # Configurar cierre seguro
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -450,6 +450,7 @@ class MainDashboard:
                     self.request_user_service     
                 )
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
+                
 
             elif module_name == 'departments':
                 self.current_module_instance = DepartmentModule(self.module_container, self.department_service)
