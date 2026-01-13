@@ -12,7 +12,7 @@ from tkinter import filedialog, messagebox
 import pandas as pd
 from presentation.gui.utils.progress_dialog import show_progress_dialog, ProgressDialog
 from presentation.gui.card_presentation.card_main_window import CardMainWindow
-from presentation.gui.reports_presentation.reports_module import ReportModule
+from presentation.gui.reports_presentation.reports_module import ReportModule  
 from presentation.gui.department_presentation.department_module import DepartmentModule
 from presentation.gui.request_user_presentation.request_user_module import RequestUserModule
 from presentation.gui.diet_presentation.diet_module import DietModule
@@ -24,8 +24,9 @@ class MainDashboard:
     """Dashboard principal con navegación tipo SPA - VERSIÓN CORREGIDA"""
     
     def __init__(self, user, user_service, auth_service, department_service, 
-                request_user_service, card_service, diet_service, account_service, card_transaction_service, settings_service=None, database_service=None
-                ):
+                request_user_service, card_service, diet_service, account_service, 
+                card_transaction_service, report_service=None, settings_service=None, database_service=None
+                ):  # Agregado report_service como parámetro
         self.user = user
         self.user_service = user_service
         self.auth_service = auth_service
@@ -38,6 +39,7 @@ class MainDashboard:
         self.database_service = database_service
         self.account_service = account_service
         self.card_transaction_service = card_transaction_service
+        self.report_service = report_service  # Guardar report_service
 
         if database_service is None:
             try:
@@ -438,13 +440,14 @@ class MainDashboard:
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
                 
             elif module_name == 'reports':
-                # Usando la importación ya existente al principio del archivo
                 self.current_module_instance = ReportModule(
                     self.module_container,
-                    self.card_service,
-                    self.diet_service,
-                    self.request_user_service,
-                    self.department_service
+                    self.report_service,          
+                    self.department_service,      
+                    self.user_service,            
+                    self.card_service,            
+                    self.diet_service,            
+                    self.request_user_service     
                 )
                 self.current_module_instance.pack(fill=tk.BOTH, expand=True)
 
