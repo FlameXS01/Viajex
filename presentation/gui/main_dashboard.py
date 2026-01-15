@@ -75,8 +75,8 @@ class MainDashboard:
     def _load_icons(self):
         """Carga y redimensiona iconos usando Pillow"""
         self.icons = {}
-        sidebar_icon_size = (20, 20)  # Tamaño para botones del sidebar
-        app_icon_size = (32, 32)      # Tamaño MÁS GRANDE para el icono de la app
+        sidebar_icon_size = (20, 20)  
+        app_icon_size = (32, 32)      
         
         # Mapeo de nombres de iconos
         icon_files = {

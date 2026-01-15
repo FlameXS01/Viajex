@@ -191,7 +191,7 @@ class ReportModule(ttk.Frame):
                 ("Número de Tarjeta", "numero_tarjeta", 150, "entry"),
                 ("PIN", "pin", 100, "entry"),
                 ("Balance", "balance", 120, "entry"),
-                ("Estado", "estado", 120, "entry")
+                ("Estado", "estado", 120, "combobox")
             ]
             filters_per_row = 4
         else:
@@ -221,7 +221,13 @@ class ReportModule(ttk.Frame):
             
             if widget_type == "combobox" and key == "estado":
                 combo = ttk.Combobox(filter_item_frame, width=13, state="readonly")
-                combo['values'] = ("Todas", "Solicitadas", "Liquidadas")
+                
+                # Diferentes valores para tarjetas vs dietas
+                if self.current_report_type == "cards":
+                    combo['values'] = ("Todas", "Activas", "Inactivas")
+                else:  # diets
+                    combo['values'] = ("Todas", "Solicitadas", "Liquidadas")
+                    
                 combo.set("Todas")
                 combo.pack(fill=tk.X)
                 combo.bind("<<ComboboxSelected>>", lambda e, k=key: self.apply_filters())
@@ -330,6 +336,13 @@ class ReportModule(ttk.Frame):
                     value = "REQUESTED"
                 elif value == "Liquidadas":
                     value = "LIQUIDATED"
+            elif key == "estado" and self.current_report_type == "cards":
+                if value == "Todas":
+                    continue
+                elif value == "Activas":
+                    value = "+"
+                elif value == "Inactivas":
+                    value = "-"
             
             if value:
                 filters[key] = value
@@ -491,21 +504,85 @@ class ReportModule(ttk.Frame):
             return
     
     def update_export_button(self):
+        """Actualiza el botón de exportación"""
+        # Limpiar frame del botón
         for widget in self.export_button_frame.winfo_children():
             widget.destroy()
         
-        if self.current_report_type == "diets":
-            title = "Reportes Generales"
-            create_export_button(
-                self.export_button_frame,
-                self.tree,
-                title,
-                button_text="📤 Exportar Reporte",
-                pack_options={'side': tk.RIGHT, 'padx': 5, 'pady': 5},
-                include_print=True, 
-                export_type='report_module'
+        # Solo mostrar si hay un tipo de reporte seleccionado
+        if self.current_report_type:
+            # Crear un frame contenedor para el título y el botón
+            export_container = ttk.Frame(self.export_button_frame)
+            export_container.pack(side=tk.RIGHT, padx=5, pady=5)
+            
+            # Frame para el título personalizado
+            title_frame = ttk.Frame(export_container)
+            title_frame.pack(side=tk.LEFT, padx=(0, 5))
+            
+            # Etiqueta para el campo de título
+            ttk.Label(title_frame, text="Título:").pack(side=tk.LEFT, padx=(0, 5))
+            
+            # Entry para el título personalizado
+            self.custom_title_var = tk.StringVar()
+            if self.current_report_type == "cards":
+                self.custom_title_var.set("Reporte de Tarjetas")
+            else:
+                self.custom_title_var.set("Reporte de Dietas")
+                
+            self.title_entry = ttk.Entry(title_frame, textvariable=self.custom_title_var, width=25)
+            self.title_entry.pack(side=tk.LEFT)
+            
+            # Función para obtener el título
+            def get_title():
+                custom_title = self.custom_title_var.get().strip()
+                if custom_title:
+                    return custom_title
+                else:
+                    return "Reporte de Tarjetas" if self.current_report_type == "cards" else "Reporte de Dietas"
+            
+            # Botón de exportar
+            export_btn = ttk.Button(
+                export_container,
+                text="📤 Exportar Reporte",
+                command=lambda: self._show_export_menu(get_title)
             )
-    
+            export_btn.pack(side=tk.LEFT)
+            
+            # También agregar menú contextual al Treeview
+            self.tree.bind("<Button-3>", lambda e: self._show_export_menu(get_title, e)) 
+
+    def _show_export_menu(self, title_func, event=None):
+        """Muestra el menú de exportación con el título personalizado"""
+        from tkinter import Menu
+        
+        def show_menu(event=None):
+            menu = Menu(self.export_button_frame, tearoff=0)
+            
+            # Obtener el título actual
+            current_title = title_func()
+            
+            # Solo agregar opciones disponibles
+            if hasattr(TreeviewExporter, 'export_to_excel_full_columns'):
+                menu.add_command(
+                    label="📊 Excel ",
+                    command=lambda: TreeviewExporter.export_to_excel_full_columns(self.tree, current_title),
+                    font=('Arial', 10)
+                )
+            
+            if event:
+                try:
+                    menu.tk_popup(event.x_root, event.y_root)
+                finally:
+                    menu.grab_release()
+            else:
+                # Si no hay evento, mostrar cerca del botón
+                btn = self.export_button_frame.winfo_children()[0].winfo_children()[-1]
+                x = btn.winfo_rootx()
+                y = btn.winfo_rooty() + btn.winfo_height()
+                menu.tk_popup(x, y)
+        
+        show_menu(event)
+
     def show_initial_message(self):
         self._clear_table()
         

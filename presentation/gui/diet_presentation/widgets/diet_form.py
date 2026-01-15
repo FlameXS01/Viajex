@@ -426,7 +426,7 @@ class DietForm(ttk.Frame):
         )
         self.end_date_entry.grid(row=0, column=3, sticky=tk.W, padx=(0, 15))
         
-        default_end = (datetime.now() + timedelta(days=1)).strftime("%d/%m/%Y")
+        default_end = datetime.now().strftime("%d/%m/%Y")
         self.end_date_var.set(default_end)
 
         # Grupo 3: Fecha de Solicitud

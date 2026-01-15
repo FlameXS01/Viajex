@@ -32,10 +32,10 @@ class ReportService:
         
         report_data = []
         for card in cards:
-            # Determinar estado basado en is_active y with_money
-            estado = "Activa"
             if not card.is_active:
-                estado = "Inactiva"
+                estado = "-Inactiva"
+            else: 
+                estado = "+Activa"
 
             
             report_data.append({

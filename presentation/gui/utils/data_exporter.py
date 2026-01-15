@@ -1839,7 +1839,7 @@ class TreeviewExporter:
             filename = filedialog.asksaveasfilename(
                 defaultextension=".xlsx",
                 filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
-                title="Guardar como Excel (Todas las columnas)"
+                title="Guardar como Excel "
             )
             
         if not filename:
@@ -1917,7 +1917,7 @@ class TreeviewExporter:
             # Escribir título principal
             ws.merge_cells(f'A1:{get_column_letter(len(headers))}1')
             title_cell = ws['A1']
-            title_cell.value = f"{title} - Todas las columnas"
+            title_cell.value = f"{title}"
             title_cell.font = Font(size=14, bold=True, color="2c3e50")
             title_cell.alignment = Alignment(horizontal='center', vertical='center')
             
@@ -2385,6 +2385,17 @@ class TreeviewExporter:
                 
                 current_row += 1
                 
+                # Variables para total de balance
+                total_balance = 0
+                balance_col_idx = None
+                
+                # Detectar índice de columna balance si existe
+                for col_idx, header in enumerate(headers):
+                    header_str = str(header).lower()
+                    if any(keyword in header_str for keyword in ['balance', 'saldo', 'monto', 'total']):
+                        balance_col_idx = col_idx
+                        break
+                
                 # Datos
                 for row_idx, row in enumerate(data):
                     for col_idx, cell_data in enumerate(row, start=1):
@@ -2392,7 +2403,21 @@ class TreeviewExporter:
                         
                         # Convertir montos a números
                         cell_str = str(cell_data) if cell_data is not None else ""
-                        if cell_str.startswith('$'):
+                        
+                        # Verificar si es la columna de balance para acumular total
+                        if balance_col_idx is not None and (col_idx - 1) == balance_col_idx:
+                            # Limpiar y convertir a número
+                            clean_str = cell_str.replace('$', '').replace(',', '').replace(' ', '').strip()
+                            if clean_str.replace('.', '', 1).isdigit():
+                                try:
+                                    num_value = float(clean_str)
+                                    cell.value = num_value
+                                    cell.number_format = '0.00'
+                                    cell.alignment = Alignment(horizontal='right')
+                                    total_balance += num_value
+                                except (ValueError, TypeError):
+                                    cell.value = cell_str
+                        elif cell_str.startswith('$'):
                             clean_str = cell_str.replace('$', '').replace(',', '').replace(' ', '').strip()
                             if clean_str.replace('.', '', 1).isdigit():
                                 try:
@@ -2401,7 +2426,7 @@ class TreeviewExporter:
                                     cell.alignment = Alignment(horizontal='right')
                                 except (ValueError, TypeError):
                                     cell.value = cell_str
-                        
+                    
                     # Fondo alternado
                     if row_idx % 2 == 0:
                         for col_idx in range(1, len(headers) + 1):
@@ -2410,6 +2435,28 @@ class TreeviewExporter:
                             )
                     
                     current_row += 1
+                
+                # Agregar fila de total de balance si se detectó la columna
+                if balance_col_idx is not None:
+                    # Fila de total
+                    total_row = current_row
+                    
+                    # Crear fila de total
+                    for col_idx in range(1, len(headers) + 1):
+                        cell = ws.cell(row=total_row, column=col_idx)
+                        
+                        # Poner total en la columna de balance
+                        if (col_idx - 1) == balance_col_idx:
+                            cell.value = total_balance
+                            cell.number_format = '0.00'
+                            cell.font = Font(bold=True, color="2c3e50")
+                            cell.fill = PatternFill(start_color="FFF3CD", end_color="FFF3CD", fill_type="solid")
+                        elif col_idx == 1:  # Primera columna
+                            cell.value = "TOTAL"
+                            cell.font = Font(bold=True, italic=True)
+                            cell.fill = PatternFill(start_color="FFF3CD", end_color="FFF3CD", fill_type="solid")
+                    
+                    current_row += 1  # Para espacio después del total
             
             # Aplicar bordes a todas las celdas con datos
             thin_border = Border(
@@ -2449,11 +2496,11 @@ class TreeviewExporter:
             # Mensaje de éxito
             if indices['departamento'] is not None:
                 message = (
-                    f"✅ EXCEL CON TODAS LAS COLUMNAS:\n\n"
+                    f"✅ EXCEL :\n\n"
                     f"📂 {filename}\n\n"
                 )
             else:
-                message = f"✅ Excel con todas las columnas exportado:\n\n{filename}"
+                message = f"✅ Excel exportado:\n\n{filename}"
             
             messagebox.showinfo("Exportación exitosa", message)
             return filename
@@ -2465,7 +2512,7 @@ class TreeviewExporter:
             return None
         
 @staticmethod
-def create_export_button(parent, tree: ttk.Treeview, title: str, 
+def create_export_button(parent, tree: ttk.Treeview, title, 
                         button_text: str = "📤 Exportar", 
                         pack_options: dict = None,
                         include_print: bool = True,
